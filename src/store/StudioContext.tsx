@@ -82,6 +82,8 @@ interface StudioValue {
 
   job: Job | null;
   generate: () => void;
+  /** Re-run an existing asset's source image against a new prompt. */
+  regenerate: (asset: Asset, prompt: string) => void;
   cancel: () => void;
 
   assets: Asset[];
@@ -352,6 +354,33 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     })();
   }, [settings, health, runRemote, runSimulated, patchJob]);
 
+  /**
+   * Same pipeline as generate(), but seeded from an asset already on screen:
+   * its source image is pulled back in as the reference so the new prompt is
+   * applied to the same subject rather than starting from nothing.
+   */
+  const regenerate = useCallback((asset: Asset, prompt: string) => {
+    if (running.current) return;
+    const src = asset.sourceRef ?? asset.thumbUrl;
+    if (!src) return;
+    const name = src.split('/').pop() ?? 'reference.png';
+    clearImages();
+    addFromUrl(src, name).then(() => {
+      patch({ prompt, engine: asset.engine, inputMode: 'image', mode: 'image-to-3d', compare: false });
+      // let the patched settings land before the run reads them
+      setTimeout(() => setPendingRun((n) => n + 1), 60);
+    });
+  }, [addFromUrl, clearImages, patch]);
+
+  // generate() closes over settings, so a regenerate has to fire on the render
+  // after the patch rather than inline, or it would use the previous prompt.
+  const [pendingRun, setPendingRun] = useState(0);
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    generate();
+  }, [pendingRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const cancel = useCallback(() => { abort.current = true; setJob(null); running.current = false; }, []);
   useEffect(() => () => { abort.current = true; }, []);
 
@@ -389,13 +418,13 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const value = useMemo<StudioValue>(() => ({
     settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
-    job, generate, cancel,
+    job, generate, regenerate, cancel,
     assets, exploreAssets, toggleLike, removeAsset,
     activeAsset, openAsset: setActiveAsset, closeAsset: () => setActiveAsset(null),
     comparison, openComparison: setComparison, closeComparison: () => setComparison(null),
     shelfTab, setShelfTab,
     health, backendOnline: !!health, credits, estimate, price, runCost,
-  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages, job, generate,
+  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages, job, generate, regenerate,
       cancel, assets, exploreAssets, toggleLike, removeAsset, activeAsset, comparison, shelfTab,
       health, credits, estimate, price, runCost]);
 

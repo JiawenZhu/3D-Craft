@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ArrowLeft, Box, Camera, Copy, Download, Expand, Grid3x3, Heart, Info, Layers, Lightbulb,
-  Maximize2, RefreshCw, RotateCw, Trash2, ZoomIn, ZoomOut,
+  Maximize2, RefreshCw, RotateCw, Trash2, Wand2, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
@@ -35,7 +35,7 @@ const slug = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'model';
 
 export const Workbench: React.FC = () => {
-  const { activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset, patch, settings } = useStudio();
+  const { activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset, patch, settings, regenerate, job, price } = useStudio();
   const [shading, setShading] = useState<ViewportShading>('material');
   const [light, setLight] = useState<StudioLight>('studio');
   const [autoRotate, setAutoRotate] = useState(true);
@@ -44,6 +44,7 @@ export const Workbench: React.FC = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(true);
   const [trim, setTrim] = useState<LightTrim>({ directional: 1, environment: 1, exposure: 1 });
+  const [reprompt, setReprompt] = useState('');
   const view = useRef<ViewportHandle>(null);
   const stage = useRef<HTMLElement>(null);
 
@@ -58,6 +59,7 @@ export const Workbench: React.FC = () => {
   if (!activeAsset) return null;
   const a = activeAsset;
   const engine = engineById(a.engine);
+  const running = job && job.stage !== 'done' && job.stage !== 'failed';
   const siblings = [...assets, ...exploreAssets].filter((x) => x.id !== a.id).slice(0, 8);
 
   const stat = (k: string, v: string) => (
@@ -145,6 +147,39 @@ export const Workbench: React.FC = () => {
               {a.note}
             </p>
           )}
+
+          {/* Re-prompt in place: same source image, new wording. */}
+          <div className="mb-5 rounded-2xl border border-white/[0.07] bg-black/20 p-3">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-chalk-faint">
+              <Wand2 className="h-3 w-3" /> Regenerate
+            </div>
+            <textarea
+              rows={3}
+              value={reprompt}
+              onChange={(e) => setReprompt(e.target.value)}
+              placeholder={a.prompt || 'Describe the change…'}
+              className="mb-2 w-full resize-none rounded-lg border border-white/8 bg-white/[0.03] p-2 text-[11px] leading-relaxed text-chalk placeholder:text-chalk-ghost focus:border-white/25"
+            />
+            <button
+              disabled={!reprompt.trim() || !!running || !(a.sourceRef || a.thumbUrl)}
+              onClick={() => { regenerate(a, reprompt.trim()); closeAsset(); }}
+              className={cn(
+                'flex w-full items-center justify-center gap-2 rounded-full py-2 text-[12px] font-semibold transition-all',
+                reprompt.trim() && !running && (a.sourceRef || a.thumbUrl)
+                  ? 'text-ink hover:brightness-110' : 'cursor-not-allowed bg-white/[0.05] text-chalk-ghost',
+              )}
+              style={reprompt.trim() && !running && (a.sourceRef || a.thumbUrl)
+                ? { backgroundImage: 'var(--g-accent)' } : undefined}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {running ? 'Generating…' : `Regenerate · $${(price(a.engine)).toFixed(2)}`}
+            </button>
+            <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
+              {(a.sourceRef || a.thumbUrl)
+                ? 'Runs the same source image against your new wording, as a new asset — this one is kept.'
+                : 'No source image on this asset, so it cannot be re-prompted.'}
+            </p>
+          </div>
 
           <div className="space-y-2">
             <button

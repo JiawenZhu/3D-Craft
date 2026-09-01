@@ -106,13 +106,17 @@ const StudioEnvironment: React.FC<{ rig: Rig }> = ({ rig }) => (
     <Lightformer form="rect" intensity={rig.env * 3.2} color={rig.softbox}
                  position={[0, 5, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[12, 12, 1]} />
     {/* front fill so faces pointed at camera are never black */}
-    <Lightformer form="rect" intensity={rig.env * 1.7} color={rig.softbox}
+    <Lightformer form="rect" intensity={rig.env * 1.5} color={rig.softbox}
                  position={[0, 1, 6]} rotation={[0, 0, 0]} scale={[10, 8, 1]} />
-    {/* side wraps */}
-    <Lightformer form="rect" intensity={rig.env * 1.3} color={rig.softbox}
-                 position={[-6, 1.5, 1]} rotation={[0, Math.PI / 2, 0]} scale={[8, 8, 1]} />
-    <Lightformer form="rect" intensity={rig.env * 1.3} color={rig.rimColor}
-                 position={[6, 1.5, 1]} rotation={[0, -Math.PI / 2, 0]} scale={[8, 8, 1]} />
+    {/* Side and back wraps are deliberately symmetric. An asymmetric rig made the
+        model visibly brighter from some angles than others as it turned, which
+        reads as the exposure shifting rather than as directional lighting. */}
+    <Lightformer form="rect" intensity={rig.env * 1.35} color={rig.softbox}
+                 position={[-6, 1.5, 0]} rotation={[0, Math.PI / 2, 0]} scale={[9, 9, 1]} />
+    <Lightformer form="rect" intensity={rig.env * 1.35} color={rig.softbox}
+                 position={[6, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]} scale={[9, 9, 1]} />
+    <Lightformer form="rect" intensity={rig.env * 1.5} color={rig.softbox}
+                 position={[0, 1, -6]} rotation={[0, Math.PI, 0]} scale={[10, 8, 1]} />
     {/* bounce off the floor, so undersides read instead of going to black */}
     <Lightformer form="rect" intensity={rig.env * 0.9} color={rig.floor}
                  position={[0, -4, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[12, 12, 1]} />
@@ -268,6 +272,9 @@ export const Viewport = forwardRef<ViewportHandle, {
       <hemisphereLight intensity={rig.ambient} color={rig.softbox} groundColor={rig.floor} />
       <directionalLight position={[4, 6, 4]} intensity={rig.key} color={rig.keyColor} castShadow shadow-mapSize={[2048, 2048]} />
       <directionalLight position={[-5, 2, -3]} intensity={rig.rim} color={rig.rimColor} />
+      {/* a second fill opposite the key keeps the far side from going flat-dark
+          as the turntable brings it round */}
+      <directionalLight position={[3, 1, -5]} intensity={rig.key * 0.35} color={rig.keyColor} />
 
       <Suspense fallback={<Html center><span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] text-chalk backdrop-blur">loading mesh…</span></Html>}>
         {/* Generated meshes arrive at wildly different scales, so frame to the
