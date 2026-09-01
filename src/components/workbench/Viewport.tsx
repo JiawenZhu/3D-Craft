@@ -1,6 +1,6 @@
 import React, { Suspense, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { Center, ContactShadows, Grid, Html, OrbitControls, useGLTF } from '@react-three/drei';
+import { Bounds, Center, ContactShadows, Grid, Html, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Asset, StudioLight, ViewportShading } from '../../types';
 import { absolute } from '../../lib/api';
@@ -144,13 +144,17 @@ export const Viewport: React.FC<{
       <directionalLight position={[0, -3, 5]} intensity={rig.fill} color="#ffffff" />
 
       <Suspense fallback={<Html center><span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] text-chalk backdrop-blur">loading mesh…</span></Html>}>
-        <Spin on={autoRotate}>
-          <Center>
-            <Shaded shading={shading}>
-              {url ? <LoadedModel url={url} /> : <Placeholder asset={asset} />}
-            </Shaded>
-          </Center>
-        </Spin>
+        {/* Generated meshes arrive at wildly different scales, so frame to the
+            bounding box rather than trusting a fixed camera distance. */}
+        <Bounds fit clip observe margin={1.15} key={url ?? asset.id}>
+          <Spin on={autoRotate}>
+            <Center>
+              <Shaded shading={shading}>
+                {url ? <LoadedModel url={url} /> : <Placeholder asset={asset} />}
+              </Shaded>
+            </Center>
+          </Spin>
+        </Bounds>
       </Suspense>
 
       <ContactShadows position={[0, -1.15, 0]} opacity={0.55} scale={11} blur={2.6} far={4.5} />
