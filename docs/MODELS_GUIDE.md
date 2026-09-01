@@ -1,35 +1,53 @@
-# Models Guide: Tencent Hunyuan3D-2.1 & Microsoft TRELLIS.2
+# The two engines
 
-This guide details the theoretical foundation, installation methods, and performance characteristics of the two primary 3D foundation models integrated into Rodin 3D Studio.
+## Tencent Hunyuan3D-2.1
 
----
+- Space: <https://huggingface.co/spaces/tencent/Hunyuan3D-2.1>
+- Weights: <https://huggingface.co/tencent/Hunyuan3D-2.1> (public, ungated)
+- Code: <https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1>
 
-## 1. Tencent Hunyuan3D-2.1
+Two stages. **Hunyuan3D-DiT** is a flow-matching shape model that denoises a latent
+into an occupancy field, which is meshed by marching cubes. **Hunyuan3D-Paint** then
+synthesises real PBR maps (albedo / metallic / roughness) onto the mesh.
 
-### Model Overview
-- **Hugging Face Space**: [https://huggingface.co/spaces/tencent/Hunyuan3D-2.1](https://huggingface.co/spaces/tencent/Hunyuan3D-2.1)
-- **Primary Strength**: High-resolution photorealistic and stylized character synthesis with industry-grade PBR texture maps (Albedo, Normal, Roughness).
-- **Core Architecture**:
-  - Employs a multi-view generation stage that synthesizes consistent orthogonal and perspective character views from a single prompt or concept image.
-  - Passes multi-view features into a 3D Diffusion Transformer (DiT) conditioned on point cloud priors to generate a dense, manifold 3D mesh.
-  - Automatically performs non-overlapping UV chart packing and texture projection with neural inpainting for self-occluded regions.
+The shape stage is ordinary PyTorch, so it runs on CUDA, MPS and CPU — this is the
+only part of either engine that works natively on an Apple Silicon Mac. The paint
+stage depends on a custom CUDA rasterizer and does not.
 
----
+Its Space accepts up to four named views (`front` / `back` / `left` / `right`) in
+addition to the primary image.
 
-## 2. Microsoft TRELLIS.2
+> The Space's `/shape_generation` endpoint currently raises `TypeError` for every
+> input; `/generation_all` is the only working entry point, and it requests a 270 s
+> ZeroGPU slot.
 
-### Model Overview
-- **Hugging Face Space**: [https://huggingface.co/spaces/microsoft/TRELLIS.2](https://huggingface.co/spaces/microsoft/TRELLIS.2)
-- **Primary Strength**: Structured 3D Latents (SLaD) producing dual representations: **3D Gaussian Splats** (instant real-time view synthesis) and **Textured Quad Meshes** in under 20 seconds.
-- **Core Architecture**:
-  - Discretizes 3D space into structured latent feature volumes, avoiding traditional NeRF training bottlenecks.
-  - Generates sharp geometric discontinuities, making it ideal for hard-surface armor, mechs, weapons, and complex accessories.
-  - Supports direct extraction of 3D Gaussian Splat PLY files for web/AR rendering alongside standard GLB game engine assets.
+## Microsoft TRELLIS.2
 
----
+- Space: <https://huggingface.co/spaces/microsoft/TRELLIS.2>
+- Weights: <https://huggingface.co/microsoft/TRELLIS-image-large> (public, ungated)
+- Code: <https://github.com/microsoft/TRELLIS>
 
-## 3. Rodin Hybrid Dual-Pass Engine
+**Structured LATents (SLAT)**: a single latent that decodes into a radiance field, a
+set of 3D Gaussians *and* a mesh. Generation is two flow models — a sparse-structure
+pass that decides which voxels are occupied, then a SLAT pass that fills them.
 
-For production-grade game character workflows:
-1. **Pass 1 (TRELLIS.2)**: Extracts the high-density base geometry and hard-surface contours in ~18 seconds.
-2. **Pass 2 (Hunyuan3D-2.1 Texture Refinement)**: Applies multi-view neural texture refinement to bake 4K ray-traced materials with sub-surface scattering approximations.
+Faster than Hunyuan and multi-image native (pose-free). It needs `spconv`,
+`nvdiffrast` and `diff-gaussian-rasterization`, all CUDA-only, so outside an NVIDIA
+box it runs through its Space.
+
+Its Space is stateful: `/start_session` → `/preprocess_image` → `/image_to_3d` →
+`/extract_glb`, all on one client.
+
+## Picking between them
+
+Use the **A/B** toggle next to the engine switcher — it runs one input through both
+and shows them side by side.
+
+| | Hunyuan3D-2.1 | TRELLIS.2 |
+|---|---|---|
+| PBR textures | yes | vertex colour / baked only |
+| Gaussian splat output | no | yes |
+| Multi-image input | 4 named views | native, pose-free |
+| Runs natively off CUDA | shape stage only | no |
+| Relative speed | slower | faster |
+| Licence | Tencent Hunyuan non-commercial | MIT |

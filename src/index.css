@@ -2,36 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #121317;
+  --edge: rgba(255, 255, 255, 0.1);
+  --edge-hi: rgba(255, 255, 255, 0.28);
+  --panel: rgba(28, 29, 33, 0.72);
+  --workbench-panel-w: 504px;
+  --workbench-gallery-w: 337px;
+  --workbench-edge: 40px;
+  --workbench-gap: 16px;
+  color-scheme: dark;
+}
+
 @layer base {
+  html, body, #root { height: 100%; }
   body {
-    @apply bg-[#07090E] text-slate-100;
+    @apply bg-ink text-chalk antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    overscroll-behavior: none;
+  }
+  ::selection { background: rgba(209, 158, 233, 0.3); color: #fff; }
+  button, input, textarea { font: inherit; color: inherit; }
+  input, textarea { background: transparent; outline: none; }
+}
+
+@layer components {
+  /* The frosted pill that every Rodin control is built from */
+  .rd-pill {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border transition-all duration-300;
+    border-color: var(--edge);
+    background: rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(14px);
+  }
+  .rd-pill:hover { border-color: var(--edge-hi); background: rgba(255, 255, 255, 0.07); }
+  .rd-pill[data-active='true'] {
+    border-color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.1);
+    @apply text-white;
+  }
+
+  .rd-panel {
+    @apply rounded-3xl border;
+    border-color: var(--edge);
+    background: var(--panel);
+    backdrop-filter: blur(24px) saturate(120%);
+  }
+
+  .rd-icon-btn {
+    @apply grid place-items-center rounded-full border text-chalk-dim transition-all duration-200;
+    border-color: transparent;
+  }
+  .rd-icon-btn:hover { @apply text-white; background: rgba(255, 255, 255, 0.08); }
+  .rd-icon-btn[data-active='true'] {
+    @apply text-white;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--edge);
+  }
+
+  .rd-accent-text {
+    background: linear-gradient(90deg, #e6765d 0%, #d19ee9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .rd-hairline { @apply h-px w-full; background: var(--edge); }
+}
+
+@layer utilities {
+  .rd-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .rd-scroll::-webkit-scrollbar-track { background: transparent; }
+  .rd-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
+  .rd-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+  .rd-no-scrollbar::-webkit-scrollbar { display: none; }
+  .rd-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Wordmark stroke-draw, mirroring Rodin's .rodin-title-animation */
+.rd-wordmark path {
+  stroke-dasharray: 620;
+  stroke-dashoffset: 620;
+  animation: rd-draw 2.2s cubic-bezier(0.5, 0, 0.2, 1) forwards, rd-fill 1s ease 1.5s forwards;
+}
+@keyframes rd-draw { to { stroke-dashoffset: 0; } }
+@keyframes rd-fill { to { fill: rgba(255, 255, 255, 1); } }
+
+.rd-marquee { animation: rd-marquee 38s linear infinite; }
+@keyframes rd-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ---- Gradients lifted verbatim from hyper3d.ai controls -------------------- */
+:root {
+  --g-accent: linear-gradient(92.72deg, #ff989b 1.22%, #d8a1f1 96.05%);
+  --g-accent-soft: linear-gradient(92.72deg, rgba(255,152,155,.1) 1.22%, rgba(216,161,241,.1) 96.05%);
+  --g-text: linear-gradient(90deg, #e6765d 0%, #d19ee9 100%);
+  --g-engine: linear-gradient(92.72deg, #ea888b 1.22%, #e195c0 50%, #d8a1f1 100%);
+  --g-send: linear-gradient(106.5deg, #d2b6df 14.93%, #ecc16c 108.64%);
+  --g-remix: linear-gradient(320.12deg, #dd971e -6.62%, #1fede6 107.08%);
+  --g-turbo: linear-gradient(91.49deg, rgba(113,161,223,.9) 2.06%, rgba(97,89,255,.9) 98.56%);
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+.rd-grad-text {
+  background-image: var(--g-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
+.rd-grad-text-warm { background-image: var(--g-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rd-grad-text-engine { background-image: var(--g-engine); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rd-grad-text-remix { background-image: var(--g-remix); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rd-grad-text-turbo { background-image: var(--g-turbo); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+/* the soft mauve halo that sits behind the GENERATE button */
+.rd-generate-halo::before {
+  content: '';
+  position: absolute;
+  inset: -30% -14%;
   border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.6);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  background: radial-gradient(closest-side, rgba(210,181,223,.30), rgba(210,181,223,0) 72%);
+  filter: blur(14px);
+  pointer-events: none;
 }

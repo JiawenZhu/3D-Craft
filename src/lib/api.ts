@@ -1,0 +1,75 @@
+import type { Asset, GenerationSettings, Job, RefImage } from '../types';
+
+export const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? 'http://127.0.0.1:8000';
+
+export interface EngineHealth {
+  installed: boolean;
+  loaded: boolean;
+  note: string;
+  /** "local" (native torch) or "space" (hosted Hugging Face Space). */
+  provider: string;
+  /** Wall-clock estimate per effort tier for wherever this engine actually runs. */
+  effortSeconds?: Record<string, number>;
+  /** USD per generation when running through a paid API; 0 when local/free. */
+  pricePerGen?: number;
+}
+export interface Health {
+  status: 'ok';
+  device: string;
+  torch: string;
+  provider: string;
+  engines: Record<string, EngineHealth>;
+}
+
+const timeout = (ms: number) => {
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+};
+
+export async function getHealth(): Promise<Health | null> {
+  try {
+    const r = await fetch(`${API_BASE}/api/health`, { signal: timeout(2500) });
+    if (!r.ok) return null;
+    return (await r.json()) as Health;
+  } catch {
+    return null;
+  }
+}
+
+export async function submitJob(settings: GenerationSettings, images: RefImage[]): Promise<{ job_id: string }> {
+  const fd = new FormData();
+  fd.append('settings', JSON.stringify(settings));
+  // append in lockstep — the server zips images with directions by index
+  images.forEach((img) => {
+    if (!img.file) return;
+    fd.append('images', img.file, img.name);
+    fd.append('directions', img.direction);
+  });
+  const r = await fetch(`${API_BASE}/api/generate`, { method: 'POST', body: fd });
+  if (!r.ok) throw new Error(`generate failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+export async function getJob(id: string): Promise<Job & { assets: Asset[] }> {
+  const r = await fetch(`${API_BASE}/api/jobs/${id}`);
+  if (!r.ok) throw new Error(`job ${id}: ${r.status}`);
+  return r.json();
+}
+
+export async function listAssets(): Promise<Asset[]> {
+  try {
+    const r = await fetch(`${API_BASE}/api/assets`, { signal: timeout(3000) });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteAsset(id: string): Promise<void> {
+  await fetch(`${API_BASE}/api/assets/${id}`, { method: 'DELETE' });
+}
+
+export const absolute = (url?: string) =>
+  !url ? undefined : /^https?:|^blob:|^data:/.test(url) ? url : `${API_BASE}${url}`;

@@ -1,7 +1,13 @@
+# --- always required: the API server and the remote-Space provider -----------
 fastapi>=0.115.0
-uvicorn>=0.32.0
-gradio_client>=1.6.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
 pydantic>=2.10.0
-numpy>=1.26.0
 pillow>=11.0.0
+numpy>=1.26.0,<2.3
 trimesh>=4.5.0
+gradio_client>=1.6.0
+huggingface_hub>=0.26.0
+requests>=2.32.0
+fal-client>=1.0.0
+python-dotenv>=1.0.0

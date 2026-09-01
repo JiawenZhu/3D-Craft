@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "server": "python3 server/app.py"
+    "server": "server/.venv/bin/python -m server.app",
+    "setup": "./scripts/setup.sh",
+    "doctor": "server/.venv/bin/python scripts/doctor.py"
   },
   "dependencies": {
     "@react-three/drei": "^9.121.5",

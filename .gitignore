@@ -22,3 +22,11 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# python / model artefacts
+server/.venv/
+server/storage/
+server/weights/
+server/vendor/
+__pycache__/
+*.pyc
