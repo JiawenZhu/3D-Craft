@@ -1,6 +1,6 @@
 import React from 'react';
 import { CharacterPreset, RenderMode } from '../types';
-import { Layers, Eye, Activity, Shield, Hash, Image as ImageIcon } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface MaterialInspectorProps {
   character: CharacterPreset;

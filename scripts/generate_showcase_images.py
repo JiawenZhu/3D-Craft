@@ -1,0 +1,151 @@
+import os
+import json
+import urllib.request
+import fal_client
+from pathlib import Path
+from dotenv import load_dotenv
+
+root_dir = Path(__file__).resolve().parent.parent
+load_dotenv(root_dir / ".env")
+
+gallery_dir = root_dir / "public" / "images" / "gallery"
+gallery_dir.mkdir(parents=True, exist_ok=True)
+
+SHOWCASE_ITEMS = [
+  {
+    "id": "item-1",
+    "title": "Furry Rabbit Creature",
+    "author": "velozetetic",
+    "likes": 20,
+    "prompt": "Cute orange furry rabbit monster creature wearing beige overalls, standing pose, 3D character game asset, Pixar Disney style, dark reflective studio floor, soft rim lighting, octane render, 8k",
+    "filename": "orange_creature.jpg"
+  },
+  {
+    "id": "item-2",
+    "title": "Magma Volcanic Cube",
+    "author": "David Austin",
+    "likes": 11,
+    "prompt": "Floating volcanic magma obsidian stone cube with glowing fiery yellow energy cracks, dark reflective floor, cinematic rim lighting, 3D game asset, octane render, 8k",
+    "filename": "magma_cube.jpg"
+  },
+  {
+    "id": "item-3",
+    "title": "Medieval Stone Cottage",
+    "author": "mynameisn",
+    "likes": 10,
+    "prompt": "Stylized medieval stone cottage house on miniature grass round base, glowing warm windows, slate roof, 3D diorama game asset, dark studio backdrop, 8k",
+    "filename": "stone_cottage.jpg"
+  },
+  {
+    "id": "item-4",
+    "title": "Ancient Taiko Drum",
+    "author": "xgx781117",
+    "likes": 8,
+    "prompt": "Traditional ancient Japanese wooden taiko drum on dark timber stand, weathered leather skin, brass rings, dark studio lighting, 3D asset render, 8k",
+    "filename": "taiko_drum.jpg"
+  },
+  {
+    "id": "item-5",
+    "title": "Fluffy Beanbag Chair",
+    "author": "cchhyy",
+    "likes": 14,
+    "prompt": "Plush fluffy white puffy beanbag armchair, soft wrinkles, modern minimalist furniture, dark studio backdrop with soft shadows, 3D product render, 8k",
+    "filename": "beanbag_chair.jpg"
+  },
+  {
+    "id": "item-6",
+    "title": "Fruit Market Stall",
+    "author": "460373",
+    "likes": 5,
+    "prompt": "Stylized miniature wooden fruit market stall with orange and white striped canopy, crates of fresh apples, 3D diorama asset, dark reflective floor, 8k",
+    "filename": "market_stall.jpg"
+  },
+  {
+    "id": "item-7",
+    "title": "Cherry Pudding Cake",
+    "author": "刘 佳康",
+    "likes": 5,
+    "prompt": "Cute glossy chocolate pudding cake dessert with whipped cream and red cherry on top, yellow polka dots, 3D stylized food asset, dark studio lighting, 8k",
+    "filename": "pudding_cake.jpg"
+  },
+  {
+    "id": "item-8",
+    "title": "Celestial Paladin Knight",
+    "author": "Muslim",
+    "likes": 71,
+    "prompt": "Chibi gold knight paladin in glowing royal blue and gold armor, holding radiant energy broadsword and lion crest shield, dark reflective floor, 3D character asset, 8k",
+    "filename": "gold_paladin.jpg"
+  },
+  {
+    "id": "item-9",
+    "title": "Fantasy Castle Watchtower",
+    "author": "plgasc",
+    "likes": 96,
+    "prompt": "Stylized fantasy stone castle watchtower with glowing crystal torches, blue banner crests, wooden door, isometric 3D game diorama, dark studio background, 8k",
+    "filename": "castle_tower.jpg"
+  },
+  {
+    "id": "item-10",
+    "title": "Gothic Bunny Plushie",
+    "author": "anoliss",
+    "likes": 37,
+    "prompt": "Dark gothic bunny plush doll in black and crimson hoodie, stitched details, button eyes, cute creepy aesthetic, dark studio lighting, 3D asset render, 8k",
+    "filename": "gothic_bunny.jpg"
+  },
+  {
+    "id": "item-11",
+    "title": "Retro CRT Television",
+    "author": "Flix Mohanad",
+    "likes": 27,
+    "prompt": "Vintage 1980s retro CRT television set with glowing vibrant RGB color test bars screen, antenna on top, dark reflective floor, 3D prop asset, 8k",
+    "filename": "retro_tv.jpg"
+  },
+  {
+    "id": "item-12",
+    "title": "Horned Demon Mask",
+    "author": "Zonafarm",
+    "likes": 67,
+    "prompt": "Menacing red horned demon skull mask with glowing fiery yellow eyes, curling mustache, white face paint, dark studio background, 3D sculpting asset, 8k",
+    "filename": "demon_mask.jpg"
+  }
+]
+
+def download_file(url: str, dest: Path):
+    urllib.request.urlretrieve(url, dest)
+
+def generate_all():
+    print(f"🚀 Generating {len(SHOWCASE_ITEMS)} professional 3D showcase images using fal.ai Flux...")
+    results = []
+
+    for idx, item in enumerate(SHOWCASE_ITEMS):
+        dest_path = gallery_dir / item["filename"]
+        print(f"[{idx+1}/{len(SHOWCASE_ITEMS)}] Generating: {item['title']}...")
+        
+        try:
+            res = fal_client.subscribe(
+                "fal-ai/flux/schnell",
+                arguments={
+                    "prompt": item["prompt"],
+                    "image_size": "square_hd",
+                    "num_inference_steps": 4,
+                    "seed": 42 + idx
+                }
+            )
+            img_url = res["images"][0]["url"]
+            download_file(img_url, dest_path)
+            print(f"  ✅ Saved to {dest_path.name}")
+
+            results.append({
+                **item,
+                "imageUrl": f"/images/gallery/{item['filename']}"
+            })
+        except Exception as e:
+            print(f"  ❌ Error generating {item['title']}: {e}")
+
+    output_json = root_dir / "src" / "data" / "showcaseItems.json"
+    with open(output_json, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    print(f"\n🎉 All images generated and saved to {output_json}!")
+
+if __name__ == "__main__":
+    generate_all()

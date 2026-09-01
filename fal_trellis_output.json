@@ -1,0 +1,16 @@
+{
+  "concept_image_url": "https://v3b.fal.media/files/b/0aa89f90/6Yy1Qz8XdHHUhmkmDsX9s.jpg",
+  "trellis_result": {
+    "model_mesh": {
+      "url": "https://v3b.fal.media/files/b/0aa89f92/HfEXLZqucoBK6ntX3_AME_model.glb",
+      "content_type": "application/octet-stream",
+      "file_name": "model.glb",
+      "file_size": 1704208
+    },
+    "timings": {
+      "prepare": 1.42700009746477e-05,
+      "generation": 3.619981520001602,
+      "export": 13.747654838000017
+    }
+  }
+}

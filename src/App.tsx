@@ -1,38 +1,43 @@
 import React, { useState } from 'react';
-import { Viewport3D } from './components/Viewport3D';
 import { ModelSelector } from './components/ModelSelector';
 import { GenerationPanel } from './components/GenerationPanel';
-import { AssetGallery } from './components/AssetGallery';
+import { Viewport3D } from './components/Viewport3D';
 import { MaterialInspector } from './components/MaterialInspector';
+import { AssetGallery } from './components/AssetGallery';
 import { ExportModal } from './components/ExportModal';
-import { SAMPLE_CHARACTERS } from './data/presets';
 import { SUPPORTED_MODELS } from './data/models';
-import { AIModelType, CharacterPreset, RenderMode, LightingPreset, GenerationJob } from './types';
+import { SAMPLE_CHARACTERS } from './data/presets';
+import { 
+  AIModelType, 
+  CharacterPreset, 
+  RenderMode, 
+  LightingPreset, 
+  GenerationJob, 
+  GenerationSpeed 
+} from './types';
 import { 
   Box, 
-  Sparkles, 
+  ExternalLink, 
   Download, 
   RotateCw, 
-  Sun, 
-  Layers, 
-  Maximize2, 
-  ExternalLink, 
-  Sliders, 
-  Cpu, 
-  CheckCircle2,
-  Github
+  Sparkles,
+  Layers,
+  Activity,
+  Flame
 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<AIModelType>('trellis-2.0');
+  const [generationSpeed, setGenerationSpeed] = useState<GenerationSpeed>('default');
+  const [characterList, setCharacterList] = useState<CharacterPreset[]>(SAMPLE_CHARACTERS);
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterPreset>(SAMPLE_CHARACTERS[0]);
+  
   const [renderMode, setRenderMode] = useState<RenderMode>('pbr');
-  const [lighting, setLighting] = useState<LightingPreset>('cyberpunk');
+  const [lighting, setLighting] = useState<LightingPreset>('studio');
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
   const [wireframe, setWireframe] = useState<boolean>(false);
+
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
-  
-  // Generation state simulation
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [activeJob, setActiveJob] = useState<GenerationJob | null>(null);
 
@@ -40,7 +45,6 @@ export const App: React.FC = () => {
     setIsGenerating(true);
     setActiveJob(job);
 
-    // Simulate multi-stage neural 3D pipeline
     const stages: GenerationJob['status'][] = [
       'generating-multiview',
       'synthesizing-latent',
@@ -49,41 +53,50 @@ export const App: React.FC = () => {
       'completed'
     ];
 
+    const stepDuration = job.speed === 'speedy' ? 700 : job.speed === 'extreme-4k' ? 1400 : 1000;
+
     stages.forEach((stage, idx) => {
       setTimeout(() => {
         if (stage === 'completed') {
           setIsGenerating(false);
           setActiveJob(null);
-          // Create newly generated character and load into viewport
+
           const newChar: CharacterPreset = {
             id: 'gen-' + Date.now(),
-            title: job.prompt.slice(0, 24) + '...',
+            title: job.prompt.length > 28 ? job.prompt.slice(0, 28) + '...' : job.prompt,
             style: job.style,
             prompt: job.prompt,
-            thumbnail: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&q=80',
+            thumbnail: job.referenceImage || '/images/gallery/orange_creature.jpg',
+            glbUrl: '/models/cyber_samurai.glb',
             modelType: job.model,
-            polyCount: Math.floor(Math.random() * 25000) + 35000,
-            textureRes: '4096 x 4096',
-            geometryColor: job.style === 'cyberpunk' ? '#06B6D4' : job.style === 'fantasy-rpg' ? '#F59E0B' : '#8B5CF6',
+            polyCount: job.targetPolyBudget || 48000,
+            vertexCount: Math.round((job.targetPolyBudget || 48000) * 0.52),
+            textureRes: job.textureRes || '4096 x 4096',
+            geometryColor: '#06B6D4',
             metallic: 0.8,
-            roughness: 0.2
+            roughness: 0.2,
+            emissiveIntensity: 2.5,
+            hasBones: true,
+            segments: ['head', 'torso', 'arms', 'legs', 'weapon', 'accessories']
           };
+
+          setCharacterList((prev) => [newChar, ...prev]);
           setSelectedCharacter(newChar);
         } else {
           setActiveJob((prev) => prev ? {
             ...prev,
             status: stage,
-            progress: (idx + 1) * 25
+            progress: Math.min(100, Math.round(((idx + 1) / stages.length) * 100))
           } : null);
         }
-      }, (idx + 1) * 1200);
+      }, (idx + 1) * stepDuration);
     });
   };
 
   const currentModelInfo = SUPPORTED_MODELS.find(m => m.id === selectedModel) || SUPPORTED_MODELS[0];
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#07090E]">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#07090E] text-slate-100 font-sans select-none">
       {/* Top Navigation Bar */}
       <header className="h-14 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-5 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3">
@@ -98,7 +111,7 @@ export const App: React.FC = () => {
               </span>
             </div>
             <div className="text-[10px] text-slate-400 font-medium">
-              Inspired by Hyper3D Rodin • Powered by Hunyuan3D-2.1 & TRELLIS.2
+              Inspired by Hyper3D Rodin • Powered by Microsoft TRELLIS & Hunyuan3D
             </div>
           </div>
         </div>
@@ -147,12 +160,15 @@ export const App: React.FC = () => {
           <ModelSelector
             selectedModel={selectedModel}
             onSelectModel={setSelectedModel}
+            speed={generationSpeed}
+            onSelectSpeed={setGenerationSpeed}
           />
 
           <div className="w-full h-px bg-slate-800/80" />
 
           <GenerationPanel
             selectedModel={selectedModel}
+            speed={generationSpeed}
             onGenerate={handleStartGeneration}
             isGenerating={isGenerating}
             activeJob={activeJob}
@@ -160,18 +176,18 @@ export const App: React.FC = () => {
         </aside>
 
         {/* Center: Interactive 3D Viewport */}
-        <main className="flex-1 relative flex flex-col min-w-0">
+        <main className="flex-1 relative flex flex-col min-w-0 bg-[#05070C]">
           {/* Floating Viewport Overlays & Toolbar */}
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
             <div className="px-3 py-1.5 bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 flex items-center gap-2 shadow-lg">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedCharacter.geometryColor }} />
-              <span>{selectedCharacter.title}</span>
+              <span className="truncate max-w-[180px]">{selectedCharacter.title}</span>
               <span className="text-slate-500">|</span>
               <span className="text-[11px] font-mono text-cyan-400">{(selectedCharacter.polyCount / 1000).toFixed(1)}k Polys</span>
             </div>
           </div>
 
-          {/* Lighting & Camera Toolbar (Top Right of Viewport) */}
+          {/* Lighting & Camera Toolbar */}
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-800 p-1.5 rounded-xl shadow-lg">
             {/* Auto-Rotate Toggle */}
             <button
@@ -188,7 +204,7 @@ export const App: React.FC = () => {
 
             {/* Lighting Preset Picker */}
             <div className="flex items-center gap-1 text-[11px]">
-              {(['studio', 'cyberpunk', 'sunset', 'dramatic', 'dawn'] as LightingPreset[]).map((lt) => (
+              {(['studio', 'cyberpunk', 'sunset', 'dramatic'] as LightingPreset[]).map((lt) => (
                 <button
                   key={lt}
                   onClick={() => setLighting(lt)}
@@ -204,13 +220,16 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* 3D Canvas */}
+          {/* 3D WebGL Canvas */}
           <div className="flex-1 w-full h-full">
             <Viewport3D
               character={selectedCharacter}
               renderMode={renderMode}
+              onSetRenderMode={setRenderMode}
               lighting={lighting}
+              onSetLighting={setLighting}
               autoRotate={autoRotate}
+              onToggleAutoRotate={() => setAutoRotate(!autoRotate)}
               wireframe={wireframe}
             />
           </div>
@@ -240,6 +259,7 @@ export const App: React.FC = () => {
           <AssetGallery
             selectedCharacter={selectedCharacter}
             onSelectCharacter={setSelectedCharacter}
+            assetList={characterList}
           />
         </aside>
       </div>
@@ -253,4 +273,5 @@ export const App: React.FC = () => {
     </div>
   );
 };
+
 export default App;

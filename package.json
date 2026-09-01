@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "server": "python3 server/app.py"
+    "server": "venv/bin/python server/app.py"
   },
   "dependencies": {
     "@react-three/drei": "^9.121.5",
