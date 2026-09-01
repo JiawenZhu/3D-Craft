@@ -43,7 +43,7 @@ export const Workbench: React.FC = () => {
   const [lightOpen, setLightOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(true);
-  const [trim, setTrim] = useState<LightTrim>({ directional: 1, ambient: 1, environment: 1, exposure: 1 });
+  const [trim, setTrim] = useState<LightTrim>({ directional: 1, environment: 1, exposure: 1 });
   const view = useRef<ViewportHandle>(null);
   const stage = useRef<HTMLElement>(null);
 
@@ -244,9 +244,6 @@ export const Workbench: React.FC = () => {
                   <Slider label="Directional" min={0} max={3} step={0.05}
                           value={trim.directional} onChange={(v) => setTrim((t) => ({ ...t, directional: v }))}
                           format={(v) => `${v.toFixed(2)}×`} />
-                  <Slider label="Ambient" min={0} max={3} step={0.05}
-                          value={trim.ambient} onChange={(v) => setTrim((t) => ({ ...t, ambient: v }))}
-                          format={(v) => `${v.toFixed(2)}×`} />
                   <Slider label="Environment" min={0} max={3} step={0.05}
                           value={trim.environment} onChange={(v) => setTrim((t) => ({ ...t, environment: v }))}
                           format={(v) => `${v.toFixed(2)}×`} />
@@ -256,7 +253,7 @@ export const Workbench: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setTrim({ directional: 1, ambient: 1, environment: 1, exposure: 1 })}
+                  onClick={() => setTrim({ directional: 1, environment: 1, exposure: 1 })}
                   className="mt-4 w-full rounded-lg border border-white/10 py-1.5 text-[11px] text-chalk-dim transition-colors hover:border-white/25 hover:text-white"
                 >
                   Reset to preset

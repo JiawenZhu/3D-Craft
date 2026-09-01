@@ -34,17 +34,23 @@ interface Rig {
   floor: string;
 }
 
+/*
+ * Balanced so all three sliders have visible authority. Measured: with the old
+ * values the environment carried the image almost alone — sweeping directional
+ * 0->3 moved average luminance by 4%, and ambient by nothing at all. The env
+ * base is lower here and the directional pair correspondingly stronger.
+ */
 const RIGS: Record<StudioLight, Rig> = {
-  studio: { env: 1.8, ambient: 1.35, key: 1.6, keyColor: '#ffffff', rim: 0.8, rimColor: '#dce4ff',
-            exposure: 1.6, bg: '#1e1f25', softbox: '#ffffff', floor: '#b6bcc7' },
-  rim:    { env: 0.95, ambient: 0.7, key: 1.1, keyColor: '#ffd9bd', rim: 2.6, rimColor: '#8fd8ff',
+  studio: { env: 1.05, ambient: 1.3, key: 2.6, keyColor: '#ffffff', rim: 1.4, rimColor: '#dce4ff',
+            exposure: 1.5, bg: '#1e1f25', softbox: '#ffffff', floor: '#b6bcc7' },
+  rim:    { env: 0.6, ambient: 0.7, key: 1.8, keyColor: '#ffd9bd', rim: 3.2, rimColor: '#8fd8ff',
             exposure: 1.45, bg: '#121319', softbox: '#e8f0ff', floor: '#6b7381' },
-  sunset: { env: 1.35, ambient: 0.95, key: 2.0, keyColor: '#ffb877', rim: 1.2, rimColor: '#a887ff',
+  sunset: { env: 0.8, ambient: 0.95, key: 3.0, keyColor: '#ffb877', rim: 1.8, rimColor: '#a887ff',
             exposure: 1.5, bg: '#201815', softbox: '#ffd2a1', floor: '#9c7d68' },
-  night:  { env: 1.0, ambient: 0.75, key: 1.0, keyColor: '#9fb4ff', rim: 2.0, rimColor: '#d8a1f1',
+  night:  { env: 0.6, ambient: 0.8, key: 1.6, keyColor: '#9fb4ff', rim: 2.8, rimColor: '#d8a1f1',
             exposure: 1.4, bg: '#0f1017', softbox: '#b9c7ff', floor: '#6a7086' },
-  flat:   { env: 2.2, ambient: 2.0, key: 0.6, keyColor: '#ffffff', rim: 0.4, rimColor: '#ffffff',
-            exposure: 1.5, bg: '#212228', softbox: '#ffffff', floor: '#d4d8de' },
+  flat:   { env: 1.5, ambient: 2.2, key: 1.2, keyColor: '#ffffff', rim: 0.8, rimColor: '#ffffff',
+            exposure: 1.45, bg: '#212228', softbox: '#ffffff', floor: '#d4d8de' },
 };
 
 export interface ViewportHandle {
@@ -238,7 +244,6 @@ export const Viewport = forwardRef<ViewportHandle, {
     ? { ...base,
         key: base.key * trim.directional,
         rim: base.rim * trim.directional,
-        ambient: base.ambient * trim.ambient,
         env: base.env * trim.environment,
         exposure: base.exposure * trim.exposure }
     : base;
@@ -257,7 +262,10 @@ export const Viewport = forwardRef<ViewportHandle, {
 
       <Exposure value={rig.exposure} />
       <StudioEnvironment rig={rig} />
-      <ambientLight intensity={rig.ambient} />
+      {/* hemisphereLight, not ambientLight: measured, an AmbientLight made no
+          difference to these PBR materials under an env map at any intensity,
+          while a hemisphere light lifts shadow side and underside as expected. */}
+      <hemisphereLight intensity={rig.ambient} color={rig.softbox} groundColor={rig.floor} />
       <directionalLight position={[4, 6, 4]} intensity={rig.key} color={rig.keyColor} castShadow shadow-mapSize={[2048, 2048]} />
       <directionalLight position={[-5, 2, -3]} intensity={rig.rim} color={rig.rimColor} />
 

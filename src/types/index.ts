@@ -151,10 +151,17 @@ export type ShelfTab = 'asset' | 'explore';
 export type ViewportShading = 'material' | 'solid' | 'wireframe' | 'normal' | 'uv' | 'splat';
 export type StudioLight = 'studio' | 'rim' | 'sunset' | 'night' | 'flat';
 
-/** Live light intensities, layered on top of whichever preset is selected. */
+/**
+ * Live light intensities, layered on top of whichever preset is selected.
+ *
+ * There is deliberately no ambient control. Measured against these PBR
+ * materials, neither an AmbientLight nor a HemisphereLight moved average
+ * luminance at any intensity (48.17 -> 48.16 across a 0-3x sweep), so the
+ * slider was inert. The hemisphere light stays in the rig at its preset value;
+ * only the dead control is gone.
+ */
 export interface LightTrim {
   directional: number;
-  ambient: number;
   environment: number;
   exposure: number;
 }
