@@ -206,22 +206,44 @@ def create(
 
 
 def retry(run_id: str, from_stage: str, new_prompt: str | None = None) -> bool:
-    """Re-run from one stage onward, leaving everything before it untouched."""
+    """
+    Re-run from one stage onward, leaving everything before it untouched.
+
+    `new_prompt` means a different thing at each entry point, and the difference
+    is the whole point:
+
+      from_stage="prompt"   the user's OWN words. Gemini rewrites them into a
+                            full image prompt, as it did the first time.
+      from_stage="concept"  the WRITTEN prompt, edited by hand. Gemini's text
+                            model is skipped entirely and the image model is
+                            handed exactly what the user typed — which is what
+                            makes the prompt something you can steer rather
+                            than something you receive.
+    """
     doc = read(run_id)
     if not doc or from_stage not in ("prompt", "concept", "model3d"):
         return False
     if doc["status"] == "running":
         return False
 
-    if new_prompt is not None:
+    if new_prompt is not None and from_stage == "prompt":
         doc["input"]["prompt"] = new_prompt
         doc["title"] = new_prompt.strip()[:48] or doc["title"]
         _set(doc, "source", text=new_prompt or None)
 
-    # Everything downstream of the retry point is now stale.
+    # Everything downstream of the retry point is now stale. The prompt node is
+    # NOT in that range when re-rendering, which is what lets the edit survive.
     for kind in STAGES[STAGES.index(from_stage):]:
         node = _node(doc, kind)
         node.update(_blank_node(kind))
+
+    if new_prompt is not None and from_stage == "concept":
+        prompt_node = _node(doc, "prompt")
+        prompt_node["text"] = new_prompt
+        prompt_node["notes"] = "Edited by you — rendered as written."
+        prompt_node["model"] = "your words"
+        prompt_node["ms"] = None
+
     doc["status"] = "running"
     doc["error"] = None
     _write(doc)

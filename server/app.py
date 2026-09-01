@@ -240,6 +240,9 @@ def retry_pipeline(run_id: str, stage: str = Form(...), prompt: str | None = For
 
     Restarting from the top would re-charge the concept render to fix a mesh,
     so each stage is separately retryable and everything upstream is kept.
+
+    `prompt` is the user's own words when `stage` is "prompt", and the written
+    prompt itself when `stage` is "concept" — see pipelines.retry.
     """
     if not pipelines.read(run_id):
         raise HTTPException(404, "no such run")

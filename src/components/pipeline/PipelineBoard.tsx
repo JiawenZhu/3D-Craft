@@ -19,7 +19,7 @@ import type { PipelineStage } from '../../types';
 
 /** The line between two nodes; it fills while the node after it is working. */
 const Connector: React.FC<{ active: boolean; done: boolean }> = ({ active, done }) => (
-  <div className="relative hidden h-[1px] w-full min-w-[14px] flex-1 items-center lg:flex">
+  <div className="relative hidden h-[1px] w-full min-w-[14px] flex-1 items-center self-center lg:flex">
     <span className="absolute inset-0 bg-white/10" />
     <span
       className={cn(
@@ -101,7 +101,7 @@ export const PipelineBoard: React.FC = () => {
                     node={node}
                     index={i}
                     canRetry={settled}
-                    onRetry={(stage: PipelineStage) => retryStage(stage)}
+                    onRetry={(stage: PipelineStage, prompt?: string) => retryStage(stage, prompt)}
                     onZoom={(url, caption) => setZoom({ url, caption })}
                     onOpen3D={asset3d ? () => openAsset(asset3d) : undefined}
                   />

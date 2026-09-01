@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  AlertTriangle, Box, Check, ChevronDown, Loader2, Maximize2, RefreshCw, Rotate3d,
+  AlertTriangle, Box, Check, ChevronDown, Loader2, Maximize2, Pencil, RefreshCw, Rotate3d, X,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { imageSrc } from '../../lib/api';
@@ -28,21 +28,59 @@ const Marker: React.FC<{ index: number; status: PipelineNode['status'] }> = ({ i
   </span>
 );
 
-const secs = (ms?: number) => (ms == null ? null : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`);
+const secs = (ms?: number | null) => (ms == null ? null : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`);
+
+/*
+ * Which stage an edit re-enters the pipeline at.
+ *
+ *   source  -> "prompt"   your words change; Gemini rewrites them
+ *   prompt  -> "concept"  the written prompt IS your edit; Gemini's text model
+ *                         is skipped and the image model renders it verbatim
+ *
+ * That second one is the difference between reading the prompt and steering it.
+ */
+const EDIT_TARGET: Partial<Record<PipelineStage, PipelineStage>> = {
+  source: 'prompt',
+  prompt: 'concept',
+};
+
+const EDIT_META: Partial<Record<PipelineStage, { hint: string; action: string; placeholder: string }>> = {
+  source: {
+    hint: 'Your words. Gemini rewrites these into a full image prompt.',
+    action: 'Rewrite & re-render',
+    placeholder: 'e.g. make him a forest ranger with a lantern',
+  },
+  prompt: {
+    hint: 'The prompt itself. Edit it and it is rendered exactly as written.',
+    action: 'Render this prompt',
+    placeholder: 'The full image prompt…',
+  },
+};
 
 export const NodeCard: React.FC<{
   node: PipelineNode;
   index: number;
-  /** Retry is only offered once the run has come to rest. */
+  /** Retry and editing are only offered once the run has come to rest. */
   canRetry: boolean;
-  onRetry: (stage: PipelineStage) => void;
+  onRetry: (stage: PipelineStage, prompt?: string) => void;
   onZoom: (url: string, caption: string) => void;
   /** Set when the finished mesh is loaded and the workbench can open it. */
   onOpen3D?: () => void;
 }> = ({ node, index, canRetry, onRetry, onZoom, onOpen3D }) => {
   const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState<string | null>(null);
+
   const busy = node.status === 'running';
-  const image = imageSrc(node.imageUrl);
+  // The mesh node has no image of its own; it has the render of what it built.
+  const image = imageSrc(node.imageUrl ?? node.thumbUrl);
+  const meta = EDIT_META[node.kind];
+  const editable = canRetry && !!meta && (node.kind === 'source' || !!node.text);
+
+  const commit = () => {
+    const words = (draft ?? '').trim();
+    setDraft(null);
+    if (words) onRetry(EDIT_TARGET[node.kind]!, words);
+  };
 
   return (
     <div
@@ -67,20 +105,66 @@ export const NodeCard: React.FC<{
             {node.ms != null && ` · ${secs(node.ms)}`}
           </p>
         </div>
-        {canRetry && node.kind !== 'source' && (
-          <button
-            onClick={() => onRetry(node.kind)}
-            title={`Re-run from “${node.label}” — everything before it is kept`}
-            className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-chalk-ghost transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-0.5">
+          {editable && draft === null && (
+            <button
+              onClick={() => setDraft(node.text ?? '')}
+              title={meta!.hint}
+              className="grid h-[22px] w-[22px] place-items-center rounded-full text-chalk-ghost transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
+          {canRetry && node.kind !== 'source' && draft === null && (
+            <button
+              onClick={() => onRetry(node.kind)}
+              title={`Re-run from “${node.label}” — everything before it is kept`}
+              className="grid h-[22px] w-[22px] place-items-center rounded-full text-chalk-ghost transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          )}
+          {draft !== null && (
+            <button
+              onClick={() => setDraft(null)}
+              title="Discard the edit"
+              className="grid h-[22px] w-[22px] place-items-center rounded-full text-chalk-ghost transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* body ----------------------------------------------------------- */}
       <div className="mt-2.5 min-h-0 flex-1">
-        {node.status === 'failed' ? (
+        {draft !== null ? (
+          <div className="flex h-full flex-col">
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setDraft(null);
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit();
+              }}
+              placeholder={meta!.placeholder}
+              className="min-h-[124px] flex-1 resize-none rounded-[12px] border border-white/10 bg-black/25 p-2 text-[10px] leading-relaxed text-chalk placeholder:text-chalk-ghost focus:border-white/30"
+            />
+            <button
+              onClick={commit}
+              disabled={!draft.trim()}
+              className={cn(
+                'mt-2 h-[28px] w-full rounded-full text-[11px] font-semibold transition-all',
+                draft.trim() ? 'text-ink hover:brightness-110' : 'cursor-not-allowed bg-white/[0.05] text-chalk-ghost',
+              )}
+              style={draft.trim() ? { backgroundImage: 'var(--g-accent)' } : undefined}
+            >
+              {meta!.action}
+            </button>
+            <p className="mt-1 text-center text-[9px] text-chalk-ghost">⌘↵ to run · esc to discard</p>
+          </div>
+        ) : node.status === 'failed' ? (
           <p className="rounded-lg bg-red-500/10 p-2 text-[10px] leading-relaxed text-red-300">
             {node.error ?? 'This stage failed.'}
           </p>
@@ -132,13 +216,13 @@ export const NodeCard: React.FC<{
         )}
 
         {/* the user's own words, under their image */}
-        {node.kind === 'source' && node.text && (
+        {node.kind === 'source' && node.text && draft === null && (
           <p className="mt-2 line-clamp-2 text-[10px] leading-relaxed text-chalk-dim">“{node.text}”</p>
         )}
       </div>
 
       {/* footer --------------------------------------------------------- */}
-      {node.kind === 'model3d' && node.status === 'done' && (
+      {node.kind === 'model3d' && node.status === 'done' && draft === null && (
         <button
           onClick={onOpen3D}
           disabled={!onOpen3D}
