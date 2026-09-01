@@ -4,11 +4,12 @@ import { cn } from '../lib/cn';
 import { useStudio } from '../store/StudioContext';
 import { AssetCard } from './AssetCard';
 import { StoryRail } from './StoryRail';
-import { FILTERS } from '../data/gallery';
 import type { Asset } from '../types';
 
+const FILTERS = ['Featured', 'Newest', 'Most liked', 'Image to 3D', 'Text to 3D', 'Hunyuan3D', 'TRELLIS.2'] as const;
+
 export const AssetShelf: React.FC = () => {
-  const { assets, exploreAssets, shelfTab, setShelfTab, openAsset, toggleLike } = useStudio();
+  const { assets, exploreAssets, shelfTab, setShelfTab, openAsset, toggleLike, addFromUrl, inbox } = useStudio();
   const [filter, setFilter] = useState<string>('Featured');
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -104,17 +105,32 @@ export const AssetShelf: React.FC = () => {
         <div className="grid h-64 place-items-center rounded-[28px] border border-dashed border-white/8 text-center">
           <div>
             <p className="text-[13px] text-chalk-dim">
-              {shelfTab === 'asset' ? 'Nothing generated yet.' : 'No matches.'}
+              {shelfTab === 'asset' ? 'Nothing generated yet.' : 'No reference images.'}
             </p>
             <p className="mt-1 text-[11px] text-chalk-ghost">
-              {shelfTab === 'asset' ? 'Drop an image above and hit GENERATE.' : 'Try a different filter.'}
+              {shelfTab === 'asset' ? 'Pick a reference from EXPLORE, or drop your own.' : 'Drop images into server/inbox/ to see them here.'}
             </p>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {list.map((a) => (
-            <AssetCard key={a.id} asset={a} onOpen={openAsset} onLike={toggleLike} />
+            <AssetCard
+              key={a.id}
+              asset={a}
+              onLike={toggleLike}
+              onOpen={(x) => {
+                // A reference has no mesh — load it into the generator instead
+                // of opening an empty viewport.
+                if (x.isReference && x.thumbUrl) {
+                  const src = inbox.find((i) => i.url === x.thumbUrl);
+                  addFromUrl(x.thumbUrl, src?.name ?? `${x.name}.jpg`, (src?.direction ?? 'unknown') as never);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  return;
+                }
+                openAsset(x);
+              }}
+            />
           ))}
         </div>
       )}

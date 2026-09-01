@@ -4,7 +4,6 @@ import React, {
 import type {
   Asset, EngineId, GenerationSettings, Job, JobStage, RefImage, ShelfTab,
 } from '../types';
-import { EXPLORE_ASSETS } from '../data/gallery';
 import { engineById } from '../data/engines';
 import * as api from '../lib/api';
 
@@ -126,7 +125,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [images, setImages] = useState<RefImage[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [exploreAssets, setExplore] = useState<Asset[]>(EXPLORE_ASSETS);
+  const [exploreAssets, setExplore] = useState<Asset[]>([]);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
   const [comparison, setComparison] = useState<Asset[] | null>(null);
   const [shelfTab, setShelfTab] = useState<ShelfTab>('explore');
@@ -173,7 +172,28 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [settings.imageMode]);
 
-  const refreshInbox = useCallback(() => { api.listInbox().then(setInbox); }, []);
+  const refreshInbox = useCallback(() => {
+    api.listInbox().then((items) => {
+      setInbox(items);
+      // Surface the hand-off images as EXPLORE cards: real art you can generate
+      // from, rather than procedural filler.
+      setExplore(items.map((img, i) => ({
+        id: `ref-${img.url}`,
+        name: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        prompt: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
+        engine: 'trellis-2' as const,
+        createdAt: img.modifiedAt,
+        thumbUrl: img.url,
+        seedShape: 'prop' as const,
+        tint: '#b98d5f',
+        faces: 0, vertices: 0, textureRes: 0,
+        fileSizeMb: Math.round((img.sizeKb / 1024) * 100) / 100,
+        liked: false, likes: 0,
+        author: 'inbox', visibility: 'public' as const, local: false,
+        isReference: true,
+      })));
+    });
+  }, []);
   useEffect(() => { refreshInbox(); }, [refreshInbox, health?.status]);
 
   const removeImage = useCallback((id: string) => {

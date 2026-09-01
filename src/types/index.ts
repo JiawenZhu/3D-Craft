@@ -135,6 +135,8 @@ export interface Asset {
   provider?: string;
   /** Free-text engine note, e.g. which Space endpoint ran. */
   note?: string;
+  /** A starting point handed over by the image side — no mesh yet. */
+  isReference?: boolean;
 }
 
 export type ShelfTab = 'asset' | 'explore';
