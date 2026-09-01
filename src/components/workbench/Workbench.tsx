@@ -8,6 +8,7 @@ import { useStudio } from '../../store/StudioContext';
 import { Viewport } from './Viewport';
 import { Popover, Tip } from '../ui/primitives';
 import { engineById } from '../../data/engines';
+import { API_BASE } from '../../lib/api';
 import { AssetThumb } from '../AssetThumb';
 import { ago, compact } from '../../lib/format';
 import type { StudioLight, ViewportShading } from '../../types';
@@ -20,6 +21,18 @@ const SHADING: { id: ViewportShading; label: string }[] = [
   { id: 'uv', label: 'UV' },
 ];
 const LIGHTS: StudioLight[] = ['studio', 'rim', 'sunset', 'night', 'flat'];
+
+/** Only what the server can genuinely convert to — see EXPORT_FORMATS there. */
+const EXPORT_FORMATS = [
+  { ext: 'glb', label: '.glb', note: 'textured · recommended' },
+  { ext: 'obj', label: '.obj', note: 'zip · with mtl + texture' },
+  { ext: 'ply', label: '.ply', note: 'vertex colour' },
+  { ext: 'stl', label: '.stl', note: 'geometry only' },
+] as const;
+
+/** Prompts make lousy filenames. */
+const slug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'model';
 
 export const Workbench: React.FC = () => {
   const { activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset, patch, settings } = useStudio();
@@ -67,26 +80,32 @@ export const Workbench: React.FC = () => {
             </button>
             <Popover open={exportOpen} onClose={() => setExportOpen(false)} anchor="bottom" className="right-0 w-52">
               <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-chalk-faint">Download</div>
-              {engine.outputs.map((f) => (
+              {EXPORT_FORMATS.map((f) => (
                 <a
-                  key={f}
-                  href={a.modelUrl ?? undefined}
-                  download={a.modelUrl ? `${a.name}.${f.split(' ')[0].toLowerCase()}` : undefined}
+                  key={f.ext}
+                  // Absolute, and pointed at the API: a relative href resolves
+                  // against the Vite origin, whose SPA fallback hands back
+                  // index.html renamed to .glb.
+                  href={a.modelUrl ? `${API_BASE}/api/assets/${a.id}/export?format=${f.ext}` : undefined}
+                  download={a.modelUrl ? `${slug(a.name)}${f.ext === 'obj' ? '-obj.zip' : `.${f.ext}`}` : undefined}
                   onClick={(e) => { if (!a.modelUrl) e.preventDefault(); }}
                   className={cn(
                     'flex items-center justify-between rounded-lg px-2.5 py-2 text-[12px] transition-colors',
                     a.modelUrl ? 'text-chalk hover:bg-white/[0.06] hover:text-white' : 'cursor-not-allowed text-chalk-ghost',
                   )}
                 >
-                  {f}
+                  <span>
+                    {f.label}
+                    <span className="ml-2 text-[10px] text-chalk-ghost">{f.note}</span>
+                  </span>
                   <Download className="h-3 w-3" />
                 </a>
               ))}
-              {!a.modelUrl && (
-                <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
-                  This is a preview asset. Start the inference server and regenerate to get real files.
-                </p>
-              )}
+              <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
+                {a.modelUrl
+                  ? 'Converted on demand from the GLB. FBX and USDZ are not offered — they cannot be written faithfully here.'
+                  : 'This is a preview asset. Start the inference server and regenerate to get real files.'}
+              </p>
             </Popover>
           </div>
         </div>

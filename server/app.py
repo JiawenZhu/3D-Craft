@@ -161,6 +161,57 @@ def assets() -> list[dict]:
     return jobs.list_assets()
 
 
+# What we can genuinely produce from a GLB with trimesh. FBX and USDZ are
+# deliberately absent: trimesh cannot write them, and handing over a renamed GLB
+# is worse than not offering the format.
+EXPORT_FORMATS = {
+    "glb": ("model.glb", "model/gltf-binary"),
+    # OBJ is not self-contained: trimesh writes material.mtl and the texture
+    # beside it, so shipping the .obj alone gives you untextured geometry
+    # pointing at files you do not have. Bundle the set instead.
+    "obj": ("model-obj.zip", "application/zip"),
+    "ply": ("model.ply", "application/octet-stream"),
+    "stl": ("model.stl", "application/octet-stream"),
+}
+
+
+@app.get("/api/assets/{asset_id}/export")
+def export_asset(asset_id: str, format: str = "glb") -> FileResponse:
+    """Convert an asset on demand. Results are cached next to the source mesh."""
+    fmt = format.lower().strip()
+    if fmt not in EXPORT_FORMATS:
+        raise HTTPException(400, f"unsupported format {fmt!r}; have {sorted(EXPORT_FORMATS)}")
+
+    src = (STORAGE / asset_id / "model.glb").resolve()
+    if not str(src).startswith(str(STORAGE.resolve())) or not src.is_file():
+        raise HTTPException(404, "no mesh for that asset")
+
+    filename, media_type = EXPORT_FORMATS[fmt]
+    if fmt == "glb":
+        return FileResponse(src, media_type=media_type, filename=filename)
+
+    out = src.with_suffix(f".{fmt}")
+    if not out.exists() or out.stat().st_mtime < src.stat().st_mtime:
+        import trimesh
+
+        # force="mesh" flattens the scene graph; OBJ/PLY/STL have no notion of one
+        mesh = trimesh.load(str(src), force="mesh")
+        mesh.export(str(out))
+
+    if fmt != "obj":
+        return FileResponse(out, media_type=media_type, filename=filename)
+
+    bundle = src.parent / "model-obj.zip"
+    if not bundle.exists() or bundle.stat().st_mtime < out.stat().st_mtime:
+        import zipfile
+
+        with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as z:
+            z.write(out, "model.obj")
+            for extra in sorted(src.parent.glob("material*")):
+                z.write(extra, extra.name)
+    return FileResponse(bundle, media_type=media_type, filename=filename)
+
+
 @app.delete("/api/assets/{asset_id}")
 def remove(asset_id: str) -> dict:
     jobs.delete_asset(asset_id)
