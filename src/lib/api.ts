@@ -57,6 +57,25 @@ export async function getJob(id: string): Promise<Job & { assets: Asset[] }> {
   return r.json();
 }
 
+export interface InboxImage {
+  name: string;
+  url: string;
+  direction: string;
+  sizeKb: number;
+  modifiedAt: number;
+}
+
+/** Reference images handed over by the image/animation side. */
+export async function listInbox(): Promise<InboxImage[]> {
+  try {
+    const r = await fetch(`${API_BASE}/api/inbox`, { signal: timeout(3000) });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch {
+    return [];
+  }
+}
+
 export async function listAssets(): Promise<Asset[]> {
   try {
     const r = await fetch(`${API_BASE}/api/assets`, { signal: timeout(3000) });

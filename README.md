@@ -102,6 +102,24 @@ Rules of thumb so far:
 
 ---
 
+## Working alongside an image/animation agent
+
+The two halves share this repo and hand off through one folder:
+
+| side | produces | consumes |
+|---|---|---|
+| image / animation | concept art, turnarounds, hero renders → `server/inbox/` | — |
+| **this studio** | 3D meshes → `server/storage/` | `server/inbox/` |
+
+Drop `.png` / `.jpg` / `.webp` into `server/inbox/` and they show up behind the
+**Sample images** button in the input card, one click from a generation. A
+`_front` / `_back` / `_left` / `_right` suffix on the filename is read as the view
+direction, so a multi-view set arrives pre-tagged — which measurably improves the
+back side on both engines.
+
+`GET /api/inbox` lists what is there; the folder is gitignored, so large reference
+sets never bloat the repo.
+
 ## Layout
 
 ```
@@ -115,6 +133,7 @@ server/
   engines/trellis.py      TRELLIS.2 — native CUDA + Space provider
   engines/rodin.py        Hyper3D Rodin — API only, via fal
   engines/fal_api.py      shared fal provider: upload, subscribe, download
+  inbox/                  hand-off folder for reference images (gitignored)
   engines/hybrid.py       TRELLIS geometry piped into Hunyuan paint
 scripts/
   setup.sh                venv, torch, dependencies

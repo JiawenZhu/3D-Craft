@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
 import { Popover, Tip } from '../ui/primitives';
 import { DirectionPicker } from './DirectionPicker';
+import { absolute } from '../../lib/api';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/avif';
 
@@ -23,10 +24,11 @@ const PILL_LABELS = [
 ];
 
 export const InputCard: React.FC = () => {
-  const { settings, patch, images, addImages, removeImage, setDirection } = useStudio();
+  const { settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection } = useStudio();
   const [dragging, setDragging] = useState(false);
   const [dirFor, setDirFor] = useState<string | null>(null);
   const [pill, setPill] = useState(0);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const meta = MODE_META[settings.mode];
 
@@ -56,12 +58,15 @@ export const InputCard: React.FC = () => {
             <span className="text-[13px] font-bold leading-none text-white">{meta.title}</span>
           </div>
           <div className="flex items-center gap-[5px]">
-            <Tip label="Sample images">
+            <Tip label={inbox.length ? `${inbox.length} handed-off reference${inbox.length > 1 ? 's' : ''}` : 'Sample images · drop files in server/inbox/'}>
               <button
-                onClick={() => patch({ prompt: settings.prompt || 'a weathered brass astrolabe on a walnut stand' })}
-                className="grid h-[20px] w-[20px] place-items-center rounded-full bg-white/20 text-white/90 transition-colors hover:bg-white/35"
+                onClick={() => { refreshInbox(); setInboxOpen((v) => !v); }}
+                className="relative grid h-[20px] w-[20px] place-items-center rounded-full bg-white/20 text-white/90 transition-colors hover:bg-white/35"
               >
                 <Images className="h-[11px] w-[11px]" />
+                {inbox.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 h-[6px] w-[6px] rounded-full bg-coral" />
+                )}
               </button>
             </Tip>
             <Tip label="Both engines run locally — nothing is uploaded">
@@ -150,6 +155,41 @@ export const InputCard: React.FC = () => {
           onChange={(e) => e.target.files && addImages(e.target.files)}
         />
       </div>
+
+      {/* Hand-off inbox: references produced by the image/animation side. */}
+      {inboxOpen && (
+        <Popover open onClose={() => setInboxOpen(false)} anchor="bottom" className="left-1/2 z-[90] w-[268px] -translate-x-1/2">
+          <div className="mb-2.5 flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-[0.16em] text-chalk-faint">Inbox</span>
+            <span className="font-mono text-[10px] text-chalk-ghost">server/inbox/</span>
+          </div>
+          {inbox.length === 0 ? (
+            <p className="text-[11px] leading-relaxed text-chalk-dim">
+              Nothing handed over yet. Drop <span className="font-mono text-chalk">.png</span> /
+              <span className="font-mono text-chalk"> .jpg</span> files into
+              <span className="font-mono text-chalk"> server/inbox/</span> and they appear here.
+              A <span className="font-mono text-chalk">_front</span> / <span className="font-mono text-chalk">_back</span> suffix
+              is read as the view direction.
+            </p>
+          ) : (
+            <div className="grid max-h-[240px] grid-cols-3 gap-1.5 overflow-y-auto rd-scroll">
+              {inbox.map((img) => (
+                <button
+                  key={img.url}
+                  onClick={() => { addFromUrl(img.url, img.name, img.direction as never); setInboxOpen(false); }}
+                  title={`${img.name} · ${img.sizeKb} KB`}
+                  className="group relative aspect-square overflow-hidden rounded-lg border border-white/8 transition-all hover:border-white/40"
+                >
+                  <img src={absolute(img.url)} alt={img.name} className="h-full w-full object-cover" />
+                  {img.direction !== 'unknown' && (
+                    <span className="absolute bottom-0 inset-x-0 bg-black/70 py-0.5 text-[8px] text-white">{img.direction}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </Popover>
+      )}
 
       {/* Direction picker lives outside the card: the card is overflow-hidden,
           which would otherwise clip the popover. */}

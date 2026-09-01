@@ -17,8 +17,10 @@ ROOT = Path(__file__).resolve().parent
 STORAGE = Path(os.getenv("RODIN_STORAGE", ROOT / "storage"))
 WEIGHTS = Path(os.getenv("RODIN_WEIGHTS", ROOT / "weights"))
 REPOS = Path(os.getenv("RODIN_REPOS", ROOT / "vendor"))
+# Hand-off folder: the image/animation side drops references here.
+INBOX = Path(os.getenv("RODIN_INBOX", ROOT / "inbox"))
 
-for _p in (STORAGE, WEIGHTS, REPOS):
+for _p in (STORAGE, WEIGHTS, REPOS, INBOX):
     _p.mkdir(parents=True, exist_ok=True)
 
 HOST = os.getenv("RODIN_HOST", "127.0.0.1")

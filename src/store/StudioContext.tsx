@@ -73,6 +73,10 @@ interface StudioValue {
   patch: (p: Partial<GenerationSettings>) => void;
   images: RefImage[];
   addImages: (files: FileList | File[]) => void;
+  /** Pull a handed-off inbox image in as a reference. */
+  addFromUrl: (url: string, name: string, direction?: RefImage['direction']) => Promise<void>;
+  inbox: api.InboxImage[];
+  refreshInbox: () => void;
   removeImage: (id: string) => void;
   setDirection: (id: string, d: RefImage['direction']) => void;
   clearImages: () => void;
@@ -127,6 +131,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [comparison, setComparison] = useState<Asset[] | null>(null);
   const [shelfTab, setShelfTab] = useState<ShelfTab>('explore');
   const [health, setHealth] = useState<api.Health | null>(null);
+  const [inbox, setInbox] = useState<api.InboxImage[]>([]);
   const [credits, setCredits] = useState(120);
 
   const abort = useRef(false);
@@ -153,6 +158,23 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return next.slice(0, room);
     });
   }, [settings.imageMode]);
+
+  const addFromUrl = useCallback(async (url: string, name: string, direction: RefImage['direction'] = 'unknown') => {
+    const abs = api.absolute(url)!;
+    const blob = await fetch(abs).then((r) => r.blob());
+    const file = new File([blob], name, { type: blob.type || 'image/png' });
+    setImages((prev) => {
+      const room = settings.imageMode === 'single' ? 1 : 8;
+      const next = [
+        ...(settings.imageMode === 'single' ? [] : prev),
+        { id: `inbox-${Date.now()}-${name}`, url: URL.createObjectURL(file), name, direction, file },
+      ];
+      return next.slice(0, room);
+    });
+  }, [settings.imageMode]);
+
+  const refreshInbox = useCallback(() => { api.listInbox().then(setInbox); }, []);
+  useEffect(() => { refreshInbox(); }, [refreshInbox, health?.status]);
 
   const removeImage = useCallback((id: string) => {
     setImages((prev) => {
@@ -334,14 +356,14 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [settings, price]);
 
   const value = useMemo<StudioValue>(() => ({
-    settings, patch, images, addImages, removeImage, setDirection, clearImages,
+    settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
     job, generate, cancel,
     assets, exploreAssets, toggleLike, removeAsset,
     activeAsset, openAsset: setActiveAsset, closeAsset: () => setActiveAsset(null),
     comparison, openComparison: setComparison, closeComparison: () => setComparison(null),
     shelfTab, setShelfTab,
     health, backendOnline: !!health, credits, estimate, price, runCost,
-  }), [settings, patch, images, addImages, removeImage, setDirection, clearImages, job, generate,
+  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages, job, generate,
       cancel, assets, exploreAssets, toggleLike, removeAsset, activeAsset, comparison, shelfTab,
       health, credits, estimate, price, runCost]);
 

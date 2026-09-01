@@ -100,11 +100,13 @@ class TrellisEngine:
             ss_steps = max(4, int(ss_steps * 0.6))
             slat_steps = max(4, int(slat_steps * 0.6))
 
-        # mesh_simplify is a keep-ratio: 0.95 keeps 5% of faces. Map our face
-        # budget onto it, clamped to the range the endpoint accepts.
+        # mesh_simplify is a *reduction* ratio and the endpoint only accepts
+        # 0.9–0.98, i.e. it always discards at least 90% of the raw mesh. Map our
+        # face budget onto that window against a ~500k raw mesh; anything above
+        # ~50k faces simply pins to the 0.9 floor.
         simplify = 0.95
         if req.target_faces:
-            simplify = min(0.98, max(0.5, 1.0 - (req.target_faces / 400_000)))
+            simplify = min(0.98, max(0.9, 1.0 - (req.target_faces / 500_000)))
 
         result = fal_api.run(
             FAL_ENDPOINTS["trellis-2"],

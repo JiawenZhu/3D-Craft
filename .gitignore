@@ -30,3 +30,8 @@ server/weights/
 server/vendor/
 __pycache__/
 *.pyc
+
+# generated / handed-off assets
+server/inbox/*
+!server/inbox/README.md
+public/models/

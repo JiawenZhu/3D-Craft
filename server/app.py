@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from . import engines, jobs
-from .config import HOST, PORT, PROVIDER, STORAGE
+from .config import HOST, INBOX, PORT, PROVIDER, STORAGE
 from .engines.base import GenRequest
 
 app = FastAPI(title="Rodin 3D Studio API", version="2.1.0")
@@ -107,6 +107,52 @@ def job(job_id: str) -> dict:
     if not payload:
         raise HTTPException(404, "no such job")
     return payload
+
+
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".avif"}
+# filename suffix -> the direction tag both engines understand
+DIRECTION_HINTS = {
+    "front": "front", "back": "back", "left": "left", "right": "right",
+    "fl": "front-left", "fr": "front-right", "bl": "back-left", "br": "back-right",
+    "up": "up", "top": "up", "down": "down", "bottom": "down",
+}
+
+
+@app.get("/api/inbox")
+def inbox() -> list[dict]:
+    """
+    Reference images handed over by the image/animation side.
+
+    A trailing `_front` / `_back` / … in the filename is read as a direction so
+    multi-view sets arrive pre-tagged.
+    """
+    items: list[dict] = []
+    for path in sorted(INBOX.rglob("*"), key=lambda p: -p.stat().st_mtime if p.is_file() else 0):
+        if not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
+            continue
+        stem = path.stem.lower()
+        direction = "unknown"
+        for suffix, tag in DIRECTION_HINTS.items():
+            if stem.endswith(f"_{suffix}") or stem.endswith(f"-{suffix}"):
+                direction = tag
+                break
+        rel = path.relative_to(INBOX).as_posix()
+        items.append({
+            "name": path.name,
+            "url": f"/inbox/{rel}",
+            "direction": direction,
+            "sizeKb": round(path.stat().st_size / 1024),
+            "modifiedAt": int(path.stat().st_mtime * 1000),
+        })
+    return items
+
+
+@app.get("/inbox/{name:path}")
+def inbox_file(name: str) -> FileResponse:
+    target = (INBOX / name).resolve()
+    if not str(target).startswith(str(INBOX.resolve())) or not target.is_file():
+        raise HTTPException(404, "not found")
+    return FileResponse(target)
 
 
 @app.get("/api/assets")
