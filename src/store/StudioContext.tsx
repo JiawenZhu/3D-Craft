@@ -64,6 +64,26 @@ const SHAPES: Asset['seedShape'][] = ['figure', 'mech', 'creature', 'prop', 'veh
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/**
+ * What makes two meshes "the same 3D project".
+ *
+ * EXPLORE is a public gallery and must not show one thing five times; ASSET is
+ * the user's own bench and must show every attempt, because re-rolling the same
+ * prompt is the work. So the dedupe lives only in the gallery, keyed by what
+ * PRODUCED the mesh rather than by the mesh itself:
+ *
+ *   runId      a concept run, including every retry of it — the ice golem and
+ *              the ember golem re-render are one project at two moments
+ *   originRef  the gallery image a run started from
+ *   sourceRef  the reference image a direct-route generation used, so three
+ *              re-rolls of one van collapse to the van
+ *
+ * Scoped by author, because two people building the same gallery image have
+ * made two different things and hiding one of them is not deduplication.
+ */
+const projectKey = (a: Asset) =>
+  `${a.author || 'you'}:${a.runId ?? a.originRef ?? a.sourceRef ?? a.id}`;
+
 /** Which engines one GENERATE press should run, in order. */
 const compareQueue = (s: GenerationSettings): EngineId[] =>
   s.compare && s.compareWith !== s.engine ? [s.engine, s.compareWith] : [s.engine];
@@ -597,10 +617,32 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    * IS that reference, further along.
    */
   const exploreAssets = useMemo(() => {
-    const built = new Set(assets.map((a) => a.sourceRef).filter(Boolean) as string[]);
-    const projects = assets
+    // A gallery image is "built" if anything points at it — as the reference a
+    // generation used, OR as the image a concept run started from.
+    const built = new Set(
+      assets.flatMap((a) => [a.sourceRef, a.originRef]).filter(Boolean) as string[],
+    );
+
+    const public3d = assets
       .filter((a) => a.modelUrl && a.visibility !== 'private')
       .sort((a, b) => b.createdAt - a.createdAt);
+
+    // Newest per project wins: the list is already newest-first, so the first
+    // time a key appears is the version to show. The rest are counted, not
+    // dropped silently — a card saying "4 versions" explains why the ASSET tab
+    // has more rows than EXPLORE.
+    const counts = new Map<string, number>();
+    for (const a of public3d) counts.set(projectKey(a), (counts.get(projectKey(a)) ?? 0) + 1);
+
+    const seen = new Set<string>();
+    const projects: Asset[] = [];
+    for (const a of public3d) {
+      const key = projectKey(a);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      projects.push({ ...a, versions: counts.get(key) ?? 1 });
+    }
+
     const unbuilt = inboxCards.filter((c) => !c.thumbUrl || !built.has(c.thumbUrl));
     return [...projects, ...unbuilt];
   }, [assets, inboxCards]);

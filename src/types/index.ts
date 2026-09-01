@@ -143,6 +143,17 @@ export interface Asset {
   sourceRef?: string;
   /** The concept run that produced it, when it came through the pipeline. */
   runId?: string;
+  /**
+   * The gallery image the whole thing started from.
+   *
+   * Distinct from sourceRef: a pipeline mesh is reconstructed from the CONCEPT,
+   * so sourceRef points at that. This is the picture the user actually picked,
+   * and it is what stops that picture showing in EXPLORE as unbuilt next to the
+   * mesh it produced.
+   */
+  originRef?: string;
+  /** How many assets share this one's project key. Derived for the gallery. */
+  versions?: number;
   /** Measured server-side from the GLB, so the panel fills instantly. */
   meshes?: number;
   materials?: number;

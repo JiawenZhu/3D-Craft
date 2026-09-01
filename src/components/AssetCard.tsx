@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Heart, Lock, Rotate3d, Wand2 } from 'lucide-react';
+import { Box, Heart, Layers, Lock, Rotate3d, Wand2 } from 'lucide-react';
 import { cn } from '../lib/cn';
 import type { Asset } from '../types';
 import { AssetThumb } from './AssetThumb';
@@ -30,6 +30,15 @@ export const AssetCard: React.FC<{
     >
       <Heart className={cn('h-[15px] w-[15px]', asset.liked && 'fill-current')} />
     </span>
+
+    {asset.versions && asset.versions > 1 && (
+      <span
+        title={`${asset.versions} versions of this project — the newest is shown here. All of them are in your ASSET tab.`}
+        className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[9px] font-semibold text-chalk backdrop-blur-md"
+      >
+        <Layers className="h-2.5 w-2.5" /> {asset.versions}
+      </span>
+    )}
 
     {builtAsset && (
       <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-1 text-[9px] font-semibold text-emerald-200 backdrop-blur-md">

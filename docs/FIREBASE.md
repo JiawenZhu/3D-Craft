@@ -22,11 +22,15 @@ you get to find twice.
 ```
 users/{uid}                       profile, quota, preferences
   private/account                 billing + BYOK keys — server-only, see §4
-assets/{assetId}                  one finished 3D project
+assets/{assetId}                  every generation, duplicates included — the ASSET tab
   likes/{uid}                     who liked it (existence IS the like)
+projects/{projectKey}             one row per distinct project — the EXPLORE tab, see §2b
 runs/{runId}                      one concept-pipeline run, nodes inline
 gallery/{imageId}                 curated starting images (today: public/images/explore/)
 ```
+
+`assets` and `projects` are the same meshes counted two ways, and that is the
+point: the bench keeps every attempt, the gallery keeps one per project.
 
 ### Why these are top-level and not nested under `users/{uid}`
 
@@ -74,6 +78,8 @@ Produced by `server/jobs.py`. The client **never writes this** — see §4.
 
   runId: string | null,         // the concept run that produced it, if any
   sourceRef: string | null,     // the image it was reconstructed from
+  originRef: string | null,     // the gallery image the run started from
+  projectKey: string,           // see §2b — what makes two meshes "the same"
 }
 ```
 
@@ -82,6 +88,54 @@ renders — 40 cards must not mean 40 subcollection reads. The subcollection is
 what makes a like idempotent and lets someone see their own likes. Keep them
 consistent with a transaction, or a `likes/{uid}` onWrite trigger; do not let a
 client write the counter directly.
+
+### 2b. Duplicates: EXPLORE collapses, ASSET does not
+
+The two shelves want opposite things, and this is the field that separates them.
+
+ASSET is the user's own bench, and every attempt belongs there — re-rolling one
+prompt four times *is* the work, and hiding three of them would hide it. EXPLORE
+is a public gallery and must never show one thing four times.
+
+So the gallery keys on what **produced** the mesh, not on the mesh:
+
+| key | collapses |
+|---|---|
+| `runId` | a concept run and every retry of it — the ice golem and the ember golem re-render are one project at two moments |
+| `originRef` | the gallery image a run started from |
+| `sourceRef` | the reference a direct generation used, so three re-rolls of one van collapse to the van |
+
+```
+projectKey = `${ownerId}:${runId ?? originRef ?? sourceRef ?? assetId}`
+```
+
+Scoped by owner deliberately. Two people building the same gallery image have
+made two different things, and hiding one of them is not deduplication.
+
+**Firestore cannot do this in a query** — there is no DISTINCT. Two options,
+and the second is the one to build:
+
+1. Over-fetch and dedupe client-side. Fine at hundreds of assets, wrong at
+   thousands: you pay to read rows you then throw away.
+2. Keep a `projects/{projectKey}` document holding the CURRENT asset id, written
+   by the server in the same transaction that records the asset. EXPLORE then
+   queries `projects` directly — one row per project, already ordered, no
+   client-side work and no wasted reads. `versions` lives there as a counter,
+   which is what the card's "3" badge reads.
+
+```ts
+projects/{projectKey} {
+  ownerId: string,
+  assetId: string,              // the newest version — what the gallery shows
+  versions: number,
+  visibility: 'public' | 'private',
+  updatedAt: Timestamp,
+}
+```
+
+The index in §5 for `assets` by `(visibility, createdAt)` moves to `projects`
+with it. `assets` keeps its `(ownerId, createdAt)` index, which is the ASSET
+tab, where duplicates are the point.
 
 ### `runs/{runId}`
 
@@ -145,8 +199,10 @@ and `GET /api/inbox` lists them off disk.
 ```
 
 `builtAssetId` is the field that makes EXPLORE cheap. The studio currently
-derives it in the browser by scanning every asset's `sourceRef` — fine at 14
-assets, not at 14,000.
+derives it in the browser by scanning every asset's `sourceRef` **and**
+`originRef` — a pipeline mesh is reconstructed from the concept, so `sourceRef`
+alone left the gallery image it started from showing as unbuilt beside the mesh
+it produced. Fine at 16 assets, not at 16,000.
 
 ### `users/{uid}`
 

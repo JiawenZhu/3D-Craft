@@ -370,7 +370,14 @@ def _stage_model(doc: dict) -> None:
             # workbench can go through the concept stage instead of feeding the
             # same concept image to the reconstructor with different words.
             if doc["assetId"]:
-                jobs.annotate_asset(doc["assetId"], {"runId": doc["id"]})
+                jobs.annotate_asset(doc["assetId"], {
+                    "runId": doc["id"],
+                    # The mesh is reconstructed from the CONCEPT, so sourceRef
+                    # points there. originRef keeps the gallery image the run
+                    # actually started from — without it that image goes on
+                    # showing in EXPLORE as unbuilt, beside the mesh it produced.
+                    "originRef": doc["input"].get("sourceRef"),
+                })
             _set(
                 doc, "model3d",
                 status="done",
