@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, RefreshCw, Search, X } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { useStudio } from '../store/StudioContext';
 import { AssetCard } from './AssetCard';
@@ -9,7 +9,7 @@ import type { Asset } from '../types';
 const FILTERS = ['Featured', 'Newest', 'Most liked', 'Image to 3D', 'Text to 3D', 'Hunyuan3D', 'TRELLIS.2'] as const;
 
 export const AssetShelf: React.FC = () => {
-  const { assets, exploreAssets, shelfTab, setShelfTab, openAsset, toggleLike, addFromUrl, inbox } = useStudio();
+  const { assets, exploreAssets, shelfTab, setShelfTab, openAsset, toggleLike, addFromUrl, inbox, refreshInbox } = useStudio();
   const [filter, setFilter] = useState<string>('Featured');
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -55,11 +55,23 @@ export const AssetShelf: React.FC = () => {
               )}
             >
               {t}
+              <span className="ml-2 align-middle text-[13px] font-normal text-white/25">
+                {t === 'asset' ? assets.length : exploreAssets.length}
+              </span>
             </button>
           ))}
         </div>
 
         <div className="flex items-center gap-2">
+          {shelfTab === 'explore' && (
+            <button
+              onClick={refreshInbox}
+              title="Re-read server/inbox/ — new files also appear on their own every few seconds"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-chalk-dim backdrop-blur-xl transition-colors hover:border-white/25 hover:text-white"
+            >
+              <RefreshCw className="h-[15px] w-[15px]" />
+            </button>
+          )}
           <div className={cn('flex items-center overflow-hidden rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-300', searchOpen ? 'w-[220px] px-3' : 'w-9')}>
             <button onClick={() => setSearchOpen((v) => !v)} className="grid h-9 w-9 shrink-0 place-items-center text-chalk-dim transition-colors hover:text-white" style={{ marginLeft: searchOpen ? -12 : 0 }}>
               <Search className="h-[15px] w-[15px]" />

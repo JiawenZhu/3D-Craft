@@ -135,6 +135,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const abort = useRef(false);
   const running = useRef(false);
+  const inboxSignature = useRef('');
 
   const patch = useCallback((p: Partial<GenerationSettings>) => setSettings((s) => ({ ...s, ...p })), []);
 
@@ -174,6 +175,9 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const refreshInbox = useCallback(() => {
     api.listInbox().then((items) => {
+      const signature = items.map((i) => `${i.url}:${i.modifiedAt}`).join('|');
+      if (signature === inboxSignature.current) return;
+      inboxSignature.current = signature;
       setInbox(items);
       // Surface the hand-off images as EXPLORE cards: real art you can generate
       // from, rather than procedural filler.
@@ -194,7 +198,15 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       })));
     });
   }, []);
-  useEffect(() => { refreshInbox(); }, [refreshInbox, health?.status]);
+  // The image side drops files in whenever it likes, so poll rather than only
+  // reading the folder once at mount — otherwise new art never appears.
+  useEffect(() => {
+    refreshInbox();
+    const iv = window.setInterval(refreshInbox, 5000);
+    const onFocus = () => refreshInbox();
+    window.addEventListener('focus', onFocus);
+    return () => { window.clearInterval(iv); window.removeEventListener('focus', onFocus); };
+  }, [refreshInbox, health?.status]);
 
   const removeImage = useCallback((id: string) => {
     setImages((prev) => {

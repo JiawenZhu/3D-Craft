@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from . import engines, jobs
-from .config import HOST, INBOX, PORT, PROVIDER, STORAGE
+from .config import EXPORTS, HOST, INBOX, PORT, PROVIDER, STORAGE
 from .engines.base import GenRequest
 
 app = FastAPI(title="Rodin 3D Studio API", version="2.1.0")
@@ -190,7 +190,9 @@ def export_asset(asset_id: str, format: str = "glb") -> FileResponse:
     if fmt == "glb":
         return FileResponse(src, media_type=media_type, filename=filename)
 
-    out = src.with_suffix(f".{fmt}")
+    work = EXPORTS / asset_id
+    work.mkdir(parents=True, exist_ok=True)
+    out = work / f"model.{fmt}"
     if not out.exists() or out.stat().st_mtime < src.stat().st_mtime:
         import trimesh
 
@@ -201,13 +203,14 @@ def export_asset(asset_id: str, format: str = "glb") -> FileResponse:
     if fmt != "obj":
         return FileResponse(out, media_type=media_type, filename=filename)
 
-    bundle = src.parent / "model-obj.zip"
+    bundle = work / "model-obj.zip"
     if not bundle.exists() or bundle.stat().st_mtime < out.stat().st_mtime:
         import zipfile
 
         with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as z:
             z.write(out, "model.obj")
-            for extra in sorted(src.parent.glob("material*")):
+            # trimesh writes the material and texture beside the .obj
+            for extra in sorted(work.glob("material*")):
                 z.write(extra, extra.name)
     return FileResponse(bundle, media_type=media_type, filename=filename)
 

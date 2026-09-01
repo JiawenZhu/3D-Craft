@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import engines
-from .config import STORAGE
+from .config import EXPORTS, STORAGE
 from .engines.base import GenRequest
 from .engines.common import mesh_stats
 
@@ -65,11 +65,11 @@ def delete_asset(asset_id: str) -> None:
     with _lock:
         items = [a for a in _load_index() if a["id"] != asset_id]
         _save_index(items)
-    folder = STORAGE / asset_id
-    if folder.exists():
-        import shutil
+    import shutil
 
-        shutil.rmtree(folder, ignore_errors=True)
+    for folder in (STORAGE / asset_id, EXPORTS / asset_id):
+        if folder.exists():
+            shutil.rmtree(folder, ignore_errors=True)
 
 
 def _record(asset: dict) -> None:

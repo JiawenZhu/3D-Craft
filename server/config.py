@@ -19,8 +19,11 @@ WEIGHTS = Path(os.getenv("RODIN_WEIGHTS", ROOT / "weights"))
 REPOS = Path(os.getenv("RODIN_REPOS", ROOT / "vendor"))
 # Hand-off folder: the image/animation side drops references here.
 INBOX = Path(os.getenv("RODIN_INBOX", ROOT / "inbox"))
+# Converted downloads, kept apart from the generated assets so they can be
+# cleared without touching anything that cannot be regenerated for free.
+EXPORTS = Path(os.getenv("RODIN_EXPORTS", ROOT / "exports"))
 
-for _p in (STORAGE, WEIGHTS, REPOS, INBOX):
+for _p in (STORAGE, WEIGHTS, REPOS, INBOX, EXPORTS):
     _p.mkdir(parents=True, exist_ok=True)
 
 HOST = os.getenv("RODIN_HOST", "127.0.0.1")
