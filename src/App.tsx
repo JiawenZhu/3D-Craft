@@ -6,6 +6,7 @@ import { RightRail } from './components/RightRail';
 import { Hero } from './components/Hero';
 import { GeneratorCard } from './components/generator/GeneratorCard';
 import { AssetShelf } from './components/AssetShelf';
+import { PipelineBoard } from './components/pipeline/PipelineBoard';
 
 // three.js only matters once you open an asset — keep it out of the landing bundle.
 const Workbench = lazy(() => import('./components/workbench/Workbench').then((m) => ({ default: m.Workbench })));
@@ -35,6 +36,7 @@ const Studio: React.FC = () => {
           <main className="relative z-10 pt-[148px]">
             <Hero />
             <GeneratorCard />
+            <PipelineBoard />
             <AssetShelf />
           </main>
           <RightRail />

@@ -6,6 +6,7 @@ import { OptionRail } from './OptionRail';
 import { ActionRow } from './ActionRow';
 import { EngineRow } from './EngineRow';
 import { JobBanner } from './JobBanner';
+import { RouteToggle } from './RouteToggle';
 import { Info } from 'lucide-react';
 
 /**
@@ -13,8 +14,11 @@ import { Info } from 'lucide-react';
  * mode rail and the option rail, with the GENERATE row and engine row beneath.
  */
 export const GeneratorCard: React.FC = () => {
-  const { job, settings, patch, images, notice, dismissNotice } = useStudio();
-  const needsImage = images.length === 0 && settings.prompt.trim().length > 0;
+  const { job, settings, patch, images, notice, dismissNotice, usePipeline, geminiReady } = useStudio();
+  // The engines are image-conditioned, but the concept pass is not: with it on,
+  // a prompt alone is enough because Gemini renders the image the engines need.
+  const needsImage = images.length === 0 && settings.prompt.trim().length > 0
+    && !(usePipeline && geminiReady);
 
   return (
     <section className="relative z-10 mt-[164px] flex flex-col items-center animate-riseIn" style={{ animationDelay: '.15s' }}>
@@ -32,6 +36,7 @@ export const GeneratorCard: React.FC = () => {
 
       <ActionRow />
       <EngineRow />
+      <RouteToggle />
 
       {/* Neither model does text→3D directly; say so rather than letting a run fail. */}
       {needsImage && !job && (

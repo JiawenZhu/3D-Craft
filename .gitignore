@@ -36,3 +36,5 @@ server/inbox/*
 !server/inbox/README.md
 public/models/
 server/exports/
+# concept-pipeline runs: source photos, concept renders and run.json
+server/runs/

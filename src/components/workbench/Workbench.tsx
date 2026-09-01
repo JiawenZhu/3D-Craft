@@ -35,7 +35,10 @@ const slug = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'model';
 
 export const Workbench: React.FC = () => {
-  const { activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset, patch, settings, regenerate, job, price } = useStudio();
+  const {
+    activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset,
+    patch, settings, regenerate, job, price, pipeline, repromptRun, geminiReady,
+  } = useStudio();
   const [shading, setShading] = useState<ViewportShading>('material');
   const [light, setLight] = useState<StudioLight>('studio');
   const [autoRotate, setAutoRotate] = useState(true);
@@ -56,10 +59,32 @@ export const Workbench: React.FC = () => {
     else el.requestFullscreen?.();
   };
 
+  /*
+   * A re-prompt through the concept stage finishes as a NEW asset, so swap to
+   * it when it lands — otherwise the panel keeps showing the mesh the new
+   * wording was meant to replace, and the button looks like it did nothing.
+   */
+  const tracked = activeAsset?.runId;
+  React.useEffect(() => {
+    if (!tracked || pipeline?.id !== tracked || pipeline.status !== 'done') return;
+    const made = pipeline.assetId;
+    if (!made || made === activeAsset?.id) return;
+    const next = assets.find((x) => x.id === made);
+    if (next) openAsset(next);
+  }, [tracked, pipeline?.id, pipeline?.status, pipeline?.assetId, assets, activeAsset?.id, openAsset]);
+
   if (!activeAsset) return null;
   const a = activeAsset;
   const engine = engineById(a.engine);
   const running = job && job.stage !== 'done' && job.stage !== 'failed';
+  // Assets that came through the concept pipeline are re-prompted by re-running
+  // it, not by handing the same concept image to the reconstructor again.
+  const viaRun = !!a.runId && geminiReady;
+  const run = pipeline?.id === a.runId ? pipeline : null;
+  const runBusy = run?.status === 'running';
+  const busy = !!running || !!runBusy;
+  const runNode = run?.nodes.find((n) => n.status === 'running');
+  const canReprompt = viaRun || !!a.sourceRef || !!a.thumbUrl;
   const siblings = [...assets, ...exploreAssets].filter((x) => x.id !== a.id).slice(0, 8);
 
   const stat = (k: string, v: string) => (
@@ -161,20 +186,45 @@ export const Workbench: React.FC = () => {
               className="mb-2 w-full resize-none rounded-lg border border-white/8 bg-white/[0.03] p-2 text-[11px] leading-relaxed text-chalk placeholder:text-chalk-ghost focus:border-white/25"
             />
             <button
-              disabled={!reprompt.trim() || !!running || !(a.sourceRef || a.thumbUrl)}
-              onClick={() => { regenerate(a, reprompt.trim()); setReprompt(''); }}
+              disabled={!reprompt.trim() || busy || !canReprompt}
+              onClick={() => {
+                const words = reprompt.trim();
+                if (viaRun) repromptRun(a.runId!, words);
+                else regenerate(a, words);
+                setReprompt('');
+              }}
               className={cn(
                 'flex w-full items-center justify-center gap-2 rounded-full py-2 text-[12px] font-semibold transition-all',
-                reprompt.trim() && !running && (a.sourceRef || a.thumbUrl)
+                reprompt.trim() && !busy && canReprompt
                   ? 'text-ink hover:brightness-110' : 'cursor-not-allowed bg-white/[0.05] text-chalk-ghost',
               )}
-              style={reprompt.trim() && !running && (a.sourceRef || a.thumbUrl)
+              style={reprompt.trim() && !busy && canReprompt
                 ? { backgroundImage: 'var(--g-accent)' } : undefined}
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              {running ? 'Generating…' : `Regenerate · $${(price(a.engine)).toFixed(2)}`}
+              <RefreshCw className={cn('h-3.5 w-3.5', busy && 'animate-spin')} />
+              {busy ? 'Generating…'
+                : viaRun ? 'Re-prompt the concept'
+                  : `Regenerate · $${(price(a.engine)).toFixed(2)}`}
             </button>
-            {job && (
+
+            {/* Concept runs report per-stage, not as one job. */}
+            {run && (
+              <div className={cn(
+                'mt-2 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[10px]',
+                run.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-white/[0.04] text-chalk-dim',
+              )}>
+                {run.status === 'failed'
+                  ? <AlertTriangle className="h-3 w-3 shrink-0" />
+                  : <RefreshCw className={cn('h-3 w-3 shrink-0', runBusy && 'animate-spin')} />}
+                <span className="truncate">
+                  {run.status === 'failed' ? run.error : runNode?.label ?? 'Complete'}
+                </span>
+                {runNode?.kind === 'model3d' && runNode.progress != null && (
+                  <span className="ml-auto shrink-0 font-mono">{Math.round(runNode.progress)}%</span>
+                )}
+              </div>
+            )}
+            {job && !viaRun && (
               <div className={cn(
                 'mt-2 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[10px]',
                 job.stage === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-white/[0.04] text-chalk-dim',
@@ -188,9 +238,11 @@ export const Workbench: React.FC = () => {
             )}
 
             <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
-              {(a.sourceRef || a.thumbUrl)
-                ? 'Runs the same source image against your new wording. The result opens here as a new asset; this one is kept.'
-                : 'No source image on this asset, so it cannot be re-prompted.'}
+              {viaRun
+                ? 'Goes back through Gemini: your new wording is rewritten into a prompt, re-rendered as a concept, and reconstructed. That is what makes the words reach the geometry — the reconstructor itself reads the image, not the prompt.'
+                : canReprompt
+                  ? 'Runs the same source image against your new wording. Note the reconstructor is image-conditioned, so wording mostly renames the result — use the concept route for changes that alter the shape.'
+                  : 'No source image on this asset, so it cannot be re-prompted.'}
             </p>
           </div>
 

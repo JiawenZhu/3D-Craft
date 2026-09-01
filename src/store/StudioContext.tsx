@@ -2,7 +2,8 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import type {
-  Asset, EngineId, GenerationSettings, Job, JobStage, RefImage, ShelfTab,
+  Asset, EngineId, GenerationSettings, Job, JobStage, PipelineRun, PipelineStage,
+  PipelineSummary, RefImage, ShelfTab,
 } from '../types';
 import { engineById } from '../data/engines';
 import * as api from '../lib/api';
@@ -80,6 +81,29 @@ interface StudioValue {
   setDirection: (id: string, d: RefImage['direction']) => void;
   clearImages: () => void;
 
+  /* ---- the concept pipeline ------------------------------------------
+   * photo + words -> Gemini writes a prompt -> Gemini renders it -> mesh.
+   * Kept beside `job` rather than folded into it: a pipeline run is four
+   * separately-attributable stages that outlive the tab, and a Job is one
+   * in-memory generation. Collapsing them would lose per-stage retry.
+   * ------------------------------------------------------------------ */
+  /** The run the board is showing — live or reopened from history. */
+  pipeline: PipelineRun | null;
+  pipelineRuns: PipelineSummary[];
+  /** Whether the server can run the concept stage at all. */
+  geminiReady: boolean;
+  /** Route GENERATE through the concept pass instead of straight to 3D. */
+  usePipeline: boolean;
+  setUsePipeline: (v: boolean) => void;
+  startPipeline: () => void;
+  openRun: (id: string) => void;
+  closeRun: () => void;
+  /** Re-run one stage onward, keeping everything before it. */
+  retryStage: (stage: PipelineStage, prompt?: string) => void;
+  /** Re-prompt a finished run from the workbench: new words, same photo. */
+  repromptRun: (runId: string, prompt: string) => void;
+  deleteRun: (id: string) => void;
+
   job: Job | null;
   /** Last user-facing problem that was not a generation failure. */
   notice: string | null;
@@ -130,7 +154,8 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [images, setImages] = useState<RefImage[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [exploreAssets, setExplore] = useState<Asset[]>([]);
+  /** Reference cards built from the hand-off folder; merged into EXPLORE below. */
+  const [inboxCards, setInboxCards] = useState<Asset[]>([]);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
   const [comparison, setComparison] = useState<Asset[] | null>(null);
   const [shelfTab, setShelfTab] = useState<ShelfTab>('explore');
@@ -138,6 +163,9 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [inbox, setInbox] = useState<api.InboxImage[]>([]);
   const [credits, setCredits] = useState(120);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineRun | null>(null);
+  const [pipelineRuns, setPipelineRuns] = useState<PipelineSummary[]>([]);
+  const [usePipeline, setUsePipeline] = useState(true);
 
   const abort = useRef(false);
   const running = useRef(false);
@@ -196,7 +224,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setInbox(items);
       // Surface the hand-off images as EXPLORE cards: real art you can generate
       // from, rather than procedural filler.
-      setExplore(items.map((img, i) => ({
+      setInboxCards(items.map((img) => ({
         id: `ref-${img.url}`,
         name: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
         prompt: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
@@ -461,11 +489,96 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const cancel = useCallback(() => { abort.current = true; setJob(null); running.current = false; }, []);
   useEffect(() => () => { abort.current = true; }, []);
 
+  /* ---- the concept pipeline -------------------------------------------- */
+  const geminiReady = !!health?.gemini?.available;
+
+  const refreshRuns = useCallback(() => { api.listPipelines().then(setPipelineRuns); }, []);
+  useEffect(() => { refreshRuns(); }, [refreshRuns, health?.status]);
+
+  /**
+   * Poll only while the run is moving.
+   *
+   * The document on the server is the source of truth for every stage, so this
+   * replaces the whole run each tick rather than merging — a half-merged node
+   * would show a stale model name beside a fresh status.
+   */
+  useEffect(() => {
+    if (pipeline?.status !== 'running') return;
+    const id = pipeline.id;
+    let stop = false;
+    const tick = async () => {
+      try {
+        const next = await api.getPipeline(id);
+        if (stop) return;
+        setPipeline(next);
+        if (next.status !== 'running') {
+          refreshRuns();
+          // The finished mesh is a new asset; the shelf and the 3D node both
+          // need it before "Open in 3D" can do anything.
+          api.listAssets().then((a) => a.length && setAssets(a));
+        }
+      } catch {
+        /* transient — the next tick tries again */
+      }
+    };
+    const iv = window.setInterval(tick, 1200);
+    return () => { stop = true; window.clearInterval(iv); };
+  }, [pipeline?.status, pipeline?.id, refreshRuns]);
+
+  const startPipeline = useCallback(() => {
+    const image = images[0];
+    if (!image && !settings.prompt.trim()) return;
+    setNotice(null);
+    api.startPipeline(settings.prompt, settings, image)
+      .then(({ run_id }) => api.getPipeline(run_id))
+      .then((run) => { setPipeline(run); refreshRuns(); })
+      .catch((err: Error) => setNotice(`The concept pass could not start — ${err.message}`));
+  }, [images, settings, refreshRuns]);
+
+  const openRun = useCallback((id: string) => {
+    api.getPipeline(id).then(setPipeline).catch(() => setNotice('That run could not be loaded.'));
+  }, []);
+
+  const closeRun = useCallback(() => setPipeline(null), []);
+
+  const runStage = useCallback((id: string, stage: PipelineStage, prompt?: string) => {
+    // Flip to running locally so the poller starts on this tick rather than
+    // after the next one — otherwise the board sits still for a second and
+    // reads as a dead button.
+    setPipeline((r) => (r && r.id === id ? { ...r, status: 'running' } : r));
+    api.retryPipeline(id, stage, prompt)
+      .then(() => api.getPipeline(id))
+      .then(setPipeline)
+      .catch((err: Error) => setNotice(`That stage could not be re-run — ${err.message}`));
+  }, []);
+
+  const retryStage = useCallback((stage: PipelineStage, prompt?: string) => {
+    if (pipeline?.id) runStage(pipeline.id, stage, prompt);
+  }, [pipeline?.id, runStage]);
+
+  /**
+   * Re-prompt from the workbench, through the concept stage.
+   *
+   * Feeding the same concept image back to the reconstructor with different
+   * words changes almost nothing — TRELLIS and Hunyuan are conditioned on the
+   * IMAGE, and the prompt mostly names the result. Going back to the prompt
+   * stage is what makes the new wording actually reach the geometry.
+   */
+  const repromptRun = useCallback((runId: string, prompt: string) => {
+    runStage(runId, 'prompt', prompt);
+  }, [runStage]);
+
+  const deleteRun = useCallback((id: string) => {
+    setPipeline((r) => (r && r.id === id ? null : r));
+    setPipelineRuns((rs) => rs.filter((r) => r.id !== id));
+    api.deletePipeline(id).catch(() => {});
+  }, []);
+
   /* ---- assets ----------------------------------------------------------- */
   const toggleLike = useCallback((id: string) => {
     const flip = (a: Asset) => (a.id === id ? { ...a, liked: !a.liked, likes: a.likes + (a.liked ? -1 : 1) } : a);
     setAssets((p) => p.map(flip));
-    setExplore((p) => p.map(flip));
+    setInboxCards((p) => p.map(flip));
     setActiveAsset((p) => (p && p.id === id ? flip(p) : p));
   }, []);
 
@@ -474,6 +587,23 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveAsset((p) => (p && p.id === id ? null : p));
     api.deleteAsset(id).catch(() => {});
   }, []);
+
+  /**
+   * EXPLORE: every 3D project, then the gallery images nobody has built yet.
+   *
+   * It used to be the hand-off folder and nothing else, which made it a list of
+   * pictures on a page whose whole subject is meshes. A reference that has
+   * already produced a mesh is dropped here rather than shown twice — the mesh
+   * IS that reference, further along.
+   */
+  const exploreAssets = useMemo(() => {
+    const built = new Set(assets.map((a) => a.sourceRef).filter(Boolean) as string[]);
+    const projects = assets
+      .filter((a) => a.modelUrl && a.visibility !== 'private')
+      .sort((a, b) => b.createdAt - a.createdAt);
+    const unbuilt = inboxCards.filter((c) => !c.thumbUrl || !built.has(c.thumbUrl));
+    return [...projects, ...unbuilt];
+  }, [assets, inboxCards]);
 
   /** The static table is a guess; the server knows the device it will run on. */
   const estimate = useCallback((engine: EngineId, effort: string) => {
@@ -495,13 +625,17 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const value = useMemo<StudioValue>(() => ({
     settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
+    pipeline, pipelineRuns, geminiReady, usePipeline, setUsePipeline,
+    startPipeline, openRun, closeRun, retryStage, repromptRun, deleteRun,
     job, notice, dismissNotice: () => setNotice(null), generate, regenerate, cancel,
     assets, exploreAssets, toggleLike, removeAsset,
     activeAsset, openAsset: setActiveAsset, closeAsset: () => setActiveAsset(null),
     comparison, openComparison: setComparison, closeComparison: () => setComparison(null),
     shelfTab, setShelfTab,
     health, backendOnline: !!health, credits, estimate, price, runCost,
-  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages, job, notice, generate, regenerate,
+  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
+      pipeline, pipelineRuns, geminiReady, usePipeline, startPipeline, openRun, closeRun, retryStage, repromptRun, deleteRun,
+      job, notice, generate, regenerate,
       cancel, assets, exploreAssets, toggleLike, removeAsset, activeAsset, comparison, shelfTab,
       health, credits, estimate, price, runCost]);
 

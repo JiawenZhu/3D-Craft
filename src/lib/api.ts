@@ -1,6 +1,8 @@
-import type { Asset, GenerationSettings, Job, RefImage } from '../types';
+import type {
+  Asset, GenerationSettings, Job, PipelineRun, PipelineStage, PipelineSummary, RefImage,
+} from '../types';
 
-export const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? 'http://127.0.0.1:8000';
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000';
 
 export interface EngineHealth {
   installed: boolean;
@@ -19,6 +21,8 @@ export interface Health {
   torch: string;
   provider: string;
   engines: Record<string, EngineHealth>;
+  /** Whether the server can run the concept stage; absent on older builds. */
+  gemini?: { available: boolean; note: string };
 }
 
 const timeout = (ms: number) => {
@@ -107,3 +111,60 @@ export async function deleteAsset(id: string): Promise<void> {
 
 export const absolute = (url?: string) =>
   !url ? undefined : /^https?:|^blob:|^data:/.test(url) ? url : `${API_BASE}${url}`;
+
+
+/* ------------------------------------------------------------------ pipelines
+ * The concept run. Everything here goes through this process — the Gemini key
+ * lives on the server and the browser never sees it, same rule as FAL_KEY.
+ * ------------------------------------------------------------------------- */
+
+export async function startPipeline(
+  prompt: string,
+  settings: GenerationSettings,
+  image?: RefImage,
+): Promise<{ run_id: string }> {
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  fd.append('settings', JSON.stringify(settings));
+  if (image?.file) fd.append('image', image.file, image.name);
+  if (image?.sourceUrl) fd.append('sourceRef', image.sourceUrl);
+
+  const r = await fetch(`${API_BASE}/api/pipelines`, { method: 'POST', body: fd });
+  if (!r.ok) {
+    // FastAPI puts the reason in {detail}; surfacing it is the difference
+    // between "503" and "GEMINI_API_KEY not set".
+    let why = `${r.status}`;
+    try { why = (await r.json()).detail ?? why; } catch { /* keep the status */ }
+    throw new Error(why);
+  }
+  return r.json();
+}
+
+export async function getPipeline(id: string): Promise<PipelineRun> {
+  const r = await fetch(`${API_BASE}/api/pipelines/${id}`);
+  if (!r.ok) throw new Error(`run ${id}: ${r.status}`);
+  return r.json();
+}
+
+export async function listPipelines(): Promise<PipelineSummary[]> {
+  try {
+    const r = await fetch(`${API_BASE}/api/pipelines`, { signal: timeout(3000) });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch {
+    return [];
+  }
+}
+
+/** Re-run from one stage onward; everything before it is kept as-is. */
+export async function retryPipeline(id: string, stage: PipelineStage, prompt?: string): Promise<void> {
+  const fd = new FormData();
+  fd.append('stage', stage);
+  if (prompt !== undefined) fd.append('prompt', prompt);
+  const r = await fetch(`${API_BASE}/api/pipelines/${id}/retry`, { method: 'POST', body: fd });
+  if (!r.ok) throw new Error(`retry failed: ${r.status}`);
+}
+
+export async function deletePipeline(id: string): Promise<void> {
+  await fetch(`${API_BASE}/api/pipelines/${id}`, { method: 'DELETE' });
+}

@@ -25,8 +25,12 @@ INBOX = Path(os.getenv("RODIN_INBOX", REPO_ROOT / "public" / "images" / "explore
 # Converted downloads, kept apart from the generated assets so they can be
 # cleared without touching anything that cannot be regenerated for free.
 EXPORTS = Path(os.getenv("RODIN_EXPORTS", ROOT / "exports"))
+# Pipeline runs: one folder per run holding the source photo, the concept image
+# and run.json. Deliberately NOT inside STORAGE — assets are meshes and runs are
+# the history that produced them, and the Firestore split later is the same one.
+RUNS = Path(os.getenv("RODIN_RUNS", ROOT / "runs"))
 
-for _p in (STORAGE, WEIGHTS, REPOS, INBOX, EXPORTS):
+for _p in (STORAGE, WEIGHTS, REPOS, INBOX, EXPORTS, RUNS):
     _p.mkdir(parents=True, exist_ok=True)
 
 HOST = os.getenv("RODIN_HOST", "127.0.0.1")
@@ -38,6 +42,17 @@ HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
 # it must never reach the browser, which is why the React app only ever talks to
 # this process and never to fal directly.
 FAL_KEY = os.getenv("FAL_KEY")
+
+# Gemini — the concept stage that runs before the 3D engines. Server-side only.
+# Never define this as VITE_GEMINI_API_KEY: Vite inlines VITE_* into the browser
+# bundle, which publishes the key to everyone who loads the page.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# The planner writes every prompt the image model executes, so a weaker text
+# model degrades the concept and no amount of image quality rescues it.
+GEMINI_TEXT_MODEL = os.getenv("RODIN_GEMINI_TEXT_MODEL", "gemini-3.7-flash")
+# The concept image sets the ceiling on the mesh — image-to-3D cannot recover
+# detail that was never rendered — so this defaults to the pro model.
+GEMINI_IMAGE_MODEL = os.getenv("RODIN_GEMINI_IMAGE_MODEL", "gemini-3-pro-image")
 
 # Which provider each engine should try first.
 #   auto  -> fal.ai when FAL_KEY is set, else a native local pipeline,

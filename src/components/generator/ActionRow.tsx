@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Lock, SlidersHorizontal, Square, Unlock } from 'lucide-react';
+import { ChevronRight, Loader2, Lock, SlidersHorizontal, Square, Unlock } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
 import { Popover, Tip } from '../ui/primitives';
@@ -24,12 +24,24 @@ const Ring: React.FC<{ value: number }> = ({ value }) => {
 };
 
 export const ActionRow: React.FC = () => {
-  const { settings, patch, generate, cancel, job, images, runCost } = useStudio();
+  const {
+    settings, patch, generate, cancel, job, images, runCost,
+    usePipeline, geminiReady, startPipeline, pipeline,
+  } = useStudio();
   const [advOpen, setAdvOpen] = useState(false);
   const running = !!job && job.stage !== 'done' && job.stage !== 'failed';
+  // A concept run is four stages on the server with no cancel endpoint, so it
+  // is shown as busy rather than as a stop button that would lie.
+  const piping = pipeline?.status === 'running';
+  const viaPipeline = usePipeline && geminiReady;
   const ready = settings.inputMode === 'text' || settings.mode === 'worldgen'
     ? settings.prompt.trim().length > 0
     : images.length > 0 || settings.prompt.trim().length > 0;
+
+  /** Which stage of the concept run the button should be narrating. */
+  const stageNow = piping
+    ? pipeline!.nodes.find((n) => n.status === 'running') ?? pipeline!.nodes[0]
+    : null;
 
   return (
     <div className="relative mt-[6px] flex w-[191px] items-center justify-center">
@@ -53,11 +65,11 @@ export const ActionRow: React.FC = () => {
       {/* GENERATE -------------------------------------------------------- */}
       <div className="rd-generate-halo relative">
         <button
-          onClick={running ? cancel : generate}
-          disabled={!ready && !running}
+          onClick={running ? cancel : viaPipeline ? startPipeline : generate}
+          disabled={piping || (!ready && !running)}
           className={cn(
             'group relative flex h-[60px] w-[191px] items-center justify-center overflow-hidden rounded-full border transition-all duration-300',
-            running
+            running || piping
               ? 'border-white/25 bg-white/[0.10]'
               : ready
                 ? 'border-white/20 bg-white/[0.07] hover:border-white/45 hover:bg-white/[0.12] active:scale-[0.985]'
@@ -66,13 +78,25 @@ export const ActionRow: React.FC = () => {
           style={{ backdropFilter: 'blur(14px)' }}
         >
           {/* progress fill */}
-          {running && (
+          {running && !piping && (
             <span
               className="absolute inset-y-0 left-0 bg-white/[0.10] transition-[width] duration-500"
               style={{ width: `${job!.progress}%` }}
             />
           )}
-          {running ? (
+          {piping ? (
+            <span className="relative flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-lilac" />
+              <span className="text-left">
+                <span className="block text-[11px] font-semibold leading-tight text-white">
+                  {stageNow?.label ?? 'Running'}
+                </span>
+                <span className="block font-mono text-[9px] leading-tight text-chalk-faint">
+                  {elapsed(Date.now() - pipeline!.createdAt)}
+                </span>
+              </span>
+            </span>
+          ) : running ? (
             <span className="relative flex items-center gap-2.5">
               <Ring value={job!.progress} />
               <span className="text-left">

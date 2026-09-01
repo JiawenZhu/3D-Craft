@@ -17,8 +17,8 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import engines, jobs
-from .config import EXPORTS, HOST, INBOX, PORT, PROVIDER, ROOT, STORAGE
+from . import engines, gemini, jobs, pipelines
+from .config import EXPORTS, HOST, INBOX, PORT, PROVIDER, ROOT, RUNS, STORAGE
 from .engines.base import GenRequest
 
 app = FastAPI(title="Rodin 3D Studio API", version="2.1.0")
@@ -43,12 +43,16 @@ def _device() -> tuple[str, str]:
 @app.get("/api/health")
 def health() -> dict:
     device, torch_version = _device()
+    gem_ok, gem_note = gemini.available()
     return {
         "status": "ok",
         "device": device,
         "torch": torch_version,
         "provider": PROVIDER,
         "engines": engines.status_all(),
+        # The concept stage is optional: without a key the studio still runs
+        # image -> 3D directly, so the UI needs to know which it can offer.
+        "gemini": {"available": gem_ok, "note": gem_note},
     }
 
 
@@ -160,6 +164,101 @@ def inbox() -> list[dict]:
 def inbox_file(name: str) -> FileResponse:
     target = (INBOX / name).resolve()
     if not str(target).startswith(str(INBOX.resolve())) or not target.is_file():
+        raise HTTPException(404, "not found")
+    return FileResponse(target)
+
+
+# ---------------------------------------------------------------- pipelines
+@app.post("/api/pipelines")
+async def start_pipeline(
+    prompt: str = Form(""),
+    settings: str = Form("{}"),
+    image: UploadFile | None = File(default=None),
+    sourceRef: str = Form(""),
+) -> dict:
+    """
+    photo + words -> written prompt -> concept render -> mesh.
+
+    The upload is copied into the run folder rather than referenced from the
+    temp dir, because a run outlives the request that created it and the node
+    graph still has to show the source image tomorrow.
+    """
+    ok, why = gemini.available()
+    if not ok:
+        raise HTTPException(503, f"the concept stage is unavailable: {why}")
+
+    try:
+        cfg = json.loads(settings)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(400, f"bad settings payload: {exc}") from exc
+
+    engine_id = cfg.get("engine", "trellis-2")
+    if engine_id not in engines.ENGINES:
+        raise HTTPException(400, f"unknown engine {engine_id!r}")
+
+    saved: Path | None = None
+    scratch: Path | None = None
+    if image is not None and image.filename:
+        scratch = Path(tempfile.mkdtemp(prefix="rodin-pipe-"))
+        saved = scratch / Path(image.filename).name
+        with saved.open("wb") as fh:
+            shutil.copyfileobj(image.file, fh)
+
+    if saved is None and not prompt.strip():
+        raise HTTPException(400, "give it an image, a prompt, or both")
+
+    try:
+        run_id = pipelines.create(
+            user_prompt=prompt,
+            settings=cfg,
+            source=saved,
+            source_ref=sourceRef or None,
+        )
+    finally:
+        if scratch:
+            shutil.rmtree(scratch, ignore_errors=True)
+    return {"run_id": run_id}
+
+
+@app.get("/api/pipelines")
+def list_pipelines() -> list[dict]:
+    return pipelines.list_runs()
+
+
+@app.get("/api/pipelines/{run_id}")
+def get_pipeline(run_id: str) -> dict:
+    doc = pipelines.read(run_id)
+    if not doc:
+        raise HTTPException(404, "no such run")
+    return doc
+
+
+@app.post("/api/pipelines/{run_id}/retry")
+def retry_pipeline(run_id: str, stage: str = Form(...), prompt: str | None = Form(None)) -> dict:
+    """
+    Re-run from one stage onward.
+
+    Restarting from the top would re-charge the concept render to fix a mesh,
+    so each stage is separately retryable and everything upstream is kept.
+    """
+    if not pipelines.read(run_id):
+        raise HTTPException(404, "no such run")
+    if not pipelines.retry(run_id, stage, prompt):
+        raise HTTPException(409, "that run is still going, or the stage is not retryable")
+    return {"ok": True}
+
+
+@app.delete("/api/pipelines/{run_id}")
+def delete_pipeline(run_id: str) -> dict:
+    pipelines.delete(run_id)
+    return {"ok": True}
+
+
+@app.get("/runs/{run_id}/{name:path}")
+def run_file(run_id: str, name: str) -> FileResponse:
+    root = (RUNS / run_id).resolve()
+    target = (root / name).resolve()
+    if not str(target).startswith(str(RUNS.resolve())) or not target.is_file():
         raise HTTPException(404, "not found")
     return FileResponse(target)
 

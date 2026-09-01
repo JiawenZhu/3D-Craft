@@ -72,6 +72,23 @@ def delete_asset(asset_id: str) -> None:
             shutil.rmtree(folder, ignore_errors=True)
 
 
+def annotate_asset(asset_id: str, fields: dict) -> None:
+    """
+    Add to an asset after the fact.
+
+    The pipeline is the only caller: it learns the run id it produced the mesh
+    under only once jobs.py has already written the record, and an asset that
+    cannot name its run cannot be re-prompted through the concept stage.
+    """
+    with _lock:
+        items = _load_index()
+        for item in items:
+            if item["id"] == asset_id:
+                item.update(fields)
+                _save_index(items)
+                return
+
+
 def _record(asset: dict) -> None:
     with _lock:
         items = _load_index()
