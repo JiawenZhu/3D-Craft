@@ -55,7 +55,18 @@ export const AssetThumb: React.FC<{ asset: Asset; className?: string }> = ({ ass
   // origin, not the Vite origin the page is served from.
   const thumb = absolute(asset.thumbUrl);
   if (thumb) {
-    return <img src={thumb} alt={asset.name} className={className} style={{ objectFit: 'cover' }} />;
+    return (
+      <img
+        src={thumb}
+        alt={asset.name}
+        // 20+ full-size JPEGs decoded eagerly is the single biggest memory hit
+        // on this page; let the browser skip what is off-screen.
+        loading="lazy"
+        decoding="async"
+        className={className}
+        style={{ objectFit: 'cover' }}
+      />
+    );
   }
   const id = asset.id.replace(/[^a-zA-Z0-9]/g, '');
   return (

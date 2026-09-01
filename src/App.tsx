@@ -21,16 +21,25 @@ const Overlay: React.FC = () => (
 
 const Studio: React.FC = () => {
   const { activeAsset, comparison } = useStudio();
+  // The workbench is its own page, not an overlay: while it is open the shelf,
+  // the hero and every gallery image are unmounted, so one WebGL context and one
+  // texture set are live instead of a canvas layered over 20 decoded JPEGs.
+  const onStage = !!activeAsset || !!comparison;
+
   return (
     <div className="relative min-h-screen">
-      <AmbientGlow />
-      <TopBar />
-      <main className="relative z-10 pt-[148px]">
-        <Hero />
-        <GeneratorCard />
-        <AssetShelf />
-      </main>
-      <RightRail />
+      {!onStage && (
+        <>
+          <AmbientGlow />
+          <TopBar />
+          <main className="relative z-10 pt-[148px]">
+            <Hero />
+            <GeneratorCard />
+            <AssetShelf />
+          </main>
+          <RightRail />
+        </>
+      )}
       <Suspense fallback={<Overlay />}>
         {activeAsset && <Workbench />}
         {comparison && <CompareView />}

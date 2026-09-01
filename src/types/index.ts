@@ -141,8 +141,30 @@ export interface Asset {
   isReference?: boolean;
   /** Inbox path this asset was generated from, if any. */
   sourceRef?: string;
+  /** Measured server-side from the GLB, so the panel fills instantly. */
+  meshes?: number;
+  materials?: number;
+  dimensions?: [number, number, number];
 }
 
 export type ShelfTab = 'asset' | 'explore';
 export type ViewportShading = 'material' | 'solid' | 'wireframe' | 'normal' | 'uv' | 'splat';
 export type StudioLight = 'studio' | 'rim' | 'sunset' | 'night' | 'flat';
+
+/** Live light intensities, layered on top of whichever preset is selected. */
+export interface LightTrim {
+  directional: number;
+  ambient: number;
+  environment: number;
+  exposure: number;
+}
+
+/** What the viewport can report back about the mesh it loaded. */
+export interface ModelStats {
+  triangles: number;
+  vertices: number;
+  meshes: number;
+  materials: number;
+  /** width x height x depth in model units */
+  dimensions: [number, number, number];
+}

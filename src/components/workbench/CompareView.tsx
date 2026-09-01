@@ -53,7 +53,7 @@ export const CompareView: React.FC = () => {
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/[0.07]">
-          <Viewport asset={asset} shading={shading} light={light} autoRotate={spin} showGrid={false} />
+          <Viewport asset={asset} shading={shading} light={light} autoRotate={spin} showGrid={false} showGizmo={false} />
         </div>
 
         <div className="grid grid-cols-4 gap-1.5 px-1">

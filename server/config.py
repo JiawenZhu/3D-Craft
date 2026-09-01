@@ -17,8 +17,11 @@ ROOT = Path(__file__).resolve().parent
 STORAGE = Path(os.getenv("RODIN_STORAGE", ROOT / "storage"))
 WEIGHTS = Path(os.getenv("RODIN_WEIGHTS", ROOT / "weights"))
 REPOS = Path(os.getenv("RODIN_REPOS", ROOT / "vendor"))
-# Hand-off folder: the image/animation side drops references here.
-INBOX = Path(os.getenv("RODIN_INBOX", ROOT / "inbox"))
+# Hand-off folder: the image/animation side drops references here. It lives under
+# public/ so Vite serves the files directly too; the API still lists it so new
+# drops show up without a rebuild.
+REPO_ROOT = ROOT.parent
+INBOX = Path(os.getenv("RODIN_INBOX", REPO_ROOT / "public" / "images" / "explore"))
 # Converted downloads, kept apart from the generated assets so they can be
 # cleared without touching anything that cannot be regenerated for free.
 EXPORTS = Path(os.getenv("RODIN_EXPORTS", ROOT / "exports"))

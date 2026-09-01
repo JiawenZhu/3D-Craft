@@ -1,10 +1,11 @@
-import React, { Suspense, useMemo, useRef } from 'react';
+import React, { Suspense, forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
-  Bounds, Center, ContactShadows, Environment, Grid, Html, Lightformer, OrbitControls, useGLTF,
+  Bounds, Center, ContactShadows, Environment, GizmoHelper, GizmoViewport, Grid, Html,
+  Lightformer, OrbitControls, useGLTF,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Asset, StudioLight, ViewportShading } from '../../types';
+import type { Asset, LightTrim, StudioLight, ViewportShading } from '../../types';
 import { absolute } from '../../lib/api';
 
 /* ---------------------------------------------------------------- lighting */
@@ -45,6 +46,45 @@ const RIGS: Record<StudioLight, Rig> = {
   flat:   { env: 2.2, ambient: 2.0, key: 0.6, keyColor: '#ffffff', rim: 0.4, rimColor: '#ffffff',
             exposure: 1.5, bg: '#212228', softbox: '#ffffff', floor: '#d4d8de' },
 };
+
+export interface ViewportHandle {
+  zoom: (factor: number) => void;
+  fit: () => void;
+  screenshot: (name: string) => void;
+}
+
+/** Bridges the toolbar to the camera without lifting r3f state out of the Canvas. */
+const CameraRig = forwardRef<ViewportHandle, {}>((_, ref) => {
+  const { camera, controls, gl, scene } = useThree() as any;
+
+  useImperativeHandle(ref, () => ({
+    zoom: (factor: number) => {
+      if (!controls) return;
+      const dir = camera.position.clone().sub(controls.target);
+      const len = dir.length() * factor;
+      if (len < 0.5 || len > 50) return;
+      camera.position.copy(controls.target.clone().add(dir.setLength(len)));
+      controls.update();
+    },
+    fit: () => {
+      if (!controls) return;
+      controls.target.set(0, 0, 0);
+      camera.position.set(2.6, 1.7, 3.4);
+      controls.update();
+    },
+    screenshot: (name: string) => {
+      // the drawing buffer is cleared after each frame, so render on demand
+      gl.render(scene, camera);
+      const link = document.createElement('a');
+      link.download = `${name}.png`;
+      link.href = gl.domElement.toDataURL('image/png');
+      link.click();
+    },
+  }), [camera, controls, gl, scene]);
+
+  return null;
+});
+CameraRig.displayName = 'CameraRig';
 
 /** Exposure has to follow the preset, so it cannot live in onCreated. */
 const Exposure: React.FC<{ value: number }> = ({ value }) => {
@@ -139,6 +179,25 @@ const Placeholder: React.FC<{ asset: Asset }> = ({ asset }) => {
 const LoadedModel: React.FC<{ url: string }> = ({ url }) => {
   const { scene } = useGLTF(url);
   const clone = useMemo(() => scene.clone(true), [scene]);
+
+  // drei caches every GLTF it loads, so browsing a few assets would otherwise
+  // pin several 5 MB meshes and their 2048² textures in GPU memory for the rest
+  // of the session. Drop this one when the viewer closes.
+  React.useEffect(() => () => {
+    clone.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.geometry?.dispose();
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      mats.forEach((mat: any) => {
+        if (!mat) return;
+        Object.values(mat).forEach((v: any) => v?.isTexture && v.dispose());
+        mat.dispose?.();
+      });
+    });
+    useGLTF.clear(url);
+  }, [clone, url]);
+
   return <primitive object={clone} />;
 };
 
@@ -171,14 +230,26 @@ const Shaded: React.FC<{ shading: ViewportShading; children: React.ReactNode }> 
   return <group ref={ref}>{children}</group>;
 };
 
-export const Viewport: React.FC<{
+export const Viewport = forwardRef<ViewportHandle, {
   asset: Asset;
   shading: ViewportShading;
   light: StudioLight;
   autoRotate: boolean;
   showGrid: boolean;
-}> = ({ asset, shading, light, autoRotate, showGrid }) => {
-  const rig = RIGS[light];
+  showGizmo?: boolean;
+  /** Multipliers layered over the preset, driven by the light sliders. */
+  trim?: LightTrim;
+}>(({ asset, shading, light, autoRotate, showGrid, showGizmo = true, trim }, ref) => {
+  const base = RIGS[light];
+  // sliders scale the preset rather than replacing it, so presets stay meaningful
+  const rig: Rig = trim
+    ? { ...base,
+        key: base.key * trim.directional,
+        rim: base.rim * trim.directional,
+        ambient: base.ambient * trim.ambient,
+        env: base.env * trim.environment,
+        exposure: base.exposure * trim.exposure }
+    : base;
   const url = absolute(asset.modelUrl);
 
   return (
@@ -222,6 +293,14 @@ export const Viewport: React.FC<{
         />
       )}
 
+      <CameraRig ref={ref} />
+
+      {showGizmo && (
+        <GizmoHelper alignment="bottom-right" margin={[62, 62]}>
+          <GizmoViewport axisColors={['#e6765d', '#6fcf8f', '#5aa6c0']} labelColor="#121317" />
+        </GizmoHelper>
+      )}
+
       <OrbitControls
         makeDefault enablePan enableDamping dampingFactor={0.08}
         autoRotate={autoRotate} autoRotateSpeed={1.1}
@@ -229,4 +308,5 @@ export const Viewport: React.FC<{
       />
     </Canvas>
   );
-};
+});
+Viewport.displayName = 'Viewport';

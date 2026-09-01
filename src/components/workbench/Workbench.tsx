@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  ArrowLeft, Box, Camera, Copy, Download, Grid3x3, Heart, Layers, Lightbulb,
-  RefreshCw, RotateCw, Trash2,
+  ArrowLeft, Box, Camera, Copy, Download, Expand, Grid3x3, Heart, Info, Layers, Lightbulb,
+  Maximize2, RefreshCw, RotateCw, Trash2, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
-import { Viewport } from './Viewport';
-import { Popover, Tip } from '../ui/primitives';
+import { Viewport, type ViewportHandle } from './Viewport';
+import { Popover, Slider, Tip } from '../ui/primitives';
 import { engineById } from '../../data/engines';
 import { API_BASE } from '../../lib/api';
 import { AssetThumb } from '../AssetThumb';
 import { ago, compact } from '../../lib/format';
-import type { StudioLight, ViewportShading } from '../../types';
+import type { LightTrim, StudioLight, ViewportShading } from '../../types';
 
 const SHADING: { id: ViewportShading; label: string }[] = [
   { id: 'material', label: 'Material' },
@@ -42,11 +42,23 @@ export const Workbench: React.FC = () => {
   const [grid, setGrid] = useState(true);
   const [lightOpen, setLightOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(true);
+  const [trim, setTrim] = useState<LightTrim>({ directional: 1, ambient: 1, environment: 1, exposure: 1 });
+  const view = useRef<ViewportHandle>(null);
+  const stage = useRef<HTMLElement>(null);
+
+
+  const fullscreen = () => {
+    const el = stage.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen?.();
+  };
 
   if (!activeAsset) return null;
   const a = activeAsset;
   const engine = engineById(a.engine);
-  const siblings = [...assets, ...exploreAssets].filter((x) => x.id !== a.id).slice(0, 14);
+  const siblings = [...assets, ...exploreAssets].filter((x) => x.id !== a.id).slice(0, 8);
 
   const stat = (k: string, v: string) => (
     <div className="flex items-center justify-between border-b border-white/[0.06] py-2 last:border-0">
@@ -159,8 +171,36 @@ export const Workbench: React.FC = () => {
         </aside>
 
         {/* centre: viewport --------------------------------------------- */}
-        <main className="relative min-w-0 flex-1 overflow-hidden rounded-3xl border border-white/[0.07]">
-          <Viewport asset={a} shading={shading} light={light} autoRotate={autoRotate} showGrid={grid} />
+        <main ref={stage} className="relative min-w-0 flex-1 overflow-hidden rounded-3xl border border-white/[0.07]">
+          <Viewport
+            ref={view}
+            asset={a}
+            shading={shading}
+            light={light}
+            autoRotate={autoRotate}
+            showGrid={grid}
+            trim={trim}
+          />
+
+          {/* model info, mirroring what any GLB viewer shows */}
+          {infoOpen && (
+            <div className="absolute left-4 top-16 w-[208px] rounded-2xl border border-white/10 bg-ink-900/85 p-3.5 backdrop-blur-xl">
+              <div className="mb-2 text-[12px] font-semibold text-white">Model info</div>
+              {[
+                ['Triangles', a.faces ? a.faces.toLocaleString() : '—'],
+                ['Vertices', a.vertices ? a.vertices.toLocaleString() : '—'],
+                ['Meshes', a.meshes ? String(a.meshes) : '—'],
+                ['Materials', a.materials ? String(a.materials) : '—'],
+                ['Dimensions', a.dimensions ? a.dimensions.map((d) => d.toFixed(2)).join(' × ') : '—'],
+                ['File size', `${a.fileSizeMb} MB`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-baseline justify-between gap-2 py-[3px]">
+                  <span className="text-[11px] text-chalk-faint">{k}</span>
+                  <span className="text-right font-mono text-[11px] text-chalk">{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* shading segmented, floating bottom-centre */}
           <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-white/10 bg-ink-900/80 p-1 backdrop-blur-xl">
@@ -177,29 +217,69 @@ export const Workbench: React.FC = () => {
 
           {/* viewport tools, floating top-right */}
           <div className="absolute right-4 top-4 flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-ink-900/80 p-1.5 backdrop-blur-xl">
+            <Tip side="left" label="Zoom in"><button onClick={() => view.current?.zoom(0.8)} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"><ZoomIn className="h-4 w-4" /></button></Tip>
+            <Tip side="left" label="Zoom out"><button onClick={() => view.current?.zoom(1.25)} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"><ZoomOut className="h-4 w-4" /></button></Tip>
+            <Tip side="left" label="Reset view"><button onClick={() => view.current?.fit()} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"><Expand className="h-4 w-4" /></button></Tip>
+            <div className="mx-1 h-px bg-white/10" />
             <Tip side="left" label="Turntable"><button onClick={() => setAutoRotate((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', autoRotate ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}><RotateCw className="h-4 w-4" /></button></Tip>
             <Tip side="left" label="Ground grid"><button onClick={() => setGrid((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', grid ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}><Grid3x3 className="h-4 w-4" /></button></Tip>
             <div className="relative">
               <Tip side="left" label="Lighting rig"><button onClick={() => setLightOpen((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', lightOpen ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}><Lightbulb className="h-4 w-4" /></button></Tip>
-              <Popover open={lightOpen} onClose={() => setLightOpen(false)} anchor="bottom" className="right-0 w-36 p-1.5">
-                {LIGHTS.map((l) => (
-                  <button key={l} onClick={() => { setLight(l); setLightOpen(false); }} className={cn('block w-full rounded-lg px-3 py-1.5 text-left text-[12px] capitalize transition-colors', light === l ? 'bg-white/[0.08] text-white' : 'text-chalk-dim hover:text-white')}>{l}</button>
-                ))}
+              <Popover open={lightOpen} onClose={() => setLightOpen(false)} anchor="bottom" className="right-0 w-[248px] p-3">
+                <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-chalk-faint">Rig</div>
+                <div className="mb-4 grid grid-cols-3 gap-1">
+                  {LIGHTS.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => setLight(l)}
+                      className={cn('rounded-lg py-1.5 text-[11px] capitalize transition-colors',
+                        light === l ? 'bg-white/[0.12] text-white' : 'bg-white/[0.03] text-chalk-dim hover:text-white')}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-3.5">
+                  <Slider label="Directional" min={0} max={3} step={0.05}
+                          value={trim.directional} onChange={(v) => setTrim((t) => ({ ...t, directional: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                  <Slider label="Ambient" min={0} max={3} step={0.05}
+                          value={trim.ambient} onChange={(v) => setTrim((t) => ({ ...t, ambient: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                  <Slider label="Environment" min={0} max={3} step={0.05}
+                          value={trim.environment} onChange={(v) => setTrim((t) => ({ ...t, environment: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                  <Slider label="Exposure" min={0.4} max={2.5} step={0.05}
+                          value={trim.exposure} onChange={(v) => setTrim((t) => ({ ...t, exposure: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                </div>
+
+                <button
+                  onClick={() => setTrim({ directional: 1, ambient: 1, environment: 1, exposure: 1 })}
+                  className="mt-4 w-full rounded-lg border border-white/10 py-1.5 text-[11px] text-chalk-dim transition-colors hover:border-white/25 hover:text-white"
+                >
+                  Reset to preset
+                </button>
+                <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
+                  Sliders scale the preset, so switching rig keeps your balance.
+                </p>
               </Popover>
             </div>
+            <Tip side="left" label="Model info">
+              <button onClick={() => setInfoOpen((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', infoOpen ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}>
+                <Info className="h-4 w-4" />
+              </button>
+            </Tip>
             <Tip side="left" label="Save PNG">
-              <button
-                onClick={() => {
-                  const c = document.querySelector('canvas');
-                  if (!c) return;
-                  const link = document.createElement('a');
-                  link.download = `${a.name}.png`;
-                  link.href = (c as HTMLCanvasElement).toDataURL('image/png');
-                  link.click();
-                }}
-                className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"
-              >
+              <button onClick={() => view.current?.screenshot(a.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'render')}
+                      className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white">
                 <Camera className="h-4 w-4" />
+              </button>
+            </Tip>
+            <Tip side="left" label="Fullscreen">
+              <button onClick={fullscreen} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white">
+                <Maximize2 className="h-4 w-4" />
               </button>
             </Tip>
           </div>
