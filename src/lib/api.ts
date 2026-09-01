@@ -39,7 +39,9 @@ export async function getHealth(): Promise<Health | null> {
 
 export async function submitJob(settings: GenerationSettings, images: RefImage[]): Promise<{ job_id: string }> {
   const fd = new FormData();
-  fd.append('settings', JSON.stringify(settings));
+  // Trace the result back to the gallery image it came from.
+  const sourceRef = images.find((i) => i.sourceUrl)?.sourceUrl;
+  fd.append('settings', JSON.stringify(sourceRef ? { ...settings, sourceRef } : settings));
   // append in lockstep — the server zips images with directions by index
   images.forEach((img) => {
     if (!img.file) return;

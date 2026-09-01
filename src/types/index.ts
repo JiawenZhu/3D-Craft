@@ -52,6 +52,8 @@ export interface RefImage {
   name: string;
   direction: Direction;
   file?: File;
+  /** Inbox path this came from, so the result can be traced back to it. */
+  sourceUrl?: string;
 }
 
 export interface GenerationSettings {
@@ -137,6 +139,8 @@ export interface Asset {
   note?: string;
   /** A starting point handed over by the image side — no mesh yet. */
   isReference?: boolean;
+  /** Inbox path this asset was generated from, if any. */
+  sourceRef?: string;
 }
 
 export type ShelfTab = 'asset' | 'explore';

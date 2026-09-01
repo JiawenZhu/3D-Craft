@@ -145,6 +145,7 @@ def _run(job: Job, engine, req: GenRequest, name_hint: str) -> None:
                 "local": True,
                 "provider": result.provider,
                 "note": result.note,
+                "sourceRef": req.source_ref,
             }
             _record(asset)
             made.append(asset_id)

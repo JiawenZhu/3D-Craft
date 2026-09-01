@@ -166,7 +166,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const room = settings.imageMode === 'single' ? 1 : 8;
       const next = [
         ...(settings.imageMode === 'single' ? [] : prev),
-        { id: `inbox-${Date.now()}-${name}`, url: URL.createObjectURL(file), name, direction, file },
+        { id: `inbox-${Date.now()}-${name}`, url: URL.createObjectURL(file), name, direction, file, sourceUrl: url },
       ];
       return next.slice(0, room);
     });

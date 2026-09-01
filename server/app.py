@@ -95,6 +95,7 @@ async def generate(
         batch=int(cfg.get("batch", 1)),
         geo_mode=cfg.get("geoMode", "sharp"),
         pose_mode=cfg.get("poseMode", "none"),
+        source_ref=cfg.get("sourceRef"),
     )
 
     name = (req.prompt.strip() or (saved[0].name.split("_", 1)[-1] if saved else "Untitled"))

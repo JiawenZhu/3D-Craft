@@ -25,6 +25,8 @@ class GenRequest:
     batch: int = 1
     geo_mode: str = "sharp"
     pose_mode: str = "none"
+    #: inbox path this run started from, echoed onto the produced asset
+    source_ref: str | None = None
 
     @property
     def is_text(self) -> bool:

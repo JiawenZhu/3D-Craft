@@ -17,6 +17,15 @@ export const AssetShelf: React.FC = () => {
 
   const source = shelfTab === 'asset' ? assets : exploreAssets;
 
+  /** The newest mesh generated from a given gallery image, if there is one. */
+  const generatedFrom = useMemo(() => {
+    const byRef = new Map<string, Asset>();
+    for (const a of assets) {
+      if (a.sourceRef && !byRef.has(a.sourceRef)) byRef.set(a.sourceRef, a);
+    }
+    return (url: string) => byRef.get(url);
+  }, [assets]);
+
   const list = useMemo(() => {
     let out: Asset[] = [...source];
     if (query.trim()) {
@@ -120,9 +129,11 @@ export const AssetShelf: React.FC = () => {
               asset={a}
               onLike={toggleLike}
               onOpen={(x) => {
-                // A reference has no mesh — load it into the generator instead
-                // of opening an empty viewport.
                 if (x.isReference && x.thumbUrl) {
+                  // Already turned into a mesh? Show the mesh. Otherwise load it
+                  // into the generator so it can become one.
+                  const built = generatedFrom(x.thumbUrl);
+                  if (built) { openAsset(built); return; }
                   const src = inbox.find((i) => i.url === x.thumbUrl);
                   addFromUrl(x.thumbUrl, src?.name ?? `${x.name}.jpg`, (src?.direction ?? 'unknown') as never);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -130,6 +141,7 @@ export const AssetShelf: React.FC = () => {
                 }
                 openAsset(x);
               }}
+              builtAsset={a.isReference && a.thumbUrl ? generatedFrom(a.thumbUrl) : undefined}
             />
           ))}
         </div>
