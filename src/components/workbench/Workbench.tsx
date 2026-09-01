@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ArrowLeft, Box, Camera, Copy, Download, Expand, Grid3x3, Heart, Info, Layers, Lightbulb,
-  Maximize2, RefreshCw, RotateCw, Trash2, Wand2, ZoomIn, ZoomOut,
+  Maximize2, RefreshCw, RotateCw, Trash2, Wand2, ZoomIn, ZoomOut, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
@@ -162,7 +162,7 @@ export const Workbench: React.FC = () => {
             />
             <button
               disabled={!reprompt.trim() || !!running || !(a.sourceRef || a.thumbUrl)}
-              onClick={() => { regenerate(a, reprompt.trim()); closeAsset(); }}
+              onClick={() => { regenerate(a, reprompt.trim()); setReprompt(''); }}
               className={cn(
                 'flex w-full items-center justify-center gap-2 rounded-full py-2 text-[12px] font-semibold transition-all',
                 reprompt.trim() && !running && (a.sourceRef || a.thumbUrl)
@@ -174,9 +174,22 @@ export const Workbench: React.FC = () => {
               <RefreshCw className="h-3.5 w-3.5" />
               {running ? 'Generating…' : `Regenerate · $${(price(a.engine)).toFixed(2)}`}
             </button>
+            {job && (
+              <div className={cn(
+                'mt-2 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[10px]',
+                job.stage === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-white/[0.04] text-chalk-dim',
+              )}>
+                {job.stage === 'failed'
+                  ? <AlertTriangle className="h-3 w-3 shrink-0" />
+                  : <RefreshCw className={cn('h-3 w-3 shrink-0', running && 'animate-spin')} />}
+                <span className="truncate">{job.message}</span>
+                {running && <span className="ml-auto shrink-0 font-mono">{Math.round(job.progress)}%</span>}
+              </div>
+            )}
+
             <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
               {(a.sourceRef || a.thumbUrl)
-                ? 'Runs the same source image against your new wording, as a new asset — this one is kept.'
+                ? 'Runs the same source image against your new wording. The result opens here as a new asset; this one is kept.'
                 : 'No source image on this asset, so it cannot be re-prompted.'}
             </p>
           </div>

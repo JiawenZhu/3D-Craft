@@ -147,7 +147,7 @@ export const AssetShelf: React.FC = () => {
                   const built = generatedFrom(x.thumbUrl);
                   if (built) { openAsset(built); return; }
                   const src = inbox.find((i) => i.url === x.thumbUrl);
-                  addFromUrl(x.thumbUrl, src?.name ?? `${x.name}.jpg`, (src?.direction ?? 'unknown') as never);
+                  void addFromUrl(x.thumbUrl, src?.name ?? `${x.name}.jpg`, (src?.direction ?? 'unknown') as never).catch(() => {});
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   return;
                 }

@@ -13,7 +13,7 @@ import { Info } from 'lucide-react';
  * mode rail and the option rail, with the GENERATE row and engine row beneath.
  */
 export const GeneratorCard: React.FC = () => {
-  const { job, settings, patch, images } = useStudio();
+  const { job, settings, patch, images, notice, dismissNotice } = useStudio();
   const needsImage = images.length === 0 && settings.prompt.trim().length > 0;
 
   return (
@@ -42,6 +42,16 @@ export const GeneratorCard: React.FC = () => {
             A prompt on its own only names the result.
           </span>
         </p>
+      )}
+
+      {notice && (
+        <button
+          onClick={dismissNotice}
+          className="mt-4 flex max-w-[440px] items-start gap-2 rounded-xl border border-amber/30 bg-amber/10 px-3 py-2 text-left text-[11px] leading-relaxed text-amber"
+        >
+          <Info className="mt-px h-3 w-3 shrink-0" />
+          <span>{notice}</span>
+        </button>
       )}
 
       {job && <JobBanner />}
