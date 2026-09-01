@@ -1,18 +1,77 @@
 import React, { Suspense, useMemo, useRef } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { Bounds, Center, ContactShadows, Grid, Html, OrbitControls, useGLTF } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import {
+  Bounds, Center, ContactShadows, Environment, Grid, Html, Lightformer, OrbitControls, useGLTF,
+} from '@react-three/drei';
 import * as THREE from 'three';
 import type { Asset, StudioLight, ViewportShading } from '../../types';
 import { absolute } from '../../lib/api';
 
 /* ---------------------------------------------------------------- lighting */
-const RIGS: Record<StudioLight, { key: number; fill: number; rim: number; keyColor: string; rimColor: string; ambient: number; bg: string }> = {
-  studio:  { key: 2.4, fill: 0.7, rim: 1.6, keyColor: '#ffffff', rimColor: '#cfd6ff', ambient: 0.55, bg: '#141519' },
-  rim:     { key: 1.0, fill: 0.25, rim: 3.4, keyColor: '#ffd6b0', rimColor: '#7fd0ff', ambient: 0.22, bg: '#0d0e12' },
-  sunset:  { key: 2.6, fill: 0.5, rim: 1.8, keyColor: '#ffb066', rimColor: '#8f6bff', ambient: 0.4, bg: '#17110f' },
-  night:   { key: 0.9, fill: 0.3, rim: 2.6, keyColor: '#8ea2ff', rimColor: '#d8a1f1', ambient: 0.18, bg: '#0a0b10' },
-  flat:    { key: 1.4, fill: 1.4, rim: 1.2, keyColor: '#ffffff', rimColor: '#ffffff', ambient: 1.1, bg: '#16171b' },
+/*
+ * Generated meshes carry albedo baked from the source image — they are already
+ * "lit" art. Dramatic key/rim lighting fights that and crushes them to
+ * silhouettes, which is why the first pass rendered near-black. What they want
+ * is bright, even image-based lighting, the way the reference viewer does it.
+ *
+ * The environment is built in-scene from Lightformer panels rather than a
+ * downloaded HDRI, so it stays local and offline.
+ */
+interface Rig {
+  /** IBL contribution — the main source of light. */
+  env: number;
+  ambient: number;
+  key: number;
+  keyColor: string;
+  rim: number;
+  rimColor: string;
+  /** Renderer exposure; the lever that actually fixes "too dark". */
+  exposure: number;
+  bg: string;
+  /** Colour of the big softbox above the subject. */
+  softbox: string;
+  floor: string;
+}
+
+const RIGS: Record<StudioLight, Rig> = {
+  studio: { env: 1.8, ambient: 1.35, key: 1.6, keyColor: '#ffffff', rim: 0.8, rimColor: '#dce4ff',
+            exposure: 1.6, bg: '#1e1f25', softbox: '#ffffff', floor: '#b6bcc7' },
+  rim:    { env: 0.95, ambient: 0.7, key: 1.1, keyColor: '#ffd9bd', rim: 2.6, rimColor: '#8fd8ff',
+            exposure: 1.45, bg: '#121319', softbox: '#e8f0ff', floor: '#6b7381' },
+  sunset: { env: 1.35, ambient: 0.95, key: 2.0, keyColor: '#ffb877', rim: 1.2, rimColor: '#a887ff',
+            exposure: 1.5, bg: '#201815', softbox: '#ffd2a1', floor: '#9c7d68' },
+  night:  { env: 1.0, ambient: 0.75, key: 1.0, keyColor: '#9fb4ff', rim: 2.0, rimColor: '#d8a1f1',
+            exposure: 1.4, bg: '#0f1017', softbox: '#b9c7ff', floor: '#6a7086' },
+  flat:   { env: 2.2, ambient: 2.0, key: 0.6, keyColor: '#ffffff', rim: 0.4, rimColor: '#ffffff',
+            exposure: 1.5, bg: '#212228', softbox: '#ffffff', floor: '#d4d8de' },
 };
+
+/** Exposure has to follow the preset, so it cannot live in onCreated. */
+const Exposure: React.FC<{ value: number }> = ({ value }) => {
+  const gl = useThree((s) => s.gl);
+  React.useEffect(() => { gl.toneMappingExposure = value; }, [gl, value]);
+  return null;
+};
+
+/** A four-panel softbox rig baked into an env map — no CDN, no HDRI download. */
+const StudioEnvironment: React.FC<{ rig: Rig }> = ({ rig }) => (
+  <Environment resolution={256} frames={1}>
+    {/* broad top light: the one doing most of the work */}
+    <Lightformer form="rect" intensity={rig.env * 3.2} color={rig.softbox}
+                 position={[0, 5, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[12, 12, 1]} />
+    {/* front fill so faces pointed at camera are never black */}
+    <Lightformer form="rect" intensity={rig.env * 1.7} color={rig.softbox}
+                 position={[0, 1, 6]} rotation={[0, 0, 0]} scale={[10, 8, 1]} />
+    {/* side wraps */}
+    <Lightformer form="rect" intensity={rig.env * 1.3} color={rig.softbox}
+                 position={[-6, 1.5, 1]} rotation={[0, Math.PI / 2, 0]} scale={[8, 8, 1]} />
+    <Lightformer form="rect" intensity={rig.env * 1.3} color={rig.rimColor}
+                 position={[6, 1.5, 1]} rotation={[0, -Math.PI / 2, 0]} scale={[8, 8, 1]} />
+    {/* bounce off the floor, so undersides read instead of going to black */}
+    <Lightformer form="rect" intensity={rig.env * 0.9} color={rig.floor}
+                 position={[0, -4, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[12, 12, 1]} />
+  </Environment>
+);
 
 /* -------------------------------------------------- procedural stand-in mesh */
 const Placeholder: React.FC<{ asset: Asset }> = ({ asset }) => {
@@ -112,12 +171,6 @@ const Shaded: React.FC<{ shading: ViewportShading; children: React.ReactNode }> 
   return <group ref={ref}>{children}</group>;
 };
 
-const Spin: React.FC<{ on: boolean; children: React.ReactNode }> = ({ on, children }) => {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((_, d) => { if (on && ref.current) ref.current.rotation.y += d * 0.35; });
-  return <group ref={ref}>{children}</group>;
-};
-
 export const Viewport: React.FC<{
   asset: Asset;
   shading: ViewportShading;
@@ -136,28 +189,30 @@ export const Viewport: React.FC<{
       gl={{ antialias: true, preserveDrawingBuffer: true }}
     >
       <color attach="background" args={[rig.bg]} />
-      <fog attach="fog" args={[rig.bg, 9, 22]} />
+      {/* fog was pulling everything toward the background colour — push it back */}
+      <fog attach="fog" args={[rig.bg, 18, 46]} />
 
+      <Exposure value={rig.exposure} />
+      <StudioEnvironment rig={rig} />
       <ambientLight intensity={rig.ambient} />
-      <directionalLight position={[4, 6, 4]} intensity={rig.key} color={rig.keyColor} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[4, 6, 4]} intensity={rig.key} color={rig.keyColor} castShadow shadow-mapSize={[2048, 2048]} />
       <directionalLight position={[-5, 2, -3]} intensity={rig.rim} color={rig.rimColor} />
-      <directionalLight position={[0, -3, 5]} intensity={rig.fill} color="#ffffff" />
 
       <Suspense fallback={<Html center><span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] text-chalk backdrop-blur">loading mesh…</span></Html>}>
         {/* Generated meshes arrive at wildly different scales, so frame to the
             bounding box rather than trusting a fixed camera distance. */}
-        <Bounds fit clip observe margin={1.15} key={url ?? asset.id}>
-          <Spin on={autoRotate}>
-            <Center>
-              <Shaded shading={shading}>
-                {url ? <LoadedModel url={url} /> : <Placeholder asset={asset} />}
-              </Shaded>
-            </Center>
-          </Spin>
+        {/* Turntable is done by orbiting the camera (see OrbitControls
+            autoRotate) so the bounding box stays still and Bounds fits once. */}
+        <Bounds fit clip observe margin={1.05} key={url ?? asset.id}>
+          <Center>
+            <Shaded shading={shading}>
+              {url ? <LoadedModel url={url} /> : <Placeholder asset={asset} />}
+            </Shaded>
+          </Center>
         </Bounds>
       </Suspense>
 
-      <ContactShadows position={[0, -1.15, 0]} opacity={0.55} scale={11} blur={2.6} far={4.5} />
+      <ContactShadows position={[0, -1.15, 0]} opacity={0.4} scale={11} blur={2.8} far={4.5} />
       {showGrid && (
         <Grid
           position={[0, -1.16, 0]} args={[22, 22]}
@@ -167,7 +222,11 @@ export const Viewport: React.FC<{
         />
       )}
 
-      <OrbitControls makeDefault enablePan enableDamping dampingFactor={0.08} minDistance={1.5} maxDistance={12} target={[0, 0, 0]} />
+      <OrbitControls
+        makeDefault enablePan enableDamping dampingFactor={0.08}
+        autoRotate={autoRotate} autoRotateSpeed={1.1}
+        minDistance={0.6} maxDistance={40} target={[0, 0, 0]}
+      />
     </Canvas>
   );
 };
