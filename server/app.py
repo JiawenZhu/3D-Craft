@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from . import engines, jobs
-from .config import EXPORTS, HOST, INBOX, PORT, PROVIDER, STORAGE
+from .config import EXPORTS, HOST, INBOX, PORT, PROVIDER, ROOT, STORAGE
 from .engines.base import GenRequest
 
 app = FastAPI(title="Rodin 3D Studio API", version="2.1.0")
@@ -138,9 +138,17 @@ def inbox() -> list[dict]:
                 direction = tag
                 break
         rel = path.relative_to(INBOX).as_posix()
+        # When the folder lives under public/, prefer the path the dev server and
+        # the built app serve directly: same-origin, no CORS, no API hop.
+        try:
+            public_rel = INBOX.resolve().relative_to((ROOT.parent / "public").resolve())
+            public_url = f"/{public_rel.as_posix()}/{rel}"
+        except ValueError:
+            public_url = None
         items.append({
             "name": path.name,
-            "url": f"/inbox/{rel}",
+            "url": public_url or f"/inbox/{rel}",
+            "apiUrl": f"/inbox/{rel}",
             "direction": direction,
             "sizeKb": round(path.stat().st_size / 1024),
             "modifiedAt": int(path.stat().st_mtime * 1000),

@@ -61,11 +61,24 @@ export async function getJob(id: string): Promise<Job & { assets: Asset[] }> {
 
 export interface InboxImage {
   name: string;
+  /** Same-origin path when the folder is under public/, else an API path. */
   url: string;
+  /** Always resolvable through the API, for folders outside public/. */
+  apiUrl?: string;
   direction: string;
   sizeKb: number;
   modifiedAt: number;
 }
+
+/**
+ * Resolve an image path for the browser.
+ *
+ * Anything the dev server already serves (/images/...) must stay same-origin —
+ * prefixing it with the API base turns a plain load into a cross-origin fetch
+ * that CORS then blocks.
+ */
+export const imageSrc = (url?: string) =>
+  !url ? undefined : url.startsWith('/images/') ? url : absolute(url);
 
 /** Reference images handed over by the image/animation side. */
 export async function listInbox(): Promise<InboxImage[]> {

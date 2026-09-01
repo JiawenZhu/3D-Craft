@@ -182,21 +182,13 @@ const LoadedModel: React.FC<{ url: string }> = ({ url }) => {
 
   // drei caches every GLTF it loads, so browsing a few assets would otherwise
   // pin several 5 MB meshes and their 2048² textures in GPU memory for the rest
-  // of the session. Drop this one when the viewer closes.
-  React.useEffect(() => () => {
-    clone.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      m.geometry?.dispose();
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      mats.forEach((mat: any) => {
-        if (!mat) return;
-        Object.values(mat).forEach((v: any) => v?.isTexture && v.dispose());
-        mat.dispose?.();
-      });
-    });
-    useGLTF.clear(url);
-  }, [clone, url]);
+  // of the session. Drop the cache entry when the viewer closes.
+  //
+  // Only the cache entry — scene.clone() shares geometries, materials and
+  // textures with the cached original, so disposing them here freed resources
+  // the cache still handed out, which cost us the WebGL context. useGLTF.clear
+  // disposes the real owner.
+  React.useEffect(() => () => { useGLTF.clear(url); }, [url]);
 
   return <primitive object={clone} />;
 };

@@ -6,7 +6,7 @@ import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
 import { Popover, Tip } from '../ui/primitives';
 import { DirectionPicker } from './DirectionPicker';
-import { absolute } from '../../lib/api';
+import { imageSrc } from '../../lib/api';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/avif';
 
@@ -180,7 +180,7 @@ export const InputCard: React.FC = () => {
                   title={`${img.name} · ${img.sizeKb} KB`}
                   className="group relative aspect-square overflow-hidden rounded-lg border border-white/8 transition-all hover:border-white/40"
                 >
-                  <img src={absolute(img.url)} alt={img.name} className="h-full w-full object-cover" />
+                  <img src={imageSrc(img.url)} alt={img.name} className="h-full w-full object-cover" />
                   {img.direction !== 'unknown' && (
                     <span className="absolute bottom-0 inset-x-0 bg-black/70 py-0.5 text-[8px] text-white">{img.direction}</span>
                   )}

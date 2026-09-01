@@ -160,7 +160,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [settings.imageMode]);
 
   const addFromUrl = useCallback(async (url: string, name: string, direction: RefImage['direction'] = 'unknown') => {
-    const abs = api.absolute(url)!;
+    const abs = api.imageSrc(url)!;
     const blob = await fetch(abs).then((r) => r.blob());
     const file = new File([blob], name, { type: blob.type || 'image/png' });
     setImages((prev) => {
