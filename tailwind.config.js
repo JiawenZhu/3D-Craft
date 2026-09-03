@@ -1,6 +1,16 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: [
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    // The studio-ui kit lives in .claude/skills/ as a portable deliverable, not
+    // as part of this app. Scanning it in dev makes /kit.html render properly;
+    // excluding it from the production build keeps ~6 kB of CSS the app never
+    // uses out of what users download.
+    ...(process.env.NODE_ENV === 'production'
+      ? []
+      : ['./kit.html', './kit-main.tsx', './.claude/skills/**/*.{ts,tsx}']),
+  ],
   theme: {
     extend: {
       colors: {
