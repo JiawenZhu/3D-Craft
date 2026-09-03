@@ -56,6 +56,58 @@ styling contract and port them.
 Mount `<SliderStyles />` once near the root if you use `Slider` —
 `::-webkit-slider-thumb` cannot be expressed as a utility or an inline style.
 
+## Platforms
+
+The kit is **React DOM**. That is a real boundary, and it is worth knowing which
+side a project is on before reaching for it.
+
+**Works as-is** — anything rendering in a browser engine: desktop and mobile
+web, PWAs, Electron and Tauri, and WebView-wrapped mobile (Capacitor, Ionic,
+Cordova). On a phone browser it is responsive already; the grids collapse and
+`FlowBoard` stacks below `lg`.
+
+**Does not work as-is** — React Native and Expo, SwiftUI, Jetpack Compose. There
+is no DOM there, so `div`/`span`/`img`/`button`/`input` and the class strings
+have nothing to attach to.
+
+### What a React Native port would actually take
+
+Not a rewrite, but not a find-and-replace either. Six things, and only the first
+is solved for you:
+
+1. **Tokens.** NativeWind v4 supports CSS variables through its `vars()`
+   function, with normal inheritance down the tree — so the token contract
+   survives. `tokens.css` becomes a JS object passed to `vars()` at the root
+   rather than a stylesheet.
+2. **Elements.** `div`→`View`, `span`/`p`→`Text`, `img`→`Image`,
+   `button`→`Pressable`, `input`/`textarea`→`TextInput`. Mechanical, and every
+   component needs it.
+3. **The glass.** There is no `backdrop-filter` in React Native. `GlassPanel`
+   has to wrap `expo-blur`'s `BlurView`, which is a component rather than a
+   style — so the panel's structure changes, not just its props.
+4. **Overlays.** No `position: fixed`. `StageOverlay`, `Popover` and `Lightbox`
+   become `Modal`.
+5. **SVG and gradients.** `ProgressRing` and the fallback glyphs need
+   `react-native-svg`; `PillButton`'s accent needs `expo-linear-gradient`.
+6. **Lists.** `loading="lazy"` does nothing. `CardGrid` becomes a `FlatList`
+   with windowing — same goal, different mechanism, and on mobile it matters
+   more, not less.
+
+### The part that is not mechanical
+
+**There is no hover on a touch screen**, and several components put real
+information there: `MediaCard`'s title and metadata, `Tooltip` entirely,
+`PillButton`'s `hoverLabel`, every label in `Toolbar`.
+
+Porting those means redesigning them, not translating them. Metadata moves under
+the tile or into a long-press sheet; tooltips become visible labels or
+disappear; `hoverLabel`'s cost-on-hover becomes a line under the button. A port
+that maps hover onto tap ends up with a gallery where the first tap reveals the
+caption and the second opens the item, which is worse than either.
+
+So: the **tokens and the decisions** port cleanly to any platform. The
+**components** are for the web.
+
 ## Branding it
 
 Override in your own CSS, after the import:
