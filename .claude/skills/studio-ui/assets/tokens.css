@@ -1,0 +1,168 @@
+/* ===========================================================================
+ * studio-ui tokens
+ *
+ * Every colour in the kit resolves through one of these variables. Nothing is
+ * hardcoded in a component, which is the point: the components are the shapes,
+ * this file is the paint, and a project changes the paint without touching a
+ * single component.
+ *
+ * WHAT SHIPS HERE IS ACHROMATIC ON PURPOSE. Out of the box the whole kit is
+ * greys on a dark ground — correct, legible, and deliberately un-branded, so it
+ * never smuggles somebody else's palette into your project. You add the colour.
+ *
+ * TO BRAND IT, override the eight variables under "the paint" below. Everything
+ * else is structure and you will rarely want to touch it.
+ *
+ *   :root {
+ *     --su-accent:        #d8a1f1;
+ *     --su-accent-ink:    #121317;
+ *     --su-accent-soft:   rgb(216 161 241 / 0.14);
+ *     --su-gradient:      linear-gradient(96deg, #ff989b, #d8a1f1);
+ *   }
+ *
+ * Naming: --su-<role>-<step>. Roles are semantic, never literal. There is no
+ * --su-purple, because the day the brand stops being purple every component
+ * would start lying.
+ * ========================================================================= */
+
+:root {
+  color-scheme: dark;
+
+  /* --- the ground ------------------------------------------------------ */
+  /* Surfaces are translucent whites over --su-bg rather than opaque greys, so
+     one set of values works over any backdrop — a gradient, a photo, a glow.
+     That is what makes the glass look like glass instead of like flat panels. */
+  --su-bg:            #121317;
+  --su-bg-raised:     #17181c;
+  --su-bg-sunken:     #0d0e11;
+
+  --su-surface-1:     rgb(255 255 255 / 0.03);   /* resting panel            */
+  --su-surface-2:     rgb(255 255 255 / 0.06);   /* hover, or a panel on one  */
+  --su-surface-3:     rgb(255 255 255 / 0.10);   /* pressed / active          */
+  --su-surface-sunk:  rgb(0 0 0 / 0.25);         /* wells: inputs, image beds */
+
+  --su-border:        rgb(255 255 255 / 0.08);
+  --su-border-strong: rgb(255 255 255 / 0.20);
+  --su-border-focus:  rgb(255 255 255 / 0.45);
+
+  /* --- text ------------------------------------------------------------ */
+  /* Four steps, and they are a hierarchy rather than a gradient: heading,
+     body, label, and "present but not asking to be read". */
+  --su-text:          #ffffff;
+  --su-text-dim:      #cfcfcf;
+  --su-text-faint:    #9c9c9c;
+  --su-text-ghost:    #6b6b6b;
+
+  /* --- the paint (override these) -------------------------------------- */
+  /* Achromatic defaults. `--su-accent-ink` is what sits ON the accent, so it
+     has to flip when the accent goes light or dark — that pairing is why they
+     are two variables and not one. */
+  --su-accent:        #e8e8ea;
+  --su-accent-ink:    #121317;
+  --su-accent-soft:   rgb(255 255 255 / 0.12);
+  --su-gradient:      linear-gradient(96deg, #f2f2f4, #cfcfd4);
+
+  /* Status carries meaning, so it stays separate from the brand accent: a
+     brand that happens to be red must not make every panel look like an error.
+     Neutral by default; give them real hues when you brand the kit. */
+  --su-ok:            #a9d8b8;
+  --su-ok-soft:       rgb(169 216 184 / 0.14);
+  --su-warn:          #e8d5a8;
+  --su-warn-soft:     rgb(232 213 168 / 0.14);
+  --su-danger:        #e2a8a8;
+  --su-danger-soft:   rgb(226 168 168 / 0.14);
+  --su-busy:          var(--su-accent);
+  --su-busy-soft:     var(--su-accent-soft);
+
+  /* --- shape ----------------------------------------------------------- */
+  /* Three radii, used consistently: the outer shell, the panels inside it, and
+     the small things inside those. Mixing more than three is what makes an
+     interface feel assembled from parts rather than designed. */
+  --su-radius-lg:     28px;   /* cards in a gallery grid, modal shells       */
+  --su-radius-md:     20px;   /* panels, node cards                          */
+  --su-radius-sm:     12px;   /* image beds, inputs, wells                   */
+  --su-radius-pill:   999px;
+
+  --su-blur:          16px;   /* the glass                                   */
+  --su-blur-heavy:    24px;   /* over busy content: modals, popovers         */
+
+  --su-shadow-lift:   0 24px 60px -20px rgb(0 0 0 / 0.85);
+  --su-shadow-pill:   0 1px 0 0 rgb(255 255 255 / 0.06) inset,
+                      0 8px 24px -8px rgb(0 0 0 / 0.8);
+
+  /* --- motion ---------------------------------------------------------- */
+  /* One easing for everything that enters, one duration scale. The curve
+     matters more than the numbers: this one decelerates hard, which reads as
+     "the interface is settling" rather than "the interface is animating". */
+  --su-ease:          cubic-bezier(0.16, 1, 0.3, 1);
+  --su-fast:          180ms;
+  --su-base:          300ms;
+  --su-slow:          700ms;
+}
+
+/* Light ground. The kit is designed dark-first — it is a studio tool and the
+   work is the bright thing on screen — but the token contract holds either way,
+   so a light host only has to flip the ground and the text ramp. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --su-bg:            #f6f6f7;
+  --su-bg-raised:     #ffffff;
+  --su-bg-sunken:     #ececee;
+
+  --su-surface-1:     rgb(0 0 0 / 0.03);
+  --su-surface-2:     rgb(0 0 0 / 0.06);
+  --su-surface-3:     rgb(0 0 0 / 0.10);
+  --su-surface-sunk:  rgb(0 0 0 / 0.05);
+
+  --su-border:        rgb(0 0 0 / 0.10);
+  --su-border-strong: rgb(0 0 0 / 0.22);
+  --su-border-focus:  rgb(0 0 0 / 0.45);
+
+  --su-text:          #101012;
+  --su-text-dim:      #3d3d42;
+  --su-text-faint:    #6b6b72;
+  --su-text-ghost:    #9a9aa2;
+
+  --su-accent-ink:    #ffffff;
+  --su-accent:        #2a2a30;
+  --su-accent-soft:   rgb(0 0 0 / 0.08);
+}
+
+/* --- keyframes the components reference ---------------------------------
+   Kept here rather than in a Tailwind config so the kit drops into a project
+   that does not use Tailwind at all. */
+@keyframes su-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes su-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes su-spin { to { transform: rotate(360deg); } }
+@keyframes su-pulse { 50% { opacity: 0.45; } }
+
+.su-rise  { animation: su-rise var(--su-base) var(--su-ease) both; }
+.su-pop   { animation: su-pop  var(--su-fast) var(--su-ease) both; }
+.su-spin  { animation: su-spin 1s linear infinite; }
+.su-pulse { animation: su-pulse 2s ease-in-out infinite; }
+
+/* Scrollbars inside panels. A default scrollbar on a glass panel is the single
+   most reliable way to make it stop looking designed. */
+.su-scroll { scrollbar-width: thin; scrollbar-color: var(--su-border-strong) transparent; }
+.su-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.su-scroll::-webkit-scrollbar-track { background: transparent; }
+.su-scroll::-webkit-scrollbar-thumb {
+  background: var(--su-border-strong);
+  border-radius: var(--su-radius-pill);
+}
+
+/* Respect the setting. Every entrance in the kit is decorative — nothing here
+   conveys information that the animation is required to read. */
+@media (prefers-reduced-motion: reduce) {
+  .su-rise, .su-pop, .su-spin, .su-pulse { animation: none; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

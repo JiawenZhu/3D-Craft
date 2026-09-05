@@ -52,6 +52,46 @@ the GENERATE button shows the real dollar cost of the run on hover before you cl
 `FAL_KEY` is read by the Python server only — the browser never sees it, which is
 what fal's docs require. Never put it in Vite env vars.
 
+---
+
+## The concept pass
+
+Image-to-3D inherits every flaw of its input. A cluttered background becomes
+geometry, a cropped limb becomes a hole in the mesh, and hard shadows bake into the
+albedo where no relighting will ever remove them. So a photo does not go straight to
+the reconstructor:
+
+```
+your photo + a few words
+        │
+        ├─► Gemini writes the full image prompt      gemini-3.7-flash    ~7s
+        ├─► Gemini renders a clean studio asset      gemini-3-pro-image  ~17s
+        └─► TRELLIS / Hunyuan / Rodin reconstruct it fal.ai              ~30s
+```
+
+```bash
+export GEMINI_API_KEY=...    # aistudio.google.com/apikey
+npm run server
+```
+
+The four stages are drawn as a node board under the generator, each separately
+retryable — a bad mesh re-runs the mesh, not the render you already paid for. Runs
+persist to `server/runs/<id>/run.json`, so a refresh mid-run loses nothing.
+
+Two consequences worth knowing:
+
+- **Text-to-3D works now.** With no image, Gemini draws one from the words, and the
+  reconstructor takes it from there. Both engines are image-conditioned; this is the
+  image.
+- **Re-prompting an asset means re-running the concept.** TRELLIS and Hunyuan read
+  the *image*, not the prompt — feeding the same picture back with different words
+  changes almost nothing. The workbench routes re-prompts for pipeline assets back
+  through Gemini, which is what makes the wording reach the geometry.
+
+Like `FAL_KEY`, `GEMINI_API_KEY` is server-side only. Never give it a `VITE_` prefix:
+Vite inlines `VITE_*` into the browser bundle and publishes it to everyone who loads
+the page.
+
 ## What runs where
 
 Each engine picks a provider automatically
@@ -147,6 +187,9 @@ scripts/
 |---|---|
 | `HF_TOKEN` | Hugging Face token — raises ZeroGPU quota and download limits |
 | `FAL_KEY` | fal.ai key — enables the `api` provider and the Rodin engine |
+| `GEMINI_API_KEY` | Google AI Studio key — enables the concept pass |
+| `RODIN_GEMINI_TEXT_MODEL` | prompt writer (default `gemini-3.7-flash`) |
+| `RODIN_GEMINI_IMAGE_MODEL` | concept renderer (default `gemini-3-pro-image`) |
 | `RODIN_PROVIDER` | `auto` (default), `api`, `local`, or `space` |
 | `RODIN_WEIGHTS` | weights directory (default `server/weights`) |
 | `RODIN_MPS_DTYPE` | `float32` to force the slower, higher-precision MPS path |
@@ -157,6 +200,7 @@ scripts/
 
 - [Local deployment](docs/LOCAL_DEPLOYMENT.md) — install, providers, Apple Silicon notes, API reference
 - [The two engines](docs/MODELS_GUIDE.md) — how each model works and when to reach for it
+- [Firebase schema](docs/FIREBASE.md) — the target collections, rules and indexes for when the store moves off localhost
 
 ## Licences
 

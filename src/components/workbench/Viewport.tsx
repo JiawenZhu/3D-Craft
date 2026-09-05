@@ -1,10 +1,11 @@
-import React, { Suspense, useMemo, useRef } from 'react';
+import React, { Suspense, forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
-  Bounds, Center, ContactShadows, Environment, Grid, Html, Lightformer, OrbitControls, useGLTF,
+  Bounds, Center, ContactShadows, Environment, GizmoHelper, GizmoViewport, Grid, Html,
+  Lightformer, OrbitControls, useGLTF,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Asset, StudioLight, ViewportShading } from '../../types';
+import type { Asset, LightTrim, StudioLight, ViewportShading } from '../../types';
 import { absolute } from '../../lib/api';
 
 /* ---------------------------------------------------------------- lighting */
@@ -33,18 +34,63 @@ interface Rig {
   floor: string;
 }
 
+/*
+ * Balanced so all three sliders have visible authority. Measured: with the old
+ * values the environment carried the image almost alone — sweeping directional
+ * 0->3 moved average luminance by 4%, and ambient by nothing at all. The env
+ * base is lower here and the directional pair correspondingly stronger.
+ */
 const RIGS: Record<StudioLight, Rig> = {
-  studio: { env: 1.8, ambient: 1.35, key: 1.6, keyColor: '#ffffff', rim: 0.8, rimColor: '#dce4ff',
-            exposure: 1.6, bg: '#1e1f25', softbox: '#ffffff', floor: '#b6bcc7' },
-  rim:    { env: 0.95, ambient: 0.7, key: 1.1, keyColor: '#ffd9bd', rim: 2.6, rimColor: '#8fd8ff',
+  studio: { env: 1.05, ambient: 1.3, key: 2.6, keyColor: '#ffffff', rim: 1.4, rimColor: '#dce4ff',
+            exposure: 1.5, bg: '#1e1f25', softbox: '#ffffff', floor: '#b6bcc7' },
+  rim:    { env: 0.6, ambient: 0.7, key: 1.8, keyColor: '#ffd9bd', rim: 3.2, rimColor: '#8fd8ff',
             exposure: 1.45, bg: '#121319', softbox: '#e8f0ff', floor: '#6b7381' },
-  sunset: { env: 1.35, ambient: 0.95, key: 2.0, keyColor: '#ffb877', rim: 1.2, rimColor: '#a887ff',
+  sunset: { env: 0.8, ambient: 0.95, key: 3.0, keyColor: '#ffb877', rim: 1.8, rimColor: '#a887ff',
             exposure: 1.5, bg: '#201815', softbox: '#ffd2a1', floor: '#9c7d68' },
-  night:  { env: 1.0, ambient: 0.75, key: 1.0, keyColor: '#9fb4ff', rim: 2.0, rimColor: '#d8a1f1',
+  night:  { env: 0.6, ambient: 0.8, key: 1.6, keyColor: '#9fb4ff', rim: 2.8, rimColor: '#d8a1f1',
             exposure: 1.4, bg: '#0f1017', softbox: '#b9c7ff', floor: '#6a7086' },
-  flat:   { env: 2.2, ambient: 2.0, key: 0.6, keyColor: '#ffffff', rim: 0.4, rimColor: '#ffffff',
-            exposure: 1.5, bg: '#212228', softbox: '#ffffff', floor: '#d4d8de' },
+  flat:   { env: 1.5, ambient: 2.2, key: 1.2, keyColor: '#ffffff', rim: 0.8, rimColor: '#ffffff',
+            exposure: 1.45, bg: '#212228', softbox: '#ffffff', floor: '#d4d8de' },
 };
+
+export interface ViewportHandle {
+  zoom: (factor: number) => void;
+  fit: () => void;
+  screenshot: (name: string) => void;
+}
+
+/** Bridges the toolbar to the camera without lifting r3f state out of the Canvas. */
+const CameraRig = forwardRef<ViewportHandle, {}>((_, ref) => {
+  const { camera, controls, gl, scene } = useThree() as any;
+
+  useImperativeHandle(ref, () => ({
+    zoom: (factor: number) => {
+      if (!controls) return;
+      const dir = camera.position.clone().sub(controls.target);
+      const len = dir.length() * factor;
+      if (len < 0.5 || len > 50) return;
+      camera.position.copy(controls.target.clone().add(dir.setLength(len)));
+      controls.update();
+    },
+    fit: () => {
+      if (!controls) return;
+      controls.target.set(0, 0, 0);
+      camera.position.set(2.6, 1.7, 3.4);
+      controls.update();
+    },
+    screenshot: (name: string) => {
+      // the drawing buffer is cleared after each frame, so render on demand
+      gl.render(scene, camera);
+      const link = document.createElement('a');
+      link.download = `${name}.png`;
+      link.href = gl.domElement.toDataURL('image/png');
+      link.click();
+    },
+  }), [camera, controls, gl, scene]);
+
+  return null;
+});
+CameraRig.displayName = 'CameraRig';
 
 /** Exposure has to follow the preset, so it cannot live in onCreated. */
 const Exposure: React.FC<{ value: number }> = ({ value }) => {
@@ -60,13 +106,17 @@ const StudioEnvironment: React.FC<{ rig: Rig }> = ({ rig }) => (
     <Lightformer form="rect" intensity={rig.env * 3.2} color={rig.softbox}
                  position={[0, 5, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[12, 12, 1]} />
     {/* front fill so faces pointed at camera are never black */}
-    <Lightformer form="rect" intensity={rig.env * 1.7} color={rig.softbox}
+    <Lightformer form="rect" intensity={rig.env * 1.5} color={rig.softbox}
                  position={[0, 1, 6]} rotation={[0, 0, 0]} scale={[10, 8, 1]} />
-    {/* side wraps */}
-    <Lightformer form="rect" intensity={rig.env * 1.3} color={rig.softbox}
-                 position={[-6, 1.5, 1]} rotation={[0, Math.PI / 2, 0]} scale={[8, 8, 1]} />
-    <Lightformer form="rect" intensity={rig.env * 1.3} color={rig.rimColor}
-                 position={[6, 1.5, 1]} rotation={[0, -Math.PI / 2, 0]} scale={[8, 8, 1]} />
+    {/* Side and back wraps are deliberately symmetric. An asymmetric rig made the
+        model visibly brighter from some angles than others as it turned, which
+        reads as the exposure shifting rather than as directional lighting. */}
+    <Lightformer form="rect" intensity={rig.env * 1.35} color={rig.softbox}
+                 position={[-6, 1.5, 0]} rotation={[0, Math.PI / 2, 0]} scale={[9, 9, 1]} />
+    <Lightformer form="rect" intensity={rig.env * 1.35} color={rig.softbox}
+                 position={[6, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]} scale={[9, 9, 1]} />
+    <Lightformer form="rect" intensity={rig.env * 1.5} color={rig.softbox}
+                 position={[0, 1, -6]} rotation={[0, Math.PI, 0]} scale={[10, 8, 1]} />
     {/* bounce off the floor, so undersides read instead of going to black */}
     <Lightformer form="rect" intensity={rig.env * 0.9} color={rig.floor}
                  position={[0, -4, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[12, 12, 1]} />
@@ -139,6 +189,17 @@ const Placeholder: React.FC<{ asset: Asset }> = ({ asset }) => {
 const LoadedModel: React.FC<{ url: string }> = ({ url }) => {
   const { scene } = useGLTF(url);
   const clone = useMemo(() => scene.clone(true), [scene]);
+
+  // drei caches every GLTF it loads, so browsing a few assets would otherwise
+  // pin several 5 MB meshes and their 2048² textures in GPU memory for the rest
+  // of the session. Drop the cache entry when the viewer closes.
+  //
+  // Only the cache entry — scene.clone() shares geometries, materials and
+  // textures with the cached original, so disposing them here freed resources
+  // the cache still handed out, which cost us the WebGL context. useGLTF.clear
+  // disposes the real owner.
+  React.useEffect(() => () => { useGLTF.clear(url); }, [url]);
+
   return <primitive object={clone} />;
 };
 
@@ -171,14 +232,25 @@ const Shaded: React.FC<{ shading: ViewportShading; children: React.ReactNode }> 
   return <group ref={ref}>{children}</group>;
 };
 
-export const Viewport: React.FC<{
+export const Viewport = forwardRef<ViewportHandle, {
   asset: Asset;
   shading: ViewportShading;
   light: StudioLight;
   autoRotate: boolean;
   showGrid: boolean;
-}> = ({ asset, shading, light, autoRotate, showGrid }) => {
-  const rig = RIGS[light];
+  showGizmo?: boolean;
+  /** Multipliers layered over the preset, driven by the light sliders. */
+  trim?: LightTrim;
+}>(({ asset, shading, light, autoRotate, showGrid, showGizmo = true, trim }, ref) => {
+  const base = RIGS[light];
+  // sliders scale the preset rather than replacing it, so presets stay meaningful
+  const rig: Rig = trim
+    ? { ...base,
+        key: base.key * trim.directional,
+        rim: base.rim * trim.directional,
+        env: base.env * trim.environment,
+        exposure: base.exposure * trim.exposure }
+    : base;
   const url = absolute(asset.modelUrl);
 
   return (
@@ -194,9 +266,15 @@ export const Viewport: React.FC<{
 
       <Exposure value={rig.exposure} />
       <StudioEnvironment rig={rig} />
-      <ambientLight intensity={rig.ambient} />
+      {/* hemisphereLight, not ambientLight: measured, an AmbientLight made no
+          difference to these PBR materials under an env map at any intensity,
+          while a hemisphere light lifts shadow side and underside as expected. */}
+      <hemisphereLight intensity={rig.ambient} color={rig.softbox} groundColor={rig.floor} />
       <directionalLight position={[4, 6, 4]} intensity={rig.key} color={rig.keyColor} castShadow shadow-mapSize={[2048, 2048]} />
       <directionalLight position={[-5, 2, -3]} intensity={rig.rim} color={rig.rimColor} />
+      {/* a second fill opposite the key keeps the far side from going flat-dark
+          as the turntable brings it round */}
+      <directionalLight position={[3, 1, -5]} intensity={rig.key * 0.35} color={rig.keyColor} />
 
       <Suspense fallback={<Html center><span className="rounded-full bg-black/60 px-3 py-1.5 text-[11px] text-chalk backdrop-blur">loading mesh…</span></Html>}>
         {/* Generated meshes arrive at wildly different scales, so frame to the
@@ -222,6 +300,14 @@ export const Viewport: React.FC<{
         />
       )}
 
+      <CameraRig ref={ref} />
+
+      {showGizmo && (
+        <GizmoHelper alignment="bottom-right" margin={[62, 62]}>
+          <GizmoViewport axisColors={['#e6765d', '#6fcf8f', '#5aa6c0']} labelColor="#121317" />
+        </GizmoHelper>
+      )}
+
       <OrbitControls
         makeDefault enablePan enableDamping dampingFactor={0.08}
         autoRotate={autoRotate} autoRotateSpeed={1.1}
@@ -229,4 +315,5 @@ export const Viewport: React.FC<{
       />
     </Canvas>
   );
-};
+});
+Viewport.displayName = 'Viewport';

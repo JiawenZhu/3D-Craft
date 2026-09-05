@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Asset } from '../types';
-import { absolute } from '../lib/api';
+import { imageSrc } from '../lib/api';
 
 /**
  * Procedural stand-in preview, art-directed to read like a studio render:
@@ -53,9 +53,20 @@ const SHAPES: Record<Asset['seedShape'], React.ReactNode> = {
 export const AssetThumb: React.FC<{ asset: Asset; className?: string }> = ({ asset, className }) => {
   // Backend thumbs are API-relative ("/files/…"); resolve them against the API
   // origin, not the Vite origin the page is served from.
-  const thumb = absolute(asset.thumbUrl);
+  const thumb = imageSrc(asset.thumbUrl);
   if (thumb) {
-    return <img src={thumb} alt={asset.name} className={className} style={{ objectFit: 'cover' }} />;
+    return (
+      <img
+        src={thumb}
+        alt={asset.name}
+        // 20+ full-size JPEGs decoded eagerly is the single biggest memory hit
+        // on this page; let the browser skip what is off-screen.
+        loading="lazy"
+        decoding="async"
+        className={className}
+        style={{ objectFit: 'cover' }}
+      />
+    );
   }
   const id = asset.id.replace(/[^a-zA-Z0-9]/g, '');
   return (

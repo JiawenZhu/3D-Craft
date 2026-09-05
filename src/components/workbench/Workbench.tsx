@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  ArrowLeft, Box, Camera, Copy, Download, Grid3x3, Heart, Layers, Lightbulb,
-  RefreshCw, RotateCw, Trash2,
+  ArrowLeft, Box, Camera, Copy, Download, Expand, Grid3x3, Heart, Info, Layers, Lightbulb,
+  Maximize2, RefreshCw, RotateCw, Trash2, Wand2, ZoomIn, ZoomOut, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
-import { Viewport } from './Viewport';
-import { Popover, Tip } from '../ui/primitives';
+import { Viewport, type ViewportHandle } from './Viewport';
+import { Popover, Slider, Tip } from '../ui/primitives';
 import { engineById } from '../../data/engines';
 import { API_BASE } from '../../lib/api';
 import { AssetThumb } from '../AssetThumb';
 import { ago, compact } from '../../lib/format';
-import type { StudioLight, ViewportShading } from '../../types';
+import type { LightTrim, StudioLight, ViewportShading } from '../../types';
 
 const SHADING: { id: ViewportShading; label: string }[] = [
   { id: 'material', label: 'Material' },
@@ -35,18 +35,57 @@ const slug = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'model';
 
 export const Workbench: React.FC = () => {
-  const { activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset, patch, settings } = useStudio();
+  const {
+    activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset,
+    patch, settings, regenerate, job, price, pipeline, repromptRun, geminiReady,
+  } = useStudio();
   const [shading, setShading] = useState<ViewportShading>('material');
   const [light, setLight] = useState<StudioLight>('studio');
   const [autoRotate, setAutoRotate] = useState(true);
   const [grid, setGrid] = useState(true);
   const [lightOpen, setLightOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(true);
+  const [trim, setTrim] = useState<LightTrim>({ directional: 1, environment: 1, exposure: 1 });
+  const [reprompt, setReprompt] = useState('');
+  const view = useRef<ViewportHandle>(null);
+  const stage = useRef<HTMLElement>(null);
+
+
+  const fullscreen = () => {
+    const el = stage.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen?.();
+  };
+
+  /*
+   * A re-prompt through the concept stage finishes as a NEW asset, so swap to
+   * it when it lands — otherwise the panel keeps showing the mesh the new
+   * wording was meant to replace, and the button looks like it did nothing.
+   */
+  const tracked = activeAsset?.runId;
+  React.useEffect(() => {
+    if (!tracked || pipeline?.id !== tracked || pipeline.status !== 'done') return;
+    const made = pipeline.assetId;
+    if (!made || made === activeAsset?.id) return;
+    const next = assets.find((x) => x.id === made);
+    if (next) openAsset(next);
+  }, [tracked, pipeline?.id, pipeline?.status, pipeline?.assetId, assets, activeAsset?.id, openAsset]);
 
   if (!activeAsset) return null;
   const a = activeAsset;
   const engine = engineById(a.engine);
-  const siblings = [...assets, ...exploreAssets].filter((x) => x.id !== a.id).slice(0, 14);
+  const running = job && job.stage !== 'done' && job.stage !== 'failed';
+  // Assets that came through the concept pipeline are re-prompted by re-running
+  // it, not by handing the same concept image to the reconstructor again.
+  const viaRun = !!a.runId && geminiReady;
+  const run = pipeline?.id === a.runId ? pipeline : null;
+  const runBusy = run?.status === 'running';
+  const busy = !!running || !!runBusy;
+  const runNode = run?.nodes.find((n) => n.status === 'running');
+  const canReprompt = viaRun || !!a.sourceRef || !!a.thumbUrl;
+  const siblings = [...assets, ...exploreAssets].filter((x) => x.id !== a.id).slice(0, 8);
 
   const stat = (k: string, v: string) => (
     <div className="flex items-center justify-between border-b border-white/[0.06] py-2 last:border-0">
@@ -134,6 +173,79 @@ export const Workbench: React.FC = () => {
             </p>
           )}
 
+          {/* Re-prompt in place: same source image, new wording. */}
+          <div className="mb-5 rounded-2xl border border-white/[0.07] bg-black/20 p-3">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-chalk-faint">
+              <Wand2 className="h-3 w-3" /> Regenerate
+            </div>
+            <textarea
+              rows={3}
+              value={reprompt}
+              onChange={(e) => setReprompt(e.target.value)}
+              placeholder={a.prompt || 'Describe the change…'}
+              className="mb-2 w-full resize-none rounded-lg border border-white/8 bg-white/[0.03] p-2 text-[11px] leading-relaxed text-chalk placeholder:text-chalk-ghost focus:border-white/25"
+            />
+            <button
+              disabled={!reprompt.trim() || busy || !canReprompt}
+              onClick={() => {
+                const words = reprompt.trim();
+                if (viaRun) repromptRun(a.runId!, words);
+                else regenerate(a, words);
+                setReprompt('');
+              }}
+              className={cn(
+                'flex w-full items-center justify-center gap-2 rounded-full py-2 text-[12px] font-semibold transition-all',
+                reprompt.trim() && !busy && canReprompt
+                  ? 'text-ink hover:brightness-110' : 'cursor-not-allowed bg-white/[0.05] text-chalk-ghost',
+              )}
+              style={reprompt.trim() && !busy && canReprompt
+                ? { backgroundImage: 'var(--g-accent)' } : undefined}
+            >
+              <RefreshCw className={cn('h-3.5 w-3.5', busy && 'animate-spin')} />
+              {busy ? 'Generating…'
+                : viaRun ? 'Re-prompt the concept'
+                  : `Regenerate · $${(price(a.engine)).toFixed(2)}`}
+            </button>
+
+            {/* Concept runs report per-stage, not as one job. */}
+            {run && (
+              <div className={cn(
+                'mt-2 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[10px]',
+                run.status === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-white/[0.04] text-chalk-dim',
+              )}>
+                {run.status === 'failed'
+                  ? <AlertTriangle className="h-3 w-3 shrink-0" />
+                  : <RefreshCw className={cn('h-3 w-3 shrink-0', runBusy && 'animate-spin')} />}
+                <span className="truncate">
+                  {run.status === 'failed' ? run.error : runNode?.label ?? 'Complete'}
+                </span>
+                {runNode?.kind === 'model3d' && runNode.progress != null && (
+                  <span className="ml-auto shrink-0 font-mono">{Math.round(runNode.progress)}%</span>
+                )}
+              </div>
+            )}
+            {job && !viaRun && (
+              <div className={cn(
+                'mt-2 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[10px]',
+                job.stage === 'failed' ? 'bg-red-500/10 text-red-300' : 'bg-white/[0.04] text-chalk-dim',
+              )}>
+                {job.stage === 'failed'
+                  ? <AlertTriangle className="h-3 w-3 shrink-0" />
+                  : <RefreshCw className={cn('h-3 w-3 shrink-0', running && 'animate-spin')} />}
+                <span className="truncate">{job.message}</span>
+                {running && <span className="ml-auto shrink-0 font-mono">{Math.round(job.progress)}%</span>}
+              </div>
+            )}
+
+            <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
+              {viaRun
+                ? 'Goes back through Gemini: your new wording is rewritten into a prompt, re-rendered as a concept, and reconstructed. That is what makes the words reach the geometry — the reconstructor itself reads the image, not the prompt.'
+                : canReprompt
+                  ? 'Runs the same source image against your new wording. Note the reconstructor is image-conditioned, so wording mostly renames the result — use the concept route for changes that alter the shape.'
+                  : 'No source image on this asset, so it cannot be re-prompted.'}
+            </p>
+          </div>
+
           <div className="space-y-2">
             <button
               onClick={() => { patch({ prompt: a.prompt, engine: a.engine }); closeAsset(); }}
@@ -159,8 +271,36 @@ export const Workbench: React.FC = () => {
         </aside>
 
         {/* centre: viewport --------------------------------------------- */}
-        <main className="relative min-w-0 flex-1 overflow-hidden rounded-3xl border border-white/[0.07]">
-          <Viewport asset={a} shading={shading} light={light} autoRotate={autoRotate} showGrid={grid} />
+        <main ref={stage} className="relative min-w-0 flex-1 overflow-hidden rounded-3xl border border-white/[0.07]">
+          <Viewport
+            ref={view}
+            asset={a}
+            shading={shading}
+            light={light}
+            autoRotate={autoRotate}
+            showGrid={grid}
+            trim={trim}
+          />
+
+          {/* model info, mirroring what any GLB viewer shows */}
+          {infoOpen && (
+            <div className="absolute left-4 top-16 w-[208px] rounded-2xl border border-white/10 bg-ink-900/85 p-3.5 backdrop-blur-xl">
+              <div className="mb-2 text-[12px] font-semibold text-white">Model info</div>
+              {[
+                ['Triangles', a.faces ? a.faces.toLocaleString() : '—'],
+                ['Vertices', a.vertices ? a.vertices.toLocaleString() : '—'],
+                ['Meshes', a.meshes ? String(a.meshes) : '—'],
+                ['Materials', a.materials ? String(a.materials) : '—'],
+                ['Dimensions', a.dimensions ? a.dimensions.map((d) => d.toFixed(2)).join(' × ') : '—'],
+                ['File size', `${a.fileSizeMb} MB`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-baseline justify-between gap-2 py-[3px]">
+                  <span className="text-[11px] text-chalk-faint">{k}</span>
+                  <span className="text-right font-mono text-[11px] text-chalk">{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* shading segmented, floating bottom-centre */}
           <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-white/10 bg-ink-900/80 p-1 backdrop-blur-xl">
@@ -177,29 +317,66 @@ export const Workbench: React.FC = () => {
 
           {/* viewport tools, floating top-right */}
           <div className="absolute right-4 top-4 flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-ink-900/80 p-1.5 backdrop-blur-xl">
+            <Tip side="left" label="Zoom in"><button onClick={() => view.current?.zoom(0.8)} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"><ZoomIn className="h-4 w-4" /></button></Tip>
+            <Tip side="left" label="Zoom out"><button onClick={() => view.current?.zoom(1.25)} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"><ZoomOut className="h-4 w-4" /></button></Tip>
+            <Tip side="left" label="Reset view"><button onClick={() => view.current?.fit()} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"><Expand className="h-4 w-4" /></button></Tip>
+            <div className="mx-1 h-px bg-white/10" />
             <Tip side="left" label="Turntable"><button onClick={() => setAutoRotate((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', autoRotate ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}><RotateCw className="h-4 w-4" /></button></Tip>
             <Tip side="left" label="Ground grid"><button onClick={() => setGrid((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', grid ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}><Grid3x3 className="h-4 w-4" /></button></Tip>
             <div className="relative">
               <Tip side="left" label="Lighting rig"><button onClick={() => setLightOpen((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', lightOpen ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}><Lightbulb className="h-4 w-4" /></button></Tip>
-              <Popover open={lightOpen} onClose={() => setLightOpen(false)} anchor="bottom" className="right-0 w-36 p-1.5">
-                {LIGHTS.map((l) => (
-                  <button key={l} onClick={() => { setLight(l); setLightOpen(false); }} className={cn('block w-full rounded-lg px-3 py-1.5 text-left text-[12px] capitalize transition-colors', light === l ? 'bg-white/[0.08] text-white' : 'text-chalk-dim hover:text-white')}>{l}</button>
-                ))}
+              <Popover open={lightOpen} onClose={() => setLightOpen(false)} anchor="bottom" className="right-0 w-[248px] p-3">
+                <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-chalk-faint">Rig</div>
+                <div className="mb-4 grid grid-cols-3 gap-1">
+                  {LIGHTS.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => setLight(l)}
+                      className={cn('rounded-lg py-1.5 text-[11px] capitalize transition-colors',
+                        light === l ? 'bg-white/[0.12] text-white' : 'bg-white/[0.03] text-chalk-dim hover:text-white')}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-3.5">
+                  <Slider label="Directional" min={0} max={3} step={0.05}
+                          value={trim.directional} onChange={(v) => setTrim((t) => ({ ...t, directional: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                  <Slider label="Environment" min={0} max={3} step={0.05}
+                          value={trim.environment} onChange={(v) => setTrim((t) => ({ ...t, environment: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                  <Slider label="Exposure" min={0.4} max={2.5} step={0.05}
+                          value={trim.exposure} onChange={(v) => setTrim((t) => ({ ...t, exposure: v }))}
+                          format={(v) => `${v.toFixed(2)}×`} />
+                </div>
+
+                <button
+                  onClick={() => setTrim({ directional: 1, environment: 1, exposure: 1 })}
+                  className="mt-4 w-full rounded-lg border border-white/10 py-1.5 text-[11px] text-chalk-dim transition-colors hover:border-white/25 hover:text-white"
+                >
+                  Reset to preset
+                </button>
+                <p className="mt-2 text-[10px] leading-relaxed text-chalk-ghost">
+                  Sliders scale the preset, so switching rig keeps your balance.
+                </p>
               </Popover>
             </div>
+            <Tip side="left" label="Model info">
+              <button onClick={() => setInfoOpen((v) => !v)} className={cn('grid h-8 w-8 place-items-center rounded-lg transition-colors', infoOpen ? 'bg-white/12 text-white' : 'text-chalk-dim hover:text-white')}>
+                <Info className="h-4 w-4" />
+              </button>
+            </Tip>
             <Tip side="left" label="Save PNG">
-              <button
-                onClick={() => {
-                  const c = document.querySelector('canvas');
-                  if (!c) return;
-                  const link = document.createElement('a');
-                  link.download = `${a.name}.png`;
-                  link.href = (c as HTMLCanvasElement).toDataURL('image/png');
-                  link.click();
-                }}
-                className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white"
-              >
+              <button onClick={() => view.current?.screenshot(a.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'render')}
+                      className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white">
                 <Camera className="h-4 w-4" />
+              </button>
+            </Tip>
+            <Tip side="left" label="Fullscreen">
+              <button onClick={fullscreen} className="grid h-8 w-8 place-items-center rounded-lg text-chalk-dim transition-colors hover:text-white">
+                <Maximize2 className="h-4 w-4" />
               </button>
             </Tip>
           </div>

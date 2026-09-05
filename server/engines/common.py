@@ -30,21 +30,31 @@ def mesh_stats(path: Path) -> dict:
         "vertices": 0,
         "fileSizeMb": round(path.stat().st_size / 1_048_576, 2) if path.exists() else 0.0,
         "textureRes": 0,
+        "meshes": 0,
+        "materials": 0,
+        "dimensions": [0.0, 0.0, 0.0],
     }
     try:
         import trimesh
 
         scene = trimesh.load(str(path), force="scene")
-        faces = verts = 0
-        tex = 0
-        for geom in getattr(scene, "geometry", {}).values():
+        faces = verts = tex = 0
+        geoms = getattr(scene, "geometry", {})
+        materials = set()
+        for geom in geoms.values():
             faces += int(len(getattr(geom, "faces", [])))
             verts += int(len(getattr(geom, "vertices", [])))
             mat = getattr(getattr(geom, "visual", None), "material", None)
+            if mat is not None:
+                materials.add(id(mat))
             img = getattr(mat, "baseColorTexture", None) or getattr(mat, "image", None)
             if img is not None and getattr(img, "size", None):
                 tex = max(tex, max(img.size))
-        stats.update(faces=faces, vertices=verts, textureRes=tex)
+
+        extents = getattr(scene, "extents", None)
+        dims = [round(float(x), 4) for x in extents] if extents is not None else [0.0, 0.0, 0.0]
+        stats.update(faces=faces, vertices=verts, textureRes=tex,
+                     meshes=len(geoms), materials=len(materials), dimensions=dims)
     except Exception:
         pass
     return stats

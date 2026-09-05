@@ -141,8 +141,122 @@ export interface Asset {
   isReference?: boolean;
   /** Inbox path this asset was generated from, if any. */
   sourceRef?: string;
+  /** The concept run that produced it, when it came through the pipeline. */
+  runId?: string;
+  /**
+   * The gallery image the whole thing started from.
+   *
+   * Distinct from sourceRef: a pipeline mesh is reconstructed from the CONCEPT,
+   * so sourceRef points at that. This is the picture the user actually picked,
+   * and it is what stops that picture showing in EXPLORE as unbuilt next to the
+   * mesh it produced.
+   */
+  originRef?: string;
+  /** How many assets share this one's project key. Derived for the gallery. */
+  versions?: number;
+  /** Measured server-side from the GLB, so the panel fills instantly. */
+  meshes?: number;
+  materials?: number;
+  dimensions?: [number, number, number];
 }
 
 export type ShelfTab = 'asset' | 'explore';
 export type ViewportShading = 'material' | 'solid' | 'wireframe' | 'normal' | 'uv' | 'splat';
 export type StudioLight = 'studio' | 'rim' | 'sunset' | 'night' | 'flat';
+
+/**
+ * Live light intensities, layered on top of whichever preset is selected.
+ *
+ * There is deliberately no ambient control. Measured against these PBR
+ * materials, neither an AmbientLight nor a HemisphereLight moved average
+ * luminance at any intensity (48.17 -> 48.16 across a 0-3x sweep), so the
+ * slider was inert. The hemisphere light stays in the rig at its preset value;
+ * only the dead control is gone.
+ */
+export interface LightTrim {
+  directional: number;
+  environment: number;
+  exposure: number;
+}
+
+/** What the viewport can report back about the mesh it loaded. */
+export interface ModelStats {
+  triangles: number;
+  vertices: number;
+  meshes: number;
+  materials: number;
+  /** width x height x depth in model units */
+  dimensions: [number, number, number];
+}
+
+
+/* ---------------------------------------------------------------------------
+ * The concept pipeline: photo + words -> written prompt -> render -> mesh.
+ *
+ * These mirror server/pipelines.py exactly, and both mirror the Firestore
+ * documents described in docs/FIREBASE.md. One shape, three places — so moving
+ * the store from disk to Firestore is a change of transport, not of model.
+ * ------------------------------------------------------------------------- */
+
+export type PipelineStage = 'source' | 'prompt' | 'concept' | 'model3d';
+export type NodeStatus = 'pending' | 'running' | 'done' | 'failed';
+
+export interface PipelineNode {
+  id: string;
+  kind: PipelineStage;
+  label: string;
+  status: NodeStatus;
+  startedAt: number | null;
+  finishedAt: number | null;
+  error: string | null;
+
+  /** source: the user's words. prompt: what Gemini wrote. */
+  text?: string;
+  /** source / concept: the image this node holds. */
+  imageUrl?: string;
+  /** prompt: the plain subject line handed to the 3D engine. */
+  subject?: string;
+  /** prompt: one line from Gemini about the call it made. */
+  notes?: string;
+  /** Which model ran, and how long it took. */
+  model?: string;
+  ms?: number;
+  sizeKb?: number;
+
+  /** model3d: live job state while the mesh is being built. */
+  jobId?: string;
+  progress?: number;
+  message?: string;
+  stage?: JobStage;
+  assetId?: string;
+  modelUrl?: string;
+  thumbUrl?: string;
+  faces?: number;
+  provider?: string;
+}
+
+export interface PipelineRun {
+  id: string;
+  ownerId: string;
+  title: string;
+  status: 'running' | 'done' | 'failed';
+  createdAt: number;
+  updatedAt: number;
+  input: { prompt: string; imageUrl: string | null; sourceRef: string | null };
+  settings: Record<string, unknown>;
+  nodes: PipelineNode[];
+  assetId: string | null;
+  error: string | null;
+}
+
+/** The denormalised row behind the run-history strip. */
+export interface PipelineSummary {
+  id: string;
+  title: string;
+  status: PipelineRun['status'];
+  createdAt: number;
+  updatedAt: number;
+  conceptUrl?: string;
+  sourceUrl?: string;
+  assetId?: string | null;
+}

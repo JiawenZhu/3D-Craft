@@ -126,10 +126,12 @@ export const AssetShelf: React.FC = () => {
         <div className="grid h-64 place-items-center rounded-[28px] border border-dashed border-white/8 text-center">
           <div>
             <p className="text-[13px] text-chalk-dim">
-              {shelfTab === 'asset' ? 'Nothing generated yet.' : 'No reference images.'}
+              {shelfTab === 'asset' ? 'Nothing generated yet.' : 'Nothing to explore yet.'}
             </p>
             <p className="mt-1 text-[11px] text-chalk-ghost">
-              {shelfTab === 'asset' ? 'Pick a reference from EXPLORE, or drop your own.' : 'Drop images into server/inbox/ to see them here.'}
+              {shelfTab === 'asset'
+                ? 'Pick a starting point from EXPLORE, or drop your own image above.'
+                : 'Finished 3D projects land here, alongside any images dropped into public/images/explore/.'}
             </p>
           </div>
         </div>
@@ -147,7 +149,7 @@ export const AssetShelf: React.FC = () => {
                   const built = generatedFrom(x.thumbUrl);
                   if (built) { openAsset(built); return; }
                   const src = inbox.find((i) => i.url === x.thumbUrl);
-                  addFromUrl(x.thumbUrl, src?.name ?? `${x.name}.jpg`, (src?.direction ?? 'unknown') as never);
+                  void addFromUrl(x.thumbUrl, src?.name ?? `${x.name}.jpg`, (src?.direction ?? 'unknown') as never).catch(() => {});
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   return;
                 }

@@ -2,7 +2,8 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import type {
-  Asset, EngineId, GenerationSettings, Job, JobStage, RefImage, ShelfTab,
+  Asset, EngineId, GenerationSettings, Job, JobStage, PipelineRun, PipelineStage,
+  PipelineSummary, RefImage, ShelfTab,
 } from '../types';
 import { engineById } from '../data/engines';
 import * as api from '../lib/api';
@@ -63,6 +64,26 @@ const SHAPES: Asset['seedShape'][] = ['figure', 'mech', 'creature', 'prop', 'veh
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/**
+ * What makes two meshes "the same 3D project".
+ *
+ * EXPLORE is a public gallery and must not show one thing five times; ASSET is
+ * the user's own bench and must show every attempt, because re-rolling the same
+ * prompt is the work. So the dedupe lives only in the gallery, keyed by what
+ * PRODUCED the mesh rather than by the mesh itself:
+ *
+ *   runId      a concept run, including every retry of it — the ice golem and
+ *              the ember golem re-render are one project at two moments
+ *   originRef  the gallery image a run started from
+ *   sourceRef  the reference image a direct-route generation used, so three
+ *              re-rolls of one van collapse to the van
+ *
+ * Scoped by author, because two people building the same gallery image have
+ * made two different things and hiding one of them is not deduplication.
+ */
+const projectKey = (a: Asset) =>
+  `${a.author || 'you'}:${a.runId ?? a.originRef ?? a.sourceRef ?? a.id}`;
+
 /** Which engines one GENERATE press should run, in order. */
 const compareQueue = (s: GenerationSettings): EngineId[] =>
   s.compare && s.compareWith !== s.engine ? [s.engine, s.compareWith] : [s.engine];
@@ -80,8 +101,36 @@ interface StudioValue {
   setDirection: (id: string, d: RefImage['direction']) => void;
   clearImages: () => void;
 
+  /* ---- the concept pipeline ------------------------------------------
+   * photo + words -> Gemini writes a prompt -> Gemini renders it -> mesh.
+   * Kept beside `job` rather than folded into it: a pipeline run is four
+   * separately-attributable stages that outlive the tab, and a Job is one
+   * in-memory generation. Collapsing them would lose per-stage retry.
+   * ------------------------------------------------------------------ */
+  /** The run the board is showing — live or reopened from history. */
+  pipeline: PipelineRun | null;
+  pipelineRuns: PipelineSummary[];
+  /** Whether the server can run the concept stage at all. */
+  geminiReady: boolean;
+  /** Route GENERATE through the concept pass instead of straight to 3D. */
+  usePipeline: boolean;
+  setUsePipeline: (v: boolean) => void;
+  startPipeline: () => void;
+  openRun: (id: string) => void;
+  closeRun: () => void;
+  /** Re-run one stage onward, keeping everything before it. */
+  retryStage: (stage: PipelineStage, prompt?: string) => void;
+  /** Re-prompt a finished run from the workbench: new words, same photo. */
+  repromptRun: (runId: string, prompt: string) => void;
+  deleteRun: (id: string) => void;
+
   job: Job | null;
+  /** Last user-facing problem that was not a generation failure. */
+  notice: string | null;
+  dismissNotice: () => void;
   generate: () => void;
+  /** Re-run an existing asset's source image against a new prompt. */
+  regenerate: (asset: Asset, prompt: string) => void;
   cancel: () => void;
 
   assets: Asset[];
@@ -125,13 +174,18 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [images, setImages] = useState<RefImage[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [exploreAssets, setExplore] = useState<Asset[]>([]);
+  /** Reference cards built from the hand-off folder; merged into EXPLORE below. */
+  const [inboxCards, setInboxCards] = useState<Asset[]>([]);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
   const [comparison, setComparison] = useState<Asset[] | null>(null);
   const [shelfTab, setShelfTab] = useState<ShelfTab>('explore');
   const [health, setHealth] = useState<api.Health | null>(null);
   const [inbox, setInbox] = useState<api.InboxImage[]>([]);
   const [credits, setCredits] = useState(120);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineRun | null>(null);
+  const [pipelineRuns, setPipelineRuns] = useState<PipelineSummary[]>([]);
+  const [usePipeline, setUsePipeline] = useState(true);
 
   const abort = useRef(false);
   const running = useRef(false);
@@ -160,9 +214,18 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [settings.imageMode]);
 
   const addFromUrl = useCallback(async (url: string, name: string, direction: RefImage['direction'] = 'unknown') => {
-    const abs = api.absolute(url)!;
-    const blob = await fetch(abs).then((r) => r.blob());
-    const file = new File([blob], name, { type: blob.type || 'image/png' });
+    const abs = api.imageSrc(url)!;
+    const res = await fetch(abs);
+    const blob = await res.blob();
+    // Vite answers a missing static file with 200 + index.html rather than 404,
+    // so a stale path yields an HTML "image" that the engine rejects downstream
+    // with an unhelpful UnidentifiedImageError. Catch it here instead.
+    if (!res.ok || !blob.type.startsWith('image/')) {
+      const why = `${name} could not be loaded — it is no longer at ${url}`;
+      setNotice(why);
+      throw new Error(why);
+    }
+    const file = new File([blob], name, { type: blob.type });
     setImages((prev) => {
       const room = settings.imageMode === 'single' ? 1 : 8;
       const next = [
@@ -181,7 +244,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setInbox(items);
       // Surface the hand-off images as EXPLORE cards: real art you can generate
       // from, rather than procedural filler.
-      setExplore(items.map((img, i) => ({
+      setInboxCards(items.map((img) => ({
         id: `ref-${img.url}`,
         name: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
         prompt: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
@@ -226,9 +289,15 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   /* ---- backend health --------------------------------------------------- */
   useEffect(() => {
     let stop = false;
+    let misses = 0;
     const tick = async () => {
       const h = await api.getHealth();
-      if (!stop) setHealth(h);
+      if (stop) return;
+      // One dropped poll used to null this out, and the next run would quietly
+      // simulate instead of calling the API — producing a fake asset that looks
+      // real. Only give up after several consecutive misses.
+      if (h) { misses = 0; setHealth(h); }
+      else if (++misses >= 3) setHealth(null);
     };
     tick();
     const iv = window.setInterval(tick, 15_000);
@@ -241,8 +310,10 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const patchJob = useCallback((p: Partial<Job>) => setJob((j) => (j ? { ...j, ...p } : j)), []);
 
   /** Drive a real backend job to completion. */
-  const runRemote = useCallback(async (engine: EngineId, label: string): Promise<Asset[]> => {
-    const { job_id } = await api.submitJob({ ...settings, engine }, images);
+  const runRemote = useCallback(async (
+    engine: EngineId, label: string, cfg: GenerationSettings, refs: RefImage[],
+  ): Promise<Asset[]> => {
+    const { job_id } = await api.submitJob({ ...cfg, engine }, refs);
     for (;;) {
       if (abort.current) throw new Error('cancelled');
       await sleep(900);
@@ -256,12 +327,14 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (r.stage === 'done') return r.assets ?? [];
       if (r.stage === 'failed') throw new Error(r.error || r.message || 'generation failed');
     }
-  }, [settings, images, patchJob]);
+  }, [patchJob]);
 
   /** Preview-mode stand-in so the whole UI is drivable with no backend. */
-  const runSimulated = useCallback(async (engine: EngineId, label: string): Promise<Asset[]> => {
-    const total = engineById(engine).effortSeconds[settings.effort]
-      * (settings.quality === 'speedy' ? 0.55 : 1) * 1000;
+  const runSimulated = useCallback(async (
+    engine: EngineId, label: string, cfg: GenerationSettings, refs: RefImage[],
+  ): Promise<Asset[]> => {
+    const total = engineById(engine).effortSeconds[cfg.effort]
+      * (cfg.quality === 'speedy' ? 0.55 : 1) * 1000;
     const steps = STAGES[engine] ?? STAGES['trellis-2'];
     let acc = 0;
     for (const s of steps) {
@@ -273,43 +346,70 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         patchJob({ stage: s.stage, message: `${label}${s.message}`, progress: from + ((acc - from) * k) / 6 });
       }
     }
-    return Array.from({ length: settings.batch }).map((_, i) => {
-      const faces = Math.round(settings.targetFaces * (0.82 + Math.random() * 0.3));
+    return Array.from({ length: cfg.batch }).map((_, i) => {
+      const faces = Math.round(cfg.targetFaces * (0.82 + Math.random() * 0.3));
       return {
         id: `local-${Date.now()}-${engine}-${i}`,
-        name: (settings.prompt.trim() || images[0]?.name.replace(/\.[^.]+$/, '') || 'Untitled asset').slice(0, 40),
-        prompt: settings.prompt || `image → 3d · ${images[0]?.name ?? 'reference'}`,
+        name: (cfg.prompt.trim() || refs[0]?.name.replace(/\.[^.]+$/, '') || 'Untitled asset').slice(0, 40),
+        prompt: cfg.prompt || `image → 3d · ${refs[0]?.name ?? 'reference'}`,
         engine,
         createdAt: Date.now(),
-        thumbUrl: images[0]?.url,
+        thumbUrl: refs[0]?.url,
         seedShape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
         tint: TINTS[Math.floor(Math.random() * TINTS.length)],
         faces,
         vertices: Math.round(faces * 0.52),
-        textureRes: settings.texture ? 2048 : 0,
+        textureRes: cfg.texture ? 2048 : 0,
         fileSizeMb: Math.round((faces / 9000) * 10) / 10,
         liked: false,
         likes: 0,
         author: 'you',
-        visibility: settings.isPrivate ? 'private' : 'public',
+        visibility: cfg.isPrivate ? 'private' : 'public',
         local: true,
         provider: 'preview',
         note: 'Simulated — start the inference server for a real mesh.',
       } satisfies Asset;
     });
-  }, [settings, images, patchJob]);
+  }, [patchJob]);
+
+  /**
+   * Try the real backend, and only fall back to the preview simulator when the
+   * submit itself fails. Deciding this from cached health meant one stale poll
+   * could silently produce a simulated asset that looks like a real one.
+   */
+  const runEngine = useCallback(async (
+    engine: EngineId, label: string, cfg: GenerationSettings, refs: RefImage[],
+  ): Promise<Asset[]> => {
+    try {
+      return await runRemote(engine, label, cfg, refs);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message === 'cancelled') throw err;
+      // a generation that reached the server and failed there is a real failure
+      if (!/failed to fetch|networkerror|load failed/i.test(message)) throw err;
+      return runSimulated(engine, label, cfg, refs);
+    }
+  }, [runRemote, runSimulated]);
+
 
   /* ---- generate --------------------------------------------------------- */
-  const generate = useCallback(() => {
+  /**
+   * `settingsOverride`/`imagesOverride` let a caller run against values it just
+   * computed. generate() otherwise closes over state, so a caller that patches
+   * settings and immediately runs would use the previous prompt.
+   */
+  const run = useCallback((settingsOverride?: GenerationSettings, imagesOverride?: RefImage[]) => {
     if (running.current) return;
     running.current = true;
     abort.current = false;
+    const cfg = settingsOverride ?? settings;
+    const refs = imagesOverride ?? images;
 
-    const queue = compareQueue(settings);
+    const queue = compareQueue(cfg);
     setJob({
       id: `run-${Date.now()}`,
       engine: queue[0],
-      prompt: settings.prompt,
+      prompt: cfg.prompt,
       stage: 'queued',
       progress: 0,
       message: 'Queued',
@@ -324,7 +424,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const engine = queue[i];
           const label = queue.length > 1 ? `${engineById(engine).label} (${i + 1}/${queue.length}) · ` : '';
           patchJob({ engine, progress: 0, stage: 'queued', message: `${label}Queued` });
-          const made = health ? await runRemote(engine, label) : await runSimulated(engine, label);
+          const made = await runEngine(engine, label, cfg, refs);
           produced.push(...made);
         }
 
@@ -336,7 +436,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           finishedAt: Date.now(), assetIds: produced.map((a) => a.id),
         });
 
-        if (settings.compare && produced.length > 1) setComparison(produced);
+        if (cfg.compare && produced.length > 1) setComparison(produced);
         else if (produced[0]) setActiveAsset(produced[0]);
 
         setTimeout(() => setJob(null), 1400);
@@ -350,16 +450,155 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         running.current = false;
       }
     })();
-  }, [settings, health, runRemote, runSimulated, patchJob]);
+  }, [settings, images, runEngine, patchJob]);
+
+  const generate = useCallback(() => run(), [run]);
+
+  /**
+   * Same pipeline as generate(), but seeded from an asset already on screen:
+   * its source image is pulled back in as the reference so the new prompt is
+   * applied to the same subject rather than starting from nothing.
+   */
+  const regenerate = useCallback((asset: Asset, prompt: string) => {
+    if (running.current) return;
+    // thumbUrl first: it lives on the API, always exists for a generated asset,
+    // and is the already-prepped input. sourceRef can point at a gallery file
+    // that has since been moved or renamed.
+    const candidates = [asset.thumbUrl, asset.sourceRef].filter(Boolean) as string[];
+    if (!candidates.length) return;
+
+    const tryNext = async (i: number): Promise<void> => {
+      if (i >= candidates.length) {
+        setJob({
+          id: `run-${Date.now()}`, engine: asset.engine, prompt,
+          stage: 'failed', progress: 0,
+          message: 'Source image for this asset is missing, so it cannot be re-prompted.',
+          error: 'source image unavailable', startedAt: Date.now(), assetIds: [],
+        });
+        return;
+      }
+      const src = candidates[i];
+      const name = src.split('/').pop() ?? 'reference.png';
+      try {
+        const abs = api.imageSrc(src)!;
+        const res = await fetch(abs);
+        const blob = await res.blob();
+        if (!res.ok || !blob.type.startsWith('image/')) throw new Error('not an image');
+        const file = new File([blob], name, { type: blob.type });
+        const ref: RefImage = {
+          id: `regen-${Date.now()}`, url: URL.createObjectURL(file), name,
+          direction: 'unknown', file, sourceUrl: asset.sourceRef ?? undefined,
+        };
+        const next: GenerationSettings = {
+          ...settings, prompt, engine: asset.engine,
+          inputMode: 'image', mode: 'image-to-3d', compare: false, batch: 1,
+        };
+        // Reflect it in the card too, then run against these exact values rather
+        // than waiting for the state patch to land — that race is what produced
+        // an "Untitled asset" with an empty prompt.
+        setImages((prev) => { prev.forEach((p) => URL.revokeObjectURL(p.url)); return [ref]; });
+        setSettings(next);
+        run(next, [ref]);
+      } catch {
+        await tryNext(i + 1);
+      }
+    };
+    void tryNext(0);
+  }, [settings, run]);
 
   const cancel = useCallback(() => { abort.current = true; setJob(null); running.current = false; }, []);
   useEffect(() => () => { abort.current = true; }, []);
+
+  /* ---- the concept pipeline -------------------------------------------- */
+  const geminiReady = !!health?.gemini?.available;
+
+  const refreshRuns = useCallback(() => { api.listPipelines().then(setPipelineRuns); }, []);
+  useEffect(() => { refreshRuns(); }, [refreshRuns, health?.status]);
+
+  /**
+   * Poll only while the run is moving.
+   *
+   * The document on the server is the source of truth for every stage, so this
+   * replaces the whole run each tick rather than merging — a half-merged node
+   * would show a stale model name beside a fresh status.
+   */
+  useEffect(() => {
+    if (pipeline?.status !== 'running') return;
+    const id = pipeline.id;
+    let stop = false;
+    const tick = async () => {
+      try {
+        const next = await api.getPipeline(id);
+        if (stop) return;
+        setPipeline(next);
+        if (next.status !== 'running') {
+          refreshRuns();
+          // The finished mesh is a new asset; the shelf and the 3D node both
+          // need it before "Open in 3D" can do anything.
+          api.listAssets().then((a) => a.length && setAssets(a));
+        }
+      } catch {
+        /* transient — the next tick tries again */
+      }
+    };
+    const iv = window.setInterval(tick, 1200);
+    return () => { stop = true; window.clearInterval(iv); };
+  }, [pipeline?.status, pipeline?.id, refreshRuns]);
+
+  const startPipeline = useCallback(() => {
+    const image = images[0];
+    if (!image && !settings.prompt.trim()) return;
+    setNotice(null);
+    api.startPipeline(settings.prompt, settings, image)
+      .then(({ run_id }) => api.getPipeline(run_id))
+      .then((run) => { setPipeline(run); refreshRuns(); })
+      .catch((err: Error) => setNotice(`The concept pass could not start — ${err.message}`));
+  }, [images, settings, refreshRuns]);
+
+  const openRun = useCallback((id: string) => {
+    api.getPipeline(id).then(setPipeline).catch(() => setNotice('That run could not be loaded.'));
+  }, []);
+
+  const closeRun = useCallback(() => setPipeline(null), []);
+
+  const runStage = useCallback((id: string, stage: PipelineStage, prompt?: string) => {
+    // Flip to running locally so the poller starts on this tick rather than
+    // after the next one — otherwise the board sits still for a second and
+    // reads as a dead button.
+    setPipeline((r) => (r && r.id === id ? { ...r, status: 'running' } : r));
+    api.retryPipeline(id, stage, prompt)
+      .then(() => api.getPipeline(id))
+      .then(setPipeline)
+      .catch((err: Error) => setNotice(`That stage could not be re-run — ${err.message}`));
+  }, []);
+
+  const retryStage = useCallback((stage: PipelineStage, prompt?: string) => {
+    if (pipeline?.id) runStage(pipeline.id, stage, prompt);
+  }, [pipeline?.id, runStage]);
+
+  /**
+   * Re-prompt from the workbench, through the concept stage.
+   *
+   * Feeding the same concept image back to the reconstructor with different
+   * words changes almost nothing — TRELLIS and Hunyuan are conditioned on the
+   * IMAGE, and the prompt mostly names the result. Going back to the prompt
+   * stage is what makes the new wording actually reach the geometry.
+   */
+  const repromptRun = useCallback((runId: string, prompt: string) => {
+    runStage(runId, 'prompt', prompt);
+  }, [runStage]);
+
+  const deleteRun = useCallback((id: string) => {
+    setPipeline((r) => (r && r.id === id ? null : r));
+    setPipelineRuns((rs) => rs.filter((r) => r.id !== id));
+    api.deletePipeline(id).catch(() => {});
+  }, []);
 
   /* ---- assets ----------------------------------------------------------- */
   const toggleLike = useCallback((id: string) => {
     const flip = (a: Asset) => (a.id === id ? { ...a, liked: !a.liked, likes: a.likes + (a.liked ? -1 : 1) } : a);
     setAssets((p) => p.map(flip));
-    setExplore((p) => p.map(flip));
+    setInboxCards((p) => p.map(flip));
     setActiveAsset((p) => (p && p.id === id ? flip(p) : p));
   }, []);
 
@@ -368,6 +607,45 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveAsset((p) => (p && p.id === id ? null : p));
     api.deleteAsset(id).catch(() => {});
   }, []);
+
+  /**
+   * EXPLORE: every 3D project, then the gallery images nobody has built yet.
+   *
+   * It used to be the hand-off folder and nothing else, which made it a list of
+   * pictures on a page whose whole subject is meshes. A reference that has
+   * already produced a mesh is dropped here rather than shown twice — the mesh
+   * IS that reference, further along.
+   */
+  const exploreAssets = useMemo(() => {
+    // A gallery image is "built" if anything points at it — as the reference a
+    // generation used, OR as the image a concept run started from.
+    const built = new Set(
+      assets.flatMap((a) => [a.sourceRef, a.originRef]).filter(Boolean) as string[],
+    );
+
+    const public3d = assets
+      .filter((a) => a.modelUrl && a.visibility !== 'private')
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    // Newest per project wins: the list is already newest-first, so the first
+    // time a key appears is the version to show. The rest are counted, not
+    // dropped silently — a card saying "4 versions" explains why the ASSET tab
+    // has more rows than EXPLORE.
+    const counts = new Map<string, number>();
+    for (const a of public3d) counts.set(projectKey(a), (counts.get(projectKey(a)) ?? 0) + 1);
+
+    const seen = new Set<string>();
+    const projects: Asset[] = [];
+    for (const a of public3d) {
+      const key = projectKey(a);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      projects.push({ ...a, versions: counts.get(key) ?? 1 });
+    }
+
+    const unbuilt = inboxCards.filter((c) => !c.thumbUrl || !built.has(c.thumbUrl));
+    return [...projects, ...unbuilt];
+  }, [assets, inboxCards]);
 
   /** The static table is a guess; the server knows the device it will run on. */
   const estimate = useCallback((engine: EngineId, effort: string) => {
@@ -389,13 +667,17 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const value = useMemo<StudioValue>(() => ({
     settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
-    job, generate, cancel,
+    pipeline, pipelineRuns, geminiReady, usePipeline, setUsePipeline,
+    startPipeline, openRun, closeRun, retryStage, repromptRun, deleteRun,
+    job, notice, dismissNotice: () => setNotice(null), generate, regenerate, cancel,
     assets, exploreAssets, toggleLike, removeAsset,
     activeAsset, openAsset: setActiveAsset, closeAsset: () => setActiveAsset(null),
     comparison, openComparison: setComparison, closeComparison: () => setComparison(null),
     shelfTab, setShelfTab,
     health, backendOnline: !!health, credits, estimate, price, runCost,
-  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages, job, generate,
+  }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
+      pipeline, pipelineRuns, geminiReady, usePipeline, startPipeline, openRun, closeRun, retryStage, repromptRun, deleteRun,
+      job, notice, generate, regenerate,
       cancel, assets, exploreAssets, toggleLike, removeAsset, activeAsset, comparison, shelfTab,
       health, credits, estimate, price, runCost]);
 
