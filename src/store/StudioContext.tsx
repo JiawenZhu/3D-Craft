@@ -6,6 +6,7 @@ import type {
   PipelineSummary, RefImage, ShelfTab,
 } from '../types';
 import { engineById } from '../data/engines';
+import { EXPLORE_ASSETS } from '../data/gallery';
 import * as api from '../lib/api';
 
 const DEFAULT_SETTINGS: GenerationSettings = {
@@ -173,7 +174,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [settings, setSettings] = useState<GenerationSettings>(DEFAULT_SETTINGS);
   const [images, setImages] = useState<RefImage[]>([]);
   const [job, setJob] = useState<Job | null>(null);
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assets, setAssets] = useState<Asset[]>(EXPLORE_ASSETS);
   /** Reference cards built from the hand-off folder; merged into EXPLORE below. */
   const [inboxCards, setInboxCards] = useState<Asset[]>([]);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
@@ -619,11 +620,12 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const exploreAssets = useMemo(() => {
     // A gallery image is "built" if anything points at it — as the reference a
     // generation used, OR as the image a concept run started from.
+    const all3d = [...assets, ...EXPLORE_ASSETS];
     const built = new Set(
-      assets.flatMap((a) => [a.sourceRef, a.originRef]).filter(Boolean) as string[],
+      all3d.flatMap((a) => [a.sourceRef, a.originRef]).filter(Boolean) as string[],
     );
 
-    const public3d = assets
+    const public3d = all3d
       .filter((a) => a.modelUrl && a.visibility !== 'private')
       .sort((a, b) => b.createdAt - a.createdAt);
 

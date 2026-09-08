@@ -109,9 +109,12 @@ export async function deleteAsset(id: string): Promise<void> {
   await fetch(`${API_BASE}/api/assets/${id}`, { method: 'DELETE' });
 }
 
-export const absolute = (url?: string) =>
-  !url ? undefined : /^https?:|^blob:|^data:/.test(url) ? url : `${API_BASE}${url}`;
-
+export const absolute = (url?: string) => {
+  if (!url) return undefined;
+  if (/^https?:|^blob:|^data:/.test(url)) return url;
+  if (url.startsWith('/images/') || url.startsWith('/models/')) return url;
+  return `${API_BASE}${url}`;
+};
 
 /* ------------------------------------------------------------------ pipelines
  * The concept run. Everything here goes through this process — the Gemini key
