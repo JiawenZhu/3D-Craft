@@ -157,6 +157,11 @@ def erase_account(studio, uid):
         # Streaming document references avoids loading all game content.
         for game_ref in studio.db.collection('communityGames').list_documents():
             erase_vote(studio.db, game_ref, uid)
+        for collection, fields in [('communityReports', ('reporterId', 'ownerId')),
+                                   ('communityModeration', ('ownerId',))]:
+            for field in fields:
+                for doc in studio.db.collection(collection).where(filter=FieldFilter(field, '==', uid)).stream():
+                    studio.db.recursive_delete(doc.reference)
     step('publicContentDeleted', remove_public_content)
     step('privateDataDeleted', lambda: studio.db.recursive_delete(studio.db.collection('users').document(uid)))
     def remove_identity():

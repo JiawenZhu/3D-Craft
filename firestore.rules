@@ -59,28 +59,16 @@ service cloud.firestore {
       allow update: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    match /communityGames/{gameId} {
-      // Anyone can view community games
-      allow read: if true;
-
-      // Only signed-in users can create a game, and must set ownerId to their own UID
-      allow create: if signedIn()
-        && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.title is string && request.resource.data.title.size() <= 100
-        && request.resource.data.creator is string && request.resource.data.creator.size() <= 60
-        && request.resource.data.url is string && request.resource.data.url.size() <= 2048;
-
-      // Only the creator can modify details or delete; voters can update vote aggregates
-      allow update: if signedIn() && (
-        resource.data.ownerId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'likes', 'updatedAt'])
-      );
-      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
-
-      match /votes/{userId} {
-        allow read: if true;
-        allow write: if signedIn() && request.auth.uid == userId;
-      }
+    // Publication, moderation, private reports, blocks and aggregate votes are
+    // authorized by the cloud API. Clients cannot bypass its review queue.
+    match /communityGames/{document=**} {
+      allow read, write: if false;
+    }
+    match /communityReports/{document=**} {
+      allow read, write: if false;
+    }
+    match /communityModeration/{document=**} {
+      allow read, write: if false;
     }
   }
 }

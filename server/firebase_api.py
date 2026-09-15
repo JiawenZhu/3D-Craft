@@ -7,7 +7,7 @@ from functools import lru_cache
 import os
 import json
 from urllib.parse import quote
-from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile, Request
+from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile, Request, Query
 from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from .identity import require_claims
@@ -16,13 +16,14 @@ from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
 from .firebase_projects import CloudProjects, MAX_BYTES
 from .firebase_model_jobs import CloudModelJobs, ModelRequest
+from .firebase_community import CloudCommunity, Submission, Vote, Report, GameLink, Category
 from . import cloud_model_provider, pricing
 from pydantic import BaseModel, Field
 from typing import Literal
 from .account_deletion import ensure_active, request_deletion, erase_account, verify_worker
 
 app = FastAPI(title='3D Craft Cloud API')
-app.add_middleware(CORSMiddleware, allow_origins=['https://3d-craft.web.app'], allow_methods=['GET','POST'], allow_headers=['Authorization','Content-Type'])
+app.add_middleware(CORSMiddleware, allow_origins=['https://3d-craft.web.app'], allow_methods=['GET','POST','PUT','DELETE'], allow_headers=['Authorization','Content-Type'])
 
 @lru_cache
 def studio(): return FirebaseStudio()
@@ -214,6 +215,71 @@ def revenuecat_webhook(payload: dict, authorization: str = Header(default='')):
     return reconcile_webhook(studio().db, payload, authorization)
 
 
-@app.api_route('/api/{path:path}',methods=['GET','POST','DELETE','PATCH'])
+def community_viewer(authorization: str = Header(default='')):
+    if not authorization: return None
+    return owner(require_claims(authorization)).removeprefix('firebase:')
+
+
+@app.get('/api/mobile/community/games')
+def community_feed(category: Category = 'fun', offset: int = Query(default=0, ge=0, le=10000), uid=Depends(community_viewer)):
+    return CloudCommunity(studio().db).feed(category, offset, uid)
+
+
+@app.get('/api/mobile/community/mine')
+def community_mine(account=Depends(owner)):
+    return CloudCommunity(studio().db).mine(account.removeprefix('firebase:'))
+
+
+@app.post('/api/mobile/community/check-link')
+def community_check(body: GameLink, account=Depends(owner)):
+    return CloudCommunity(studio().db).check_link(account.removeprefix('firebase:'), body.url)
+
+
+@app.post('/api/mobile/community/games')
+def community_submit(body: Submission, account=Depends(owner)):
+    return CloudCommunity(studio().db).submit(account.removeprefix('firebase:'), body)
+
+
+@app.get('/api/mobile/community/games/{ident}/play')
+def community_play(ident: str, uid=Depends(community_viewer)):
+    return CloudCommunity(studio().db).play(ident, uid)
+
+
+@app.put('/api/mobile/community/games/{ident}/vote')
+def community_vote(ident: str, body: Vote, account=Depends(owner)):
+    return CloudCommunity(studio().db).vote(account.removeprefix('firebase:'), ident, body)
+
+
+@app.delete('/api/mobile/community/games/{ident}')
+def community_remove(ident: str, account=Depends(owner)):
+    return CloudCommunity(studio().db).remove(account.removeprefix('firebase:'), ident)
+
+
+@app.post('/api/mobile/community/games/{ident}/recheck')
+def community_recheck(ident: str, account=Depends(owner)):
+    return CloudCommunity(studio().db).recheck(account.removeprefix('firebase:'), ident)
+
+
+@app.post('/api/mobile/community/games/{ident}/report')
+def community_report(ident: str, body: Report, account=Depends(owner)):
+    return CloudCommunity(studio().db).report(account.removeprefix('firebase:'), ident, body)
+
+
+@app.post('/api/mobile/community/games/{ident}/block')
+def community_block(ident: str, account=Depends(owner)):
+    return CloudCommunity(studio().db).block(account.removeprefix('firebase:'), ident)
+
+
+@app.get('/api/mobile/community/blocks')
+def community_blocks(account=Depends(owner)):
+    return CloudCommunity(studio().db).blocks(account.removeprefix('firebase:'))
+
+
+@app.delete('/api/mobile/community/blocks/{ident}')
+def community_unblock(ident: str, account=Depends(owner)):
+    return CloudCommunity(studio().db).unblock(account.removeprefix('firebase:'), ident)
+
+
+@app.api_route('/api/{path:path}',methods=['GET','POST','PUT','DELETE','PATCH'])
 def unavailable(path: str, account=Depends(owner)):
     raise HTTPException(503,'This cloud feature is being prepared. No Tokens were charged.')

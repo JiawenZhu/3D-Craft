@@ -738,58 +738,7 @@ struct PendingGeneration: Codable, Equatable {
     }
     func updateConnection(_ base:String) async {apiBase=StudioConnection.cloudURL;UserDefaults.standard.set(apiBase,forKey:"craftAPI");await connect()}
     func communityRequest(_ path: String, method: String = "GET", body: [String: Any]? = nil) async throws -> Any {
-        // Independent Cloud API storage in Firebase Firestore, no local Mac server required
-        if path.hasPrefix("/games?") || (path == "/games" && method == "GET") {
-            let components = URLComponents(string: "http://dummy" + path)
-            let category = components?.queryItems?.first(where: { $0.name == "category" })?.value ?? "fun"
-            let offset = Int(components?.queryItems?.first(where: { $0.name == "offset" })?.value ?? "0") ?? 0
-            return try await CommunityCloudService.fetchGames(category: category, offset: offset)
-        }
-        if path == "/mine" {
-            return try await CommunityCloudService.fetchMySubmissions()
-        }
-        if path == "/check-link", let url = body?["url"] as? String {
-            return try await CommunityCloudService.checkLink(urlString: url)
-        }
-        if path == "/games" && method == "POST", let b = body {
-            let title = b["title"] as? String ?? ""
-            let creator = b["creator"] as? String ?? ""
-            let desc = b["description"] as? String ?? ""
-            let url = b["url"] as? String ?? ""
-            return try await CommunityCloudService.publishGame(title: title, creator: creator, description: desc, urlString: url)
-        }
-        if path.hasPrefix("/games/") && path.hasSuffix("/vote") && method == "PUT", let b = body {
-            let parts = path.components(separatedBy: "/")
-            if parts.count >= 3 {
-                let gameId = parts[2]
-                let cat = b["category"] as? String ?? "fun"
-                let liked = b["liked"] as? Bool ?? true
-                return try await CommunityCloudService.vote(gameId: gameId, category: cat, liked: liked)
-            }
-        }
-        if path.hasPrefix("/games/") && method == "DELETE" {
-            let parts = path.components(separatedBy: "/")
-            if parts.count >= 3 {
-                let gameId = parts[2]
-                try await CommunityCloudService.deleteGame(gameId: gameId)
-                return ["removed": true]
-            }
-        }
-        if path.hasPrefix("/games/") && path.hasSuffix("/play") {
-            let parts = path.components(separatedBy: "/")
-            if parts.count >= 3 {
-                let gameId = parts[2]
-                return try await CommunityCloudService.playGame(gameId: gameId)
-            }
-        }
-        if path.hasPrefix("/games/") && path.hasSuffix("/recheck") && method == "POST" {
-            return ["status": "rechecked"]
-        }
-        if path.hasPrefix("/games/") && path.hasSuffix("/report") && method == "POST" {
-            return ["reported": true]
-        }
-        
-        let publicRead = method == "GET" && (path.hasPrefix("/games?") || path.hasSuffix("/play"))
+        let publicRead = method == "GET" && (path == "/games" || path.hasPrefix("/games?") || path.hasSuffix("/play"))
         return try await request("/community" + path, method: method, body: body, allowAnonymous: publicRead)
     }
     private func request(_ path:String,method:String="GET",body:[String:Any]?=nil,data:Data?=nil,contentType:String="application/json",allowAnonymous:Bool=false) async throws ->Any {
