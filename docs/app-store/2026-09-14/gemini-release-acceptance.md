@@ -29,3 +29,20 @@ Evidence log: `/tmp/craft-cloud-release-flow.log`; local visual artifacts: `/tmp
 - 8 focused cloud API/concept checks passed, including missing-dependency readiness and disabled development purchases.
 - This establishes cloud generation and accounting. Physical-phone rendering/export, exact-release screenshots, reviewer-account acceptance and final App Store disclosures still require completion.
 - The earlier four-view provider test produced inconsistent camera angles; validation correctly rejected it as matching 3D input. Do not claim multi-view consistency from that test.
+
+## Deployment and review access
+
+- Source `f6c1255` pushed to GitHub `master` and `codex/app-store-cloud`.
+- Cloud Run `craft-api-00016-rml` serves 100% of traffic. The canonical health response confirms Firebase storage and generation readiness. The authenticated catalog contains only Gemini.
+- Built with the installed Xcode and successfully installed and launched on Jiawen's physical iPhone after reconnecting the device. Embedded service origin remains `https://3d-craft.web.app`. Device installation/launch does not establish complete physical-device acceptance.
+- Existing App Review email login authenticated successfully. Wallet read returned 5,000 available test Tokens, no reservations; projects and private assets returned HTTP 200. No balance adjustment was made in this check.
+- App Store Connect privacy disclosures are already published, covering user content, user ID, purchases, product interaction and email. Final SDK/disclosure reconciliation remains necessary.
+
+## App Store and native-screen verification
+
+- Xcode Cloud Build **13**, source `f6c125528964565a3c60ee25ce522874c2c70fc0`, completed Build and Archive with zero errors/warnings. App Store Connect processed it as VALID.
+- Build `8ae0320a-c4a8-4a31-bfb3-f1ac7bdde6c7` is attached to version 1.0 (`d0c468c4-63c3-45dd-80f9-c25518539f6a`); relationship update and readback verified.
+- Updated the walkthrough portion of App Review Information for Gemini, cloud storage, actual purchase verification and supported multi-view validation. Saved and reloaded to verify persistence; existing rights declaration was left unchanged.
+- Native public-discovery → model → lighting → concept → external game brief → object gallery screen checks passed on iPhone and iPad simulators. Updated the capture test's canonical URL and its signed-out Objects selector. These checks do not exercise authenticated generation or purchase delivery.
+- Added current iPhone discovery, lighting and game-brief screenshots to the existing App Store set (7 total). Captures: `/tmp/craft-gemini-listing/iphone/`. Added the current iPad discovery screenshot to its existing set (5 total). iPad captures: `/tmp/craft-gemini-listing/ipad/`.
+- Not submitted for review in this pass. Follow the remaining concrete checks in release-readiness.md.

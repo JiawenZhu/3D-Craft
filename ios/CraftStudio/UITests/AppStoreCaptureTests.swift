@@ -7,7 +7,7 @@ final class AppStoreCaptureTests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-craftChinese", "NO", "-craftAppearance", "emerald",
-                               "-craftAPI", "http://127.0.0.1:8001", "-craftShowPriceDetails", "NO"]
+                               "-craftAPI", "https://3d-craft.web.app", "-craftShowPriceDetails", "NO"]
         app.launch()
         let cat = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@", "creation.asset.a-", "Lantern Explorer")).firstMatch
         XCTAssertTrue(cat.waitForExistence(timeout: 35))
@@ -35,12 +35,12 @@ final class AppStoreCaptureTests: XCTestCase {
         try capture(app, "05-game-brief")
         app.buttons["Done"].tap()
         app.buttons["studio.back"].tap()
-        app.buttons["creation.category.objects"].tap()
+        app.buttons["Objects"].tap()
         Thread.sleep(forTimeInterval: 4)
         try capture(app, "06-objects")
         app.terminate()
         app.launchArguments = ["-craftChinese", "NO", "-craftAppearance", "lavender",
-                               "-craftAPI", "http://127.0.0.1:8001", "-craftShowPriceDetails", "NO"]
+                               "-craftAPI", "https://3d-craft.web.app", "-craftShowPriceDetails", "NO"]
         app.launch()
         XCTAssertTrue(cat.waitForExistence(timeout: 20))
         Thread.sleep(forTimeInterval: 3)
