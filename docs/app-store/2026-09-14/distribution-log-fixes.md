@@ -31,3 +31,15 @@ References:
 - App Store distribution export: succeeded (`/tmp/CraftStudio-2026091403-export/CraftStudio.ipa`; log `/tmp/craft-distribution-export.log`).
 - Verified in archive and exported IPA: version 1.0, build 2026091403, four iPad orientations. Archive also includes AppIcon and https://3d-craft.web.app.
 - No new Apple server validation or upload was performed: the archive still reports the rejected beta toolchain 27A5218g / SDK 24A5380g. Local export success does not resolve error 90534.
+
+## Follow-up validation at 19:43
+
+The supplied `CraftStudio_2026-09-14_19-43-55.194.xcdistributionlogs` reports the same two errors, 90474 and 90534. It validates the older `~/Library/Developer/Xcode/Archives/2026-09-14/CraftStudio.xcarchive`, whose app still has build number 1, no iPad orientation override, and Xcode 27A5218g / SDK 24A5380g. It does not validate the corrected archive or the current GitHub source. Preserve this historical log; do not edit its errors away.
+
+## Xcode Cloud distribution
+
+- GitHub master and codex/app-store-cloud were synchronized to `eca871367b1d672a7cc557f27692bf58bba91b24`, including `ios/CraftStudio.xcodeproj` and its shared scheme.
+- Cloud Build 2 (`b580ae11-5374-4dcf-ac42-4cb8e2c2aa90`) succeeded on Xcode 26.6 (17F113), with zero errors and zero warnings. It was a build-only action, not an upload.
+- The Default workflow now has an Archive action using scheme CraftStudio and App Store Connect distribution preparation (`testFlightExternalAndAppStore`). It retains the existing device-build action.
+- Cloud Build 3 (`56636a8a-4ec9-487d-880b-6d6d0a0508cc`) was started manually from master for archive and distribution. Processing and App Store attachment must be verified separately after it finishes.
+- No replacement Xcode was downloaded. Cloud build success does not establish the independent backend and product acceptance requirements in `release-readiness.md`.

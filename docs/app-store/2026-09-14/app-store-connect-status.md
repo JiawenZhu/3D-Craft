@@ -12,9 +12,11 @@ RevenueCat reference: https://www.revenuecat.com/docs/platform-resources/apple-p
 
 ## Remaining
 
-- Content Rights is unset. The app accesses user-submitted third-party content; the available Yes answer also attests necessary rights. Owner confirmation requested rather than asserting rights from source code.
+- Content Rights is completed in the live dashboard: “Yes, this app has the necessary rights to its third-party content.” This was observed already saved; it was not inferred from source code.
 - Version 1.0 has no build selection available; its Build section requests uploading a build. No binary uploaded or attached in this update.
-- Live cloud generation and purchase delivery remain release blockers documented in release-readiness.md. Publishing privacy answers does not resolve those implementation gaps.
+- Consumable Token-pack delivery has been verified in the cloud. Cloud generation, subscription delivery, and the other release blockers remain documented in release-readiness.md. Publishing privacy answers does not resolve those implementation gaps.
 - Review sign-in and contact fields are populated in the live dashboard. Credentials intentionally omitted here. The account still requires full end-to-end cloud acceptance.
 
 No Add for Review action was performed.
+
+Cloud Build 2 from eca8713 succeeded on Xcode 26.6 with no warnings or errors. The workflow was then updated with App Store Connect archive preparation and Cloud Build 3 was started. An archive upload and processed build selection are not yet verified by this status update.
