@@ -1,0 +1,19 @@
+Welcome to 3D Craft 1.0 (16)! Please test on your iPhone or iPad with an internet connection. Your creations and wallet sync with your 3D Craft account.
+
+1. Sign in and account switching
+Try Sign in with Apple, Google, or email. Check the new welcome/sign-in screens, password visibility, and sign out/sign in. Each account should show only its own creations and balance.
+
+2. Token purchases and Wallet
+Test a Token pack or subscription using the TestFlight purchase confirmation. TestFlight purchases use Apple's sandbox and do not charge real money. Purchases are available to every signed-in app account, not just a test email.
+After a successful purchase, the app should open Wallet, show +Tokens, and animate the total once the purchase is verified. If syncing takes time, use Retry in Wallet; do not repeat the purchase just to refresh it. The sync message should clear when resolved and should not cover other screens. Switching accounts must not move another account's purchased Tokens.
+
+3. Create an image and a 3D model
+Focus for build 16: generate two images and stay on the screen until completion; progress should finish without restarting. Select either saved concept and confirm 3D generation. On first use, the AI-sharing permission should appear before the confirmation sheet closes. Once accepted, the new job should appear immediately. Check the animated waiting card and private image preview.
+Enter an idea or add a reference image. Check the Token estimate before confirming. Test the AI-sharing permission: Not now should stop the request; Allow should continue. Generate a concept, select it, add 3D instructions, and choose an engine. Check progress, completion, the 3D viewer, lighting, and export. Close/reopen the app and verify your saved creation is still in Library.
+
+4. Play and share games
+Open Games and try the published games, including Moonrun, Moss Robot, and Emberwing. Check touch controls and landscape play where suggested. Like a game, tap again to undo, and check the count updates.
+To share your own game: Games > + > Share a game. Paste a public playable HTTPS link from your published Claude/Codex game, enter its title and creator, check/open the link, confirm play-testing and rights, then submit. It should appear in My submissions as pending review before public publication. Conversation links and local computer addresses are not playable public game links.
+
+5. Appearance and feedback
+Try English/Chinese and the available appearances. Check for clipped text, keyboard overlap, and controls that are difficult to tap. Send TestFlight feedback with a screenshot, device model, and steps to reproduce. Please do not include passwords or payment details.

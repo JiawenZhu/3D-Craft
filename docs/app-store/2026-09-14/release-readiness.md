@@ -1,6 +1,6 @@
 # Release evidence and acceptance limits
 
-Assessment: 15 September 2026. **Version 1.0 (15) was submitted successfully and is Waiting for Review.** See [submission receipt](submission-2026-09-15.md). The historical implementation notes below retain acceptance limits; they do not represent a pending submission. Apple approval and public release have not occurred.
+Assessment: 15 September 2026. **Version 1.0 (16) was submitted with all five paid products and the subscription group, and is Waiting for Review.** See [current submission receipt](submission-build-16-2026-09-15.md). Build 15 was withdrawn and replaced. The historical implementation notes below retain acceptance limits; they do not represent a pending submission. Apple approval and public release have not occurred.
 
 ## Current verified state
 
@@ -29,7 +29,7 @@ Assessment: 15 September 2026. **Version 1.0 (15) was submitted successfully and
 - Complete accurate age-rating, content-rights, privacy, encryption and availability answers. Recheck the community browser-game feature; do not reuse the old claim that no public user feed exists.
 - Finalize reviewer-guide.md only after all advertised flows pass, attach it if useful, and submit the complete version for review.
 
-The current submission used processed, VALID build 15 from source 1de40b8. App Store Connect confirmed both “1 Item Submitted” and “Waiting for Review”; see the submission receipt for exact identifiers. Earlier build attachments above are historical.
+The current submission uses processed, VALID build 16 from source 4a8257a. App Store Connect confirmed “7 Items Submitted” and “Waiting for Review”; see the current submission receipt for exact identifiers. Earlier build attachments above are historical.
 
 Apple requires operational backend services and full reviewer access: https://developer.apple.com/app-store/review/guidelines/ (Before You Submit).
 
