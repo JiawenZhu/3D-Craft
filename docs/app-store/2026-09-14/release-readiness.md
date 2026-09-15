@@ -37,6 +37,8 @@ Account deletion update: the native Profile now has a bilingual deletion confirm
 
 ## Additional concrete release follow-ups found during verification
 
-- Native Google sign-in still points to the Firebase Hosting alias instead of the canonical web.app auth page. The callback currently has no per-attempt state validation. Bind callbacks to an active sign-in attempt and verify the full Google flow before release. Email login was verified separately and works.
+- Native Google sign-in now uses the canonical web.app bridge, per-attempt state, a ten-minute expiry, duplicate-field rejection and Firebase identity lookup. Updated Hosting is deployed; focused tests pass. Full interactive Google phone sign-in is still to be confirmed.
+- Sign in with Apple is enabled for the explicit App ID and Firebase provider. The installed signed app/profile includes the entitlement. After an initial Apple authorization error 1000, the user confirmed Apple sign-in works on the phone. No cause was established for the transient error. Native Apple account deletion obtains fresh authorization, verifies the linked subject and revokes access through Firebase before requesting cloud deletion; an end-to-end Apple deletion test remains.
+- Added per-account, per-provider AI sharing permission before generation/chat requests, plus reset controls in Profile. Added the app privacy manifest for own-container UserDefaults/cache timestamps and six collected data categories. See auth-and-privacy-acceptance.md.
 - Validate the final sign-in choices and AI data-sharing consent against the review requirements, and finish the precise SDK/disclosure audit.
 - Existing App Store rights text was preserved, not independently recertified by the agent.

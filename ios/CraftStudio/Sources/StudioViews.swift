@@ -608,6 +608,7 @@ struct ProfileView: View {
                     headline
                     identityRow
                     accountSection
+                    CraftAIPrivacySettings()
                     AppearanceSettingsView()
                     PricingDetailsToggle()
                     CreationCostButton(iconOnly: false)

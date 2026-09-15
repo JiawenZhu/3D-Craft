@@ -27,6 +27,10 @@ targets:
       - CraftStudio/Sources
       - path: CraftStudio/Resources
         buildPhase: resources
+    entitlements:
+      path: CraftStudio/Configuration/CraftStudio.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
     dependencies:
       - package: GLTFKit2
       - package: RevenueCat

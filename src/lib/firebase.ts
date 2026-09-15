@@ -25,7 +25,7 @@ import type { Asset } from '../types';
 const resolveAuthDomain = () => {
   if (typeof window !== 'undefined' && window.location.host) {
     const host = window.location.host;
-    if (host.includes('3d-craft.web.app') || host.includes('3d-craft.firebaseapp.com')) {
+    if (host === '3d-craft.web.app' || host === '3d-craft.firebaseapp.com') {
       return host;
     }
   }

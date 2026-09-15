@@ -22,6 +22,9 @@ import AuthenticationServices
     @Published var busy = false
     @Published var deletionRequested = false
     private var authSession: ASWebAuthenticationSession?
+    private var authAttempt: CraftWebAuthAttempt?
+    private var appleAttempt: CraftAppleSignIn?
+    private var appleUser: String?
     private var idToken: String?
     private var expires = Date.distantPast
     private var refresh: String?
@@ -32,13 +35,13 @@ import AuthenticationServices
         var result: CFTypeRef?
         if SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
            let data = result as? Data, let saved = try? JSONDecoder().decode(Saved.self, from:data) {
-            uid = saved.uid; email = saved.email; refresh = saved.refresh
+            uid = saved.uid; email = saved.email; refresh = saved.refresh; appleUser = saved.appleUser
         }
     }
-    private struct Saved: Codable { let uid:String; let email:String; let refresh:String }
+    private struct Saved: Codable { let uid:String; let email:String; let refresh:String; let appleUser:String? }
     private func persist() throws {
         guard let uid, let refresh else { return }
-        let data = try JSONEncoder().encode(Saved(uid:uid,email:email,refresh:refresh))
+        let data = try JSONEncoder().encode(Saved(uid:uid,email:email,refresh:refresh,appleUser:appleUser))
         let status = SecItemUpdate(keychain as CFDictionary, [kSecValueData as String:data] as CFDictionary)
         if status == errSecItemNotFound {
             var value=keychain; value[kSecValueData as String]=data
@@ -49,6 +52,7 @@ import AuthenticationServices
     private func send(_ url:String, body:Data, type:String="application/json") async throws -> [String:Any] {
         var request=URLRequest(url:URL(string:url)!);request.httpMethod="POST";request.httpBody=body;request.timeoutInterval=30
         request.setValue(type,forHTTPHeaderField:"Content-Type")
+        request.setValue("studio.craft.ios", forHTTPHeaderField: "X-Ios-Bundle-Identifier")
         let (data,response)=try await URLSession.shared.data(for:request)
         let result=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] ?? [:]
         guard let http=response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -56,67 +60,90 @@ import AuthenticationServices
         }
         return result
     }
-    func handleAuthCallback(_ callbackURL: URL) {
-        guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-              let queryItems = components.queryItems else {
-            return
+    private func completeWebSignIn(_ callbackURL: URL, attempt: CraftWebAuthAttempt) async throws {
+        guard authAttempt?.state == attempt.state else { throw CraftError(message: "This sign-in attempt has expired. Please try again.") }
+        guard let values = attempt.credentials(from: callbackURL) else {
+            throw CraftError(message: "The sign-in response could not be verified. Please try again.")
         }
-        let uid = queryItems.first(where: { $0.name == "uid" })?.value
-        let email = queryItems.first(where: { $0.name == "email" })?.value ?? ""
-        let token = queryItems.first(where: { $0.name == "token" })?.value
-        let refresh = queryItems.first(where: { $0.name == "refresh" })?.value
-        guard let uid, let token, let refresh else {
-            return
-        }
-        signInWithTokens(uid: uid, email: email, token: token, refresh: refresh)
-    }
-    func signInWithTokens(uid: String, email: String, token: String, refresh: String) {
-        self.uid = uid
-        self.email = email
-        self.idToken = token
-        self.refresh = refresh
-        self.expires = Date().addingTimeInterval(3500)
-        do { try persist() } catch { self.error = error.localizedDescription }
+        // Verify the supplied Firebase credential before publishing account identity.
+        let result = try await send("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=\(apiKey)",
+                                    body: JSONSerialization.data(withJSONObject: ["idToken": values.token]))
+        guard let users = result["users"] as? [[String: Any]], let user = users.first,
+              user["localId"] as? String == values.uid else { throw CraftError(message: "The sign-in identity could not be verified.") }
+        guard authAttempt?.state == attempt.state else { throw CraftError(message: "This sign-in attempt was cancelled.") }
+        authAttempt = nil
+        uid = values.uid; email = user["email"] as? String ?? ""; appleUser = nil
+        idToken = values.token; refresh = values.refresh; expires = Date().addingTimeInterval(3500)
+        do { try persist() } catch { signOut(); throw error }
     }
     func signInWithGoogle() async {
         guard !busy else { return }
-        busy = true; error = nil; defer { busy = false }
-        await withCheckedContinuation { continuation in
-            guard let authURL = URL(string: "https://3d-craft.firebaseapp.com/auth/ios") else {
-                self.error = "Invalid auth URL"
-                continuation.resume()
-                return
+        busy = true; error = nil
+        let attempt = CraftWebAuthAttempt()
+        authAttempt = attempt
+        defer { busy = false; if authAttempt?.state == attempt.state { authAttempt = nil }; authSession = nil }
+        do {
+            let callback: URL = try await withCheckedThrowingContinuation { continuation in
+                let session = ASWebAuthenticationSession(url: attempt.url, callbackURLScheme: "studio.craft.ios") { callbackURL, err in
+                    if let err { continuation.resume(throwing: err) }
+                    else if let callbackURL { continuation.resume(returning: callbackURL) }
+                    else { continuation.resume(throwing: CraftError(message: "No sign-in response was received.")) }
+                }
+                session.presentationContextProvider = WebAuthPresentationProvider.shared
+                session.prefersEphemeralWebBrowserSession = true
+                authSession = session
+                if !session.start() { continuation.resume(throwing: CraftError(message: "Could not open sign-in. Please try again.")) }
             }
-            let session = ASWebAuthenticationSession(url: authURL, callbackURLScheme: "studio.craft.ios") { [weak self] callbackURL, err in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-                self.authSession = nil
-                if let err = err as? ASWebAuthenticationSessionError, err.code == .canceledLogin {
-                    continuation.resume()
-                    return
-                }
-                guard let callbackURL else {
-                    if let err { self.error = err.localizedDescription }
-                    continuation.resume()
-                    return
-                }
-                self.handleAuthCallback(callbackURL)
-                continuation.resume()
-            }
-            session.presentationContextProvider = WebAuthPresentationProvider.shared
-            session.prefersEphemeralWebBrowserSession = true
-            self.authSession = session
-            session.start()
+            try await completeWebSignIn(callback, attempt: attempt)
+        } catch let failure as ASWebAuthenticationSessionError where failure.code == .canceledLogin {
+            // Cancellation leaves the existing account unchanged.
+        } catch { self.error = error.localizedDescription }
+    }
+    private func exchangeApple(_ credential: CraftAppleSignIn.Credential, create: Bool) async throws -> [String: Any] {
+        var form = URLComponents()
+        form.queryItems = [URLQueryItem(name: "providerId", value: "apple.com"),
+                           URLQueryItem(name: "id_token", value: credential.identityToken),
+                           URLQueryItem(name: "nonce", value: credential.nonce)]
+        return try await send("https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=\(apiKey)",
+            body: JSONSerialization.data(withJSONObject: ["postBody": form.percentEncodedQuery ?? "",
+                "requestUri": "https://3d-craft.web.app", "returnSecureToken": true, "autoCreate": create]))
+    }
+    private func acceptIdentity(_ result: [String: Any], appleUser: String) throws {
+        guard let user = result["localId"] as? String, !user.isEmpty,
+              let token = result["idToken"] as? String, !token.isEmpty,
+              let refreshToken = result["refreshToken"] as? String, !refreshToken.isEmpty else {
+            throw CraftError(message: "Incomplete sign-in response.")
         }
+        uid = user; email = result["email"] as? String ?? ""; self.appleUser = appleUser
+        idToken = token; refresh = refreshToken; expires = Date().addingTimeInterval(3500)
+        do { try persist() } catch { signOut(); throw error }
+    }
+    func signInWithApple() async {
+        guard !busy else { return }
+        busy = true; error = nil
+        let attempt = CraftAppleSignIn(); appleAttempt = attempt
+        defer { if appleAttempt === attempt { appleAttempt = nil }; busy = false }
+        do {
+            let credential = try await attempt.authorize()
+            guard appleAttempt === attempt else { throw CancellationError() }
+            let result = try await exchangeApple(credential, create: true)
+            guard appleAttempt === attempt else { throw CancellationError() }
+            try acceptIdentity(result, appleUser: credential.user)
+        } catch let failure as ASAuthorizationError where failure.code == .canceled {
+        } catch is CancellationError {
+        } catch let failure as ASAuthorizationError {
+            self.error = "Apple sign-in could not finish. Please try again. If it continues, check that your iPhone is signed in to your Apple Account."
+            #if DEBUG
+            print("Apple authorization failed: code=\(failure.code.rawValue)")
+            #endif
+        } catch { self.error = error.localizedDescription }
     }
     func signIn(email:String,password:String,register:Bool) async {
         guard !busy else{return};busy=true;error=nil;defer{busy=false}
         do {
             let result=try await send("https://identitytoolkit.googleapis.com/v1/accounts:\(register ? "signUp" : "signInWithPassword")?key=\(apiKey)",body:JSONSerialization.data(withJSONObject:["email":email.trimmingCharacters(in:.whitespacesAndNewlines),"password":password,"returnSecureToken":true]))
             guard let user=result["localId"] as? String, let token=result["idToken"] as? String, let refreshToken=result["refreshToken"] as? String else{throw CraftError(message:"Incomplete sign-in response.")}
-            uid=user;self.email=result["email"] as? String ?? email;idToken=token;refresh=refreshToken;expires=Date().addingTimeInterval(3500)
+            uid=user;appleUser=nil;self.email=result["email"] as? String ?? email;idToken=token;refresh=refreshToken;expires=Date().addingTimeInterval(3500)
             try persist()
         } catch { signOut();self.error=error.localizedDescription }
     }
@@ -137,7 +164,28 @@ import AuthenticationServices
     }
     func requestAccountDeletion() async throws -> String {
         guard let requestUID = uid else { throw CraftError(message: "Please sign in again.", statusCode: 401) }
-        let bearer = try await token()
+        var bearer = try await token()
+        let lookup = try await send("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=\(apiKey)",
+            body: JSONSerialization.data(withJSONObject: ["idToken": bearer]))
+        let users = lookup["users"] as? [[String: Any]] ?? []
+        let providers = users.first?["providerUserInfo"] as? [[String: Any]] ?? []
+        if let appleUser = providers.first(where: { $0["providerId"] as? String == "apple.com" })?["rawId"] as? String {
+            let attempt = CraftAppleSignIn(); appleAttempt = attempt
+            defer { if appleAttempt === attempt { appleAttempt = nil } }
+            let credential = try await attempt.authorize()
+            guard uid == requestUID, appleAttempt === attempt, credential.user == appleUser else {
+                throw CraftError(message: "Use the Apple account linked to this 3D Craft account.", statusCode: 401)
+            }
+            let result = try await exchangeApple(credential, create: false)
+            guard uid == requestUID, appleAttempt === attempt, result["localId"] as? String == requestUID else {
+                throw CraftError(message: "The Apple account does not match this account.", statusCode: 401)
+            }
+            try acceptIdentity(result, appleUser: credential.user)
+            bearer = try await token()
+            _ = try await send("https://identitytoolkit.googleapis.com/v2/accounts:revokeToken?key=\(apiKey)",
+                body: JSONSerialization.data(withJSONObject: ["providerId": "apple.com", "tokenType": "CODE",
+                    "token": credential.authorizationCode, "idToken": bearer]))
+        }
         guard uid == requestUID else { throw CancellationError() }
         var request = URLRequest(url: URL(string: "https://3d-craft.web.app/api/mobile/account/delete")!)
         request.httpMethod = "POST"; request.timeoutInterval = 30
@@ -150,9 +198,21 @@ import AuthenticationServices
         return requestUID
     }
 
+    func verifyAppleAuthorization() async {
+        guard let appleUser, let requestUID = uid else { return }
+        do {
+            let state = try await ASAuthorizationAppleIDProvider().credentialState(forUserID: appleUser)
+            guard uid == requestUID, self.appleUser == appleUser else { return }
+            if state == .revoked || state == .notFound { signOut() }
+        } catch {
+            // A temporary Apple/network failure must not erase a valid local session.
+        }
+    }
+
     func signOut(){
-        authSession?.cancel(); authSession=nil
-        uid=nil;email="";idToken=nil;refresh=nil;expires = .distantPast
+        authAttempt=nil; authSession?.cancel(); authSession=nil
+        appleAttempt?.cancel(); appleAttempt=nil
+        uid=nil;email="";idToken=nil;refresh=nil;appleUser=nil;expires = .distantPast
         busy=false;error=nil
         SecItemDelete(keychain as CFDictionary)
     }
@@ -190,6 +250,12 @@ struct CraftSignInView: View {
                 }
                 .disabled(account.busy)
 
+                Button { Task { await account.signInWithApple() } } label: {
+                    Label("Sign in with Apple", systemImage: "apple.logo")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .foregroundStyle(.white).background(.black, in: RoundedRectangle(cornerRadius: 12))
+                }.disabled(account.busy)
                 HStack(spacing: 12) {
                     Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.25))
                     Text("or use email").font(.footnote).foregroundColor(.secondary)

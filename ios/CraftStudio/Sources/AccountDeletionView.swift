@@ -62,6 +62,7 @@ struct AccountDeletionView: View {
             await store.eraseLocalAccountData()
             guard account.uid == uid else { return }
             billing.forgetDeletedAccount(uid)
+            for provider in CraftAIProvider.allCases { UserDefaults.standard.removeObject(forKey: provider.key(uid: uid)) }
             CraftProfile.shared.erase()
             account.signOut()
             account.deletionRequested = true

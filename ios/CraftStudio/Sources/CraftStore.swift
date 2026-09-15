@@ -311,7 +311,10 @@ struct PendingGeneration: Codable, Equatable {
         busy=true;defer{busy=false}
         do{_=try await submitPending();await refresh()}catch{connectionNotice=t("Confirming your generation request…","正在确认生成请求……")}
     }
-    private func prepareGeneration(path:String,projectID:String,payload:[String:Any],draftFingerprint:String?=nil) throws ->Bool {
+    private func prepareGeneration(path:String,projectID:String,payload:[String:Any],draftFingerprint:String?=nil) async throws ->Bool {
+        if let provider = CraftAIProvider.recipient(path: path, method: "POST"), let uid = CraftAccount.shared.uid {
+            try await CraftAIPrivacy.authorize(provider, uid: uid, chinese: isChinese)
+        }
         if let pending=pendingGeneration {
             guard pending.matches(base:apiBase,path:path,payload:payload,accountUID:CraftAccount.shared.uid) else{pendingNotice();return false}
         }else{try persistPending(.make(base:apiBase,path:path,projectID:projectID,payload:payload,draftFingerprint:draftFingerprint,accountUID:CraftAccount.shared.uid))}
@@ -472,7 +475,7 @@ struct PendingGeneration: Codable, Equatable {
                 if let project=projects.first(where:{$0.id==id}),let original=project.concepts.first(where:{$0.isOriginal==true}) {selectConcept(original)}
                 return id
             }
-            guard try prepareGeneration(path:"/projects/\(id)/concepts",projectID:id,payload:imagePayload(["count":count,"preserveReference":draftImage != nil]),draftFingerprint:submittedFingerprint) else{return nil}
+            guard try await prepareGeneration(path:"/projects/\(id)/concepts",projectID:id,payload:imagePayload(["count":count,"preserveReference":draftImage != nil]),draftFingerprint:submittedFingerprint) else{return nil}
             UserDefaults.standard.removeObject(forKey:uploadKey)
             _=try await submitPending()
             await refresh();startPolling();return id
@@ -484,11 +487,11 @@ struct PendingGeneration: Codable, Equatable {
         guard pendingGeneration != nil || (imageModelIsReady() && (preserveReference || plannerIsReady())) else { return false }
         guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: count) else{showPaywall=true;return false}
         busy=true;defer{busy=false}
-        do{guard try prepareGeneration(path:"/projects/\(projectID)/concepts",projectID:projectID,payload:imagePayload(["count":count,"prompt":prompt,"referenceId":referenceID as Any? ?? NSNull(),"style":draftStyle,"preserveReference":preserveReference])) else{return false};_=try await submitPending();await refresh();startPolling();return true}catch{handleGenerationError(error);return false}
+        do{guard try await prepareGeneration(path:"/projects/\(projectID)/concepts",projectID:projectID,payload:imagePayload(["count":count,"prompt":prompt,"referenceId":referenceID as Any? ?? NSNull(),"style":draftStyle,"preserveReference":preserveReference])) else{return false};_=try await submitPending();await refresh();startPolling();return true}catch{handleGenerationError(error);return false}
     }
     func refine(_ concept:CraftConcept,prompt:String) async {
         guard !busy else{return};guard pendingGeneration != nil || (imageModelIsReady() && plannerIsReady()) else{return};guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: 1) else{showPaywall=true;return};busy=true;defer{busy=false}
-        do{guard try prepareGeneration(path:"/concepts/\(concept.id)/refine",projectID:concept.projectId,payload:imagePayload(["prompt":prompt])) else{return};_=try await submitPending();await refresh();startPolling()}catch{handleGenerationError(error)}
+        do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/refine",projectID:concept.projectId,payload:imagePayload(["prompt":prompt])) else{return};_=try await submitPending();await refresh();startPolling()}catch{handleGenerationError(error)}
     }
     func imagePayload(_ fields: [String:Any]) -> [String:Any] {
         var payload = fields
@@ -805,7 +808,7 @@ struct PendingGeneration: Codable, Equatable {
             guard wallet.available >= cost else { showPaywall = true; return }
         }
         busy=true;defer{busy=false}
-        do{guard try prepareGeneration(path:"/concepts/\(concept.id)/model",projectID:concept.projectId,payload:Self.modelPayload(engine:engine,quality:quality,effort:effort,conceptIds:conceptIds,modelPrompt:modelPrompt)) else{return};_=try await submitPending();await refresh();startPolling()}catch{handleGenerationError(error)}
+        do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/model",projectID:concept.projectId,payload:Self.modelPayload(engine:engine,quality:quality,effort:effort,conceptIds:conceptIds,modelPrompt:modelPrompt)) else{return};_=try await submitPending();await refresh();startPolling()}catch{handleGenerationError(error)}
     }
     func replenishTestCredits() async {
         do {
@@ -864,6 +867,10 @@ struct PendingGeneration: Codable, Equatable {
     }
     private func request(_ path:String,method:String="GET",body:[String:Any]?=nil,data:Data?=nil,contentType:String="application/json",allowAnonymous:Bool=false) async throws ->Any {
         let requestUID=CraftAccount.shared.uid
+        if let provider = CraftAIProvider.recipient(path: path, method: method), let requestUID {
+            try await CraftAIPrivacy.authorize(provider, uid: requestUID, chinese: isChinese)
+            guard CraftAccount.shared.uid == requestUID else { throw CancellationError() }
+        }
         guard !apiBase.isEmpty else { throw CraftError(message: t("Service is temporarily unavailable.", "服务暂时不可用。")) }
         let base = apiBase.hasSuffix("/api/mobile") ? apiBase : (apiBase + "/api/mobile")
         guard let url=URL(string:base+path),["http","https"].contains(url.scheme ?? "") else{throw CraftError(message:"Invalid server URL.")}

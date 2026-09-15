@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { auth, onAuthStateChanged, type User } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInWithPopup } from 'firebase/auth';
 import { Sparkles } from 'lucide-react';
@@ -18,22 +18,35 @@ export function MobileAuthBridge() {
   const [error, setError] = useState('');
   const [redirectTarget, setRedirectTarget] = useState('');
   const [redirecting, setRedirecting] = useState(false);
+  const [state] = useState(() => {
+    const values = new URLSearchParams(window.location.search).getAll('state');
+    return values.length === 1 && /^[a-zA-Z0-9-]{64,128}$/.test(values[0]) ? values[0] : null;
+  });
+  const forwarding = useRef(false);
 
   const forwardToApp = async (u: User) => {
+    if (!state || forwarding.current) return;
+    forwarding.current = true;
     try {
       setRedirecting(true);
       const token = await u.getIdToken(true);
       const refresh = u.refreshToken;
-      const target = `studio.craft.ios://auth?uid=${encodeURIComponent(u.uid)}&email=${encodeURIComponent(u.email || '')}&token=${encodeURIComponent(token)}&refresh=${encodeURIComponent(refresh)}`;
+      const target = `studio.craft.ios://auth?state=${encodeURIComponent(state)}&uid=${encodeURIComponent(u.uid)}&token=${encodeURIComponent(token)}&refresh=${encodeURIComponent(refresh)}`;
       setRedirectTarget(target);
       window.location.href = target;
     } catch (e: any) {
+      forwarding.current = false;
       setError(e.message || 'Failed to generate sign-in token.');
       setRedirecting(false);
     }
   };
 
   useEffect(() => {
+    if (!state) {
+      setLoading(false);
+      setError('Open Sign in from the 3D Craft app to start a secure session.');
+      return;
+    }
     // 1. Check if returning from redirect
     getRedirectResult(auth)
       .then(async (result) => {
@@ -61,6 +74,7 @@ export function MobileAuthBridge() {
   }, []);
 
   const handleGoogleLogin = async () => {
+    if (!state) return;
     try {
       setLoading(true);
       setError('');
@@ -162,7 +176,7 @@ export function MobileAuthBridge() {
         ) : (
           <button
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={loading || !state}
             style={{
               width: '100%',
               display: 'flex',

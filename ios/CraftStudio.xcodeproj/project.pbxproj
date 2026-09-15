@@ -8,12 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		059C070BAD6A2E9071390ADC /* CraftModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BE9224A1061FD95554C9E5 /* CraftModels.swift */; };
+		06F57008528F1E5640928372 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */; };
 		0CC4DC9471945AE1924840CA /* arena.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7B6A40211882BF313693D52B /* arena.jpg */; };
 		120E9F251F004147D1B11466 /* GenerationJourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */; };
 		124457F17E696F9DED22E237 /* GalleryReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */; };
 		18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */; };
 		1FD2F2929867109959E9068E /* ConceptImageInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */; };
 		2092DA77027673DE016DE873 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E2D5FCD326990A4175C458A /* Assets.xcassets */; };
+		22964DEC7D640AF76B6DFEE9 /* WebAuthAttemptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */; };
+		275F3D70B64A6829D847DD79 /* CraftWebAuthAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */; };
+		2CFD71AA12AC0895B71DF6B0 /* CraftAppleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */; };
 		3357F735EE8B667FB60CB78F /* ranger-bow.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3456CACBFE3D92C8E4A20BCB /* ranger-bow.jpg */; };
 		33A986EC2DC9F32A6A8139C7 /* GalleryHomeGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9699F526FA8BBBA36C3AB11D /* GalleryHomeGrid.swift */; };
 		3518980C13CDF75C244A79F6 /* star-skiff.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 121534373629F691833194DB /* star-skiff.jpg */; };
@@ -34,6 +38,7 @@
 		5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */; };
 		5E47A18AAAD704EF263FD85C /* dragon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 58D453DA123199E614C8A59D /* dragon.jpg */; };
 		60CE774712AD4E228C18A37D /* AppStoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BBE72B7C1F2CFCA84420590 /* AppStoreCaptureTests.swift */; };
+		62A4DD4C7EED90CA2D71EA97 /* CraftAIPrivacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */; };
 		6731C7437CFBD30D087AB703 /* CommercePlans.json in Resources */ = {isa = PBXBuildFile; fileRef = D60B9B5E0FEC2B0040593DB0 /* CommercePlans.json */; };
 		67572AF640AF9DB8657E5876 /* panda-chef.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 21873040BDD82C27E4FEFD57 /* panda-chef.jpg */; };
 		69A33DC4846CBD94D0BF1C1A /* PlannerModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F568965FE64A62D26C440D18 /* PlannerModelPicker.swift */; };
@@ -77,6 +82,7 @@
 		B11CA98E5809C0F53841F824 /* ModelPromptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35846562FCB17AE98B378FB7 /* ModelPromptUITests.swift */; };
 		B2361437A9C2743E5A3BC505 /* ThumbnailReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6F51D4999409AF529B728F /* ThumbnailReviewTests.swift */; };
 		B3BED01B3C52EB907B7CFB44 /* lantern_cat.glb in Resources */ = {isa = PBXBuildFile; fileRef = 5348A015416EA3279ED71220 /* lantern_cat.glb */; };
+		B6EFB8B7F21FF0B3050576C1 /* AIPrivacyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */; };
 		B6F475E2ACA87D6F48159550 /* ranger-outfit.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3C90536CB858B6B0A024A19 /* ranger-outfit.jpg */; };
 		BA5E5E1025EA00CAECB0CE8F /* StudioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D067109C9A1F6F4A5EF36FC /* StudioViews.swift */; };
 		BCD4E643103E7C0B9F6649BC /* moss-robot.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3D849E6DF6A00DDF0D5458FF /* moss-robot.jpg */; };
@@ -143,6 +149,7 @@
 		1360AC9A3700C783D97A0583 /* PublicGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicGallery.swift; sourceTree = "<group>"; };
 		15F4EF093E005031436C12BA /* sunshine_racer.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = sunshine_racer.jpg; sourceTree = "<group>"; };
 		188F5B144B0CC7FB97645EE4 /* GameHandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffTests.swift; sourceTree = "<group>"; };
+		18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAppleSignIn.swift; sourceTree = "<group>"; };
 		1AD87381AF3BE312F99AE4AA /* StageReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageReviewTests.swift; sourceTree = "<group>"; };
 		200880BC0DB5CC52719B6EEC /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 		21873040BDD82C27E4FEFD57 /* panda-chef.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "panda-chef.jpg"; sourceTree = "<group>"; };
@@ -173,6 +180,7 @@
 		44716F92972ADE7CE0F6F7ED /* lantern_cat.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = lantern_cat.jpg; sourceTree = "<group>"; };
 		4564A1E4E8F411BE653C7489 /* CraftThumbnailImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftThumbnailImage.swift; sourceTree = "<group>"; };
 		4AE2D60CF3F5EB7289E93B92 /* VisualPolishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualPolishTests.swift; sourceTree = "<group>"; };
+		4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5348A015416EA3279ED71220 /* lantern_cat.glb */ = {isa = PBXFileReference; path = lantern_cat.glb; sourceTree = "<group>"; };
 		53E4F1D51244B51676645E2F /* CreationPlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationPlayTests.swift; sourceTree = "<group>"; };
 		57F91E9678362D9DD1D7FA70 /* forest-shield.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "forest-shield.jpg"; sourceTree = "<group>"; };
@@ -185,6 +193,7 @@
 		62A556B9A0B662FC4C5A2E62 /* SourceFlowReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceFlowReviewTests.swift; sourceTree = "<group>"; };
 		68BE9224A1061FD95554C9E5 /* CraftModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftModels.swift; sourceTree = "<group>"; };
 		6A76559D0F474BC1CDF2C44C /* lantern_cat_display.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lantern_cat_display.png; sourceTree = "<group>"; };
+		6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPrivacyTests.swift; sourceTree = "<group>"; };
 		73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryReviewTests.swift; sourceTree = "<group>"; };
 		7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationJourneyView.swift; sourceTree = "<group>"; };
 		7B6A40211882BF313693D52B /* arena.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = arena.jpg; sourceTree = "<group>"; };
@@ -197,9 +206,11 @@
 		8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSelectionTests.swift; sourceTree = "<group>"; };
 		8F1CF6C1EB50E3CE5FD913FB /* CreatorPlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPlansView.swift; sourceTree = "<group>"; };
 		8F9429FEEB4D144CFDDC1830 /* GameHandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffView.swift; sourceTree = "<group>"; };
+		9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftWebAuthAttempt.swift; sourceTree = "<group>"; };
 		9275583410F75CB0425A81AB /* LightingAdjustmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightingAdjustmentView.swift; sourceTree = "<group>"; };
 		941D5B6DBBCE89C963430CE2 /* CraftImageCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftImageCacheTests.swift; sourceTree = "<group>"; };
 		9699F526FA8BBBA36C3AB11D /* GalleryHomeGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHomeGrid.swift; sourceTree = "<group>"; };
+		97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthAttemptTests.swift; sourceTree = "<group>"; };
 		9C6F51D4999409AF529B728F /* ThumbnailReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailReviewTests.swift; sourceTree = "<group>"; };
 		9EBE7CB90190E1DD404E65E6 /* BillingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingManager.swift; sourceTree = "<group>"; };
 		A0B6CC98DC0EA42793EE7A8B /* bunny-knight.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "bunny-knight.jpg"; sourceTree = "<group>"; };
@@ -238,6 +249,7 @@
 		F568965FE64A62D26C440D18 /* PlannerModelPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerModelPicker.swift; sourceTree = "<group>"; };
 		F602B15AB3A366EB3E4167E1 /* CameraFramingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFramingTests.swift; sourceTree = "<group>"; };
 		FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftCameraFraming.swift; sourceTree = "<group>"; };
+		FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAIPrivacy.swift; sourceTree = "<group>"; };
 		FFE4BEB46C876F8A73D0CD9D /* mint-racer.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mint-racer.jpg"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -276,6 +288,7 @@
 				6A76559D0F474BC1CDF2C44C /* lantern_cat_display.png */,
 				5348A015416EA3279ED71220 /* lantern_cat.glb */,
 				44716F92972ADE7CE0F6F7ED /* lantern_cat.jpg */,
+				4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */,
 				200880BC0DB5CC52719B6EEC /* Products.storekit */,
 				15F4EF093E005031436C12BA /* sunshine_racer.jpg */,
 				2C84C1EA2D3F90E2CA21B8E2 /* GameCovers */,
@@ -289,6 +302,7 @@
 			isa = PBXGroup;
 			children = (
 				2910CF4103D2633730BB4ED0 /* AIAccountTests.swift */,
+				6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */,
 				F602B15AB3A366EB3E4167E1 /* CameraFramingTests.swift */,
 				244C08CBAEF250121D0BB8FD /* ConceptModelActivityTests.swift */,
 				941D5B6DBBCE89C963430CE2 /* CraftImageCacheTests.swift */,
@@ -300,6 +314,7 @@
 				AAA9E1E33FBB582D1DAFC450 /* ImageModelSelectionTests.swift */,
 				8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */,
 				22B2333EFAD6E30E80A5B9A2 /* ThumbnailForegroundTests.swift */,
+				97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */,
 			);
 			name = Tests;
 			path = CraftStudio/Tests;
@@ -329,7 +344,9 @@
 				C2A4D89E71ED7CABE26A09D0 /* ConceptProjectView.swift */,
 				010418F04AD92F50C47D6E62 /* CraftAccount.swift */,
 				856CD944F244ADF9F3A007E4 /* CraftAIAccount.swift */,
+				FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */,
 				0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */,
+				18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */,
 				FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */,
 				ED7178DBF331689C815C902D /* CraftConversationView.swift */,
 				A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */,
@@ -340,6 +357,7 @@
 				C4508780AEF6C9C0FCF5E1A9 /* CraftStore.swift */,
 				D537D0E99719B3B4536DC88D /* CraftStudioApp.swift */,
 				4564A1E4E8F411BE653C7489 /* CraftThumbnailImage.swift */,
+				9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */,
 				DE6BB56C4A4E28B8E2B5A0B3 /* CreationCostView.swift */,
 				EF18497858CF7714758D7445 /* CreationPlayViews.swift */,
 				A625AF1F1BA30507A5F737E0 /* CreatorComponents.swift */,
@@ -544,6 +562,7 @@
 			files = (
 				2092DA77027673DE016DE873 /* Assets.xcassets in Resources */,
 				6731C7437CFBD30D087AB703 /* CommercePlans.json in Resources */,
+				06F57008528F1E5640928372 /* PrivacyInfo.xcprivacy in Resources */,
 				81920E2F51D371D8BF9626F2 /* Products.storekit in Resources */,
 				570AB95B3A9D1DC93F02BB94 /* ancient-oak.jpg in Resources */,
 				0CC4DC9471945AE1924840CA /* arena.jpg in Resources */,
@@ -596,8 +615,10 @@
 				C62EA37CE99F194E45024804 /* ConceptModelActivity.swift in Sources */,
 				79FCB6F1D32A75140D1C1F00 /* ConceptProjectView.swift in Sources */,
 				AC057B681025C02A6AE8C2CC /* CraftAIAccount.swift in Sources */,
+				62A4DD4C7EED90CA2D71EA97 /* CraftAIPrivacy.swift in Sources */,
 				EB67BA907E8918CF6FE558D4 /* CraftAccount.swift in Sources */,
 				97DA39F1432E79FC39680682 /* CraftAppearance.swift in Sources */,
+				2CFD71AA12AC0895B71DF6B0 /* CraftAppleSignIn.swift in Sources */,
 				39EDE6DAF5D5709D1495DFD6 /* CraftCameraFraming.swift in Sources */,
 				D71C0AFBF483FF00A097701E /* CraftConversationView.swift in Sources */,
 				5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */,
@@ -608,6 +629,7 @@
 				DAA818DFE59C31EFFCA93495 /* CraftStore.swift in Sources */,
 				D82C1161815DE0AA8CE30663 /* CraftStudioApp.swift in Sources */,
 				6B2C2324A63E584FF356CB5F /* CraftThumbnailImage.swift in Sources */,
+				275F3D70B64A6829D847DD79 /* CraftWebAuthAttempt.swift in Sources */,
 				FA2FCD9BEDD4B2FA735846BE /* CreationCostView.swift in Sources */,
 				571F5DE66C101EB26B073AEB /* CreationPlayViews.swift in Sources */,
 				9E3DC26C41439E725D41B1C4 /* CreatorComponents.swift in Sources */,
@@ -638,6 +660,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				44AC5736545B169EEAB77706 /* AIAccountTests.swift in Sources */,
+				B6EFB8B7F21FF0B3050576C1 /* AIPrivacyTests.swift in Sources */,
 				C489C5F5D169057DF07A8DAB /* CameraFramingTests.swift in Sources */,
 				8FB0A0D5EE2BA79BA139403E /* ConceptModelActivityTests.swift in Sources */,
 				FB9CCEB881C44D9124D4582E /* CraftImageCacheTests.swift in Sources */,
@@ -649,6 +672,7 @@
 				BDF9EBA1CE9A6818DAC22738 /* ImageModelSelectionTests.swift in Sources */,
 				407DE26A92359818BDB9B93A /* SourceSelectionTests.swift in Sources */,
 				C4B3FF548D695ACEDC1F3F88 /* ThumbnailForegroundTests.swift in Sources */,
+				22964DEC7D640AF76B6DFEE9 /* WebAuthAttemptTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -839,6 +863,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CraftStudio/Configuration/CraftStudio.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(inherited) $(SDKROOT)/Developer/Library/Frameworks";
 				INFOPLIST_FILE = CraftStudio/Configuration/Info.plist;
@@ -863,6 +888,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CraftStudio/Configuration/CraftStudio.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = CraftStudio/Configuration/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "3D Craft";

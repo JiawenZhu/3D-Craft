@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 import PhotosUI
 import UniformTypeIdentifiers
 #if DEBUG && targetEnvironment(simulator) && canImport(StoreKitTest)
@@ -9,6 +10,7 @@ import StoreKitTest
     @StateObject private var store = CraftStore()
     @StateObject private var billing = BillingManager()
     @ObservedObject private var account = CraftAccount.shared
+    @Environment(\.scenePhase) private var scenePhase
     #if DEBUG && targetEnvironment(simulator) && canImport(StoreKitTest)
     private let testSession: SKTestSession? = {
         // StoreKitTest soft-links XCTest. Normal simctl launches do not supply
@@ -50,6 +52,12 @@ import StoreKitTest
          } message: {
              Text(store.t("You are signed out. Your account and cloud content are being permanently removed. Deletion continues even if you close the app.", "你已退出登录。账户和云端内容正在永久删除，即使关闭应用也会继续处理。"))
          }
+         .onReceive(NotificationCenter.default.publisher(for: ASAuthorizationAppleIDProvider.credentialRevokedNotification)) { _ in
+             Task { await account.verifyAppleAuthorization() }
+         }
+         .onChange(of: scenePhase) { _, phase in
+             if phase == .active { Task { await account.verifyAppleAuthorization() } }
+         }
          .onChange(of: account.uid) { _, newUid in
              Task {
                  await store.accountChanged()
@@ -63,11 +71,6 @@ import StoreKitTest
          .task {
              if let uid = account.uid, !uid.isEmpty {
                  await billing.logInRevenueCat(userId: uid)
-             }
-         }
-         .onOpenURL { url in
-             if url.scheme == "studio.craft.ios" {
-                 account.handleAuthCallback(url)
              }
          }
     } }
