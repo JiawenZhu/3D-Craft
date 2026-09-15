@@ -171,7 +171,9 @@ struct ModelGenerationSheet: View {
                     Text("TRELLIS.2 · " + store.modelTokenLabel("trellis-2", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("trellis-2", views: max(1, selectedIDs.count), effort: effort) : "")).tag("trellis-2")
                     Text(t("Hunyuan 2 · Textured · ", "Hunyuan 2 · 带纹理 · ") + store.modelTokenLabel("hunyuan3d-2.1", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hunyuan3d-2.1", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hunyuan3d-2.1")
                     Text(t("Hunyuan 2 · White mesh · ", "Hunyuan 2 · 白模 · ") + store.modelTokenLabel("hunyuan3d-2-white", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hunyuan3d-2-white", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hunyuan3d-2-white")
-                    Text("Hybrid · " + store.modelTokenLabel("hybrid", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hybrid", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hybrid")
+                    if store.cloudModelEngineIDs.contains("hybrid") {
+                        Text("Hybrid · " + store.modelTokenLabel("hybrid", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hybrid", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hybrid")
+                    }
                 }.pickerStyle(.menu).tint(lilac).frame(maxWidth: .infinity, alignment: .leading).accessibilityIdentifier("modelEnginePicker")
             }
 

@@ -160,7 +160,9 @@ struct CreationCostView: View {
                     Text("TRELLIS.2").tag("trellis-2")
                     Text(store.t("Hunyuan 2 · Textured", "Hunyuan 2 · 带纹理")).tag("hunyuan3d-2.1")
                     Text(store.t("Hunyuan 2 · White mesh", "Hunyuan 2 · 白模")).tag("hunyuan3d-2-white")
-                    Text("Hybrid").tag("hybrid")
+                    if store.cloudModelEngineIDs.contains("hybrid") {
+                        Text("Hybrid").tag("hybrid")
+                    }
                 }
             }
             Divider()
@@ -192,7 +194,7 @@ struct CreationCostView: View {
                 Text(store.t("Service fee on this portion: \(CraftModelPrice.usd(subtotal * store.serviceFeeRate))", "此部分服务费：\(CraftModelPrice.usd(subtotal * store.serviceFeeRate))"))
                 Text(store.t("Including fee: \(CraftModelPrice.usd(subtotal * (1 + store.serviceFeeRate)))", "含服务费：\(CraftModelPrice.usd(subtotal * (1 + store.serviceFeeRate)))"))
             }
-            Text(store.t("Chat, input and thinking usage are still additional. This review wallet uses legacy test rates; this estimate does not charge paid credits.", "另计聊天、输入与思考用量。当前测试钱包仍使用旧测试费率；此估算不会扣除付费积分。"))
+            Text(store.t("The confirmed 3D Token price is shown before generation. This calculator estimates future work and does not charge your wallet.", "生成前会显示本次 3D 所需的 Tokens。此计算器仅估算后续创作费用，不会扣除钱包余额。"))
             Text(store.t("API dollar costs are estimates, not recorded charges. Actual token usage and provider invoices determine the dollar total.", "美元为 API 成本估算，并非已扣款。实际 token 用量和供应商账单决定美元总额。"))
             Text(store.t("Rates verified ", "价格核实日期：") + store.pricesVerifiedAt)
         }.font(.caption).foregroundStyle(.secondary)

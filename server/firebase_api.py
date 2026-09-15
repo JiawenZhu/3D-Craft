@@ -4,8 +4,10 @@ Keep generation unavailable until durable worker and billing acceptance pass.
 An API returning library data is not evidence of generation readiness.
 """
 from functools import lru_cache
+import os
+import json
 from urllib.parse import quote
-from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile
+from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile, Request
 from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from .identity import require_claims
@@ -13,6 +15,8 @@ from .firebase_studio import FirebaseStudio, BUCKET
 from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
 from .firebase_projects import CloudProjects, MAX_BYTES
+from .firebase_model_jobs import CloudModelJobs, ModelRequest
+from . import cloud_model_provider, pricing
 from pydantic import BaseModel, Field
 from typing import Literal
 from .account_deletion import ensure_active, request_deletion, erase_account, verify_worker
@@ -43,7 +47,23 @@ def public_shape(data, account):
 
 @app.get('/api/health')
 def health():
-    return {'status':'ok','storage':'firebase','apiOrigin':'https://3d-craft.web.app','generationReady':False}
+    return {'status':'ok','storage':'firebase','apiOrigin':'https://3d-craft.web.app','generationReady':False,
+            'modelGenerationReady':model_ready()}
+
+
+def model_ready():
+    return os.getenv('CRAFT_MODEL_JOBS_ENABLED')=='1' and bool(os.getenv('FAL_KEY'))
+
+
+@app.post('/api/mobile/concepts/{concept_id}/model')
+def generate_model(concept_id: str, body: ModelRequest, account=Depends(owner)):
+    if not model_ready(): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
+    return public_shape(CloudModelJobs(studio()).create(account,concept_id,body),account)
+
+
+@app.get('/api/mobile/pricing')
+def provider_pricing(account=Depends(owner)):
+    return pricing.catalog()
 
 
 @app.get('/api/mobile/projects')
@@ -130,8 +150,11 @@ def sync_purchases(account=Depends(owner)):
 
 @app.get('/api/mobile/bootstrap')
 def bootstrap(account=Depends(owner)):
-    return {'mode':'cloud','wallet':wallet(account),'products':[], 'engines':[], 'engineCatalog':[],
-            'generationReady':False}
+    engines=[dict(id=ident,label=label,available=model_ready(),ready=model_ready(),provider='api',
+        multiView=True,multiViewDirections=['front','back','left'] if ident.startswith('hunyuan') else ['front','back','left','right'])
+        for ident,label in cloud_model_provider.ENGINES.items()]
+    return {'mode':'cloud','wallet':wallet(account),'products':[], 'engines':list(cloud_model_provider.ENGINES), 'engineCatalog':engines,
+            'generationReady':False,'modelGenerationReady':model_ready()}
 
 
 class DeletionConfirmation(BaseModel):
@@ -155,6 +178,37 @@ def upload_cleanup_worker(uid: str, concept_id: str, authorization: str = Header
     return CloudProjects(studio()).cleanup(uid, concept_id)
 
 
+@app.post('/internal/model-jobs/{uid}/{job_id}')
+def model_worker(uid: str, job_id: str, authorization: str = Header(default=''),
+                 x_craft_queued_at: int | None = Header(default=None)):
+    verify_worker(authorization)
+    return CloudModelJobs(studio()).run(uid,job_id,x_craft_queued_at)
+
+
+@app.post('/internal/model-outputs/{uid}/{job_id}')
+def model_output_cleanup(uid: str, job_id: str, authorization: str = Header(default='')):
+    verify_worker(authorization)
+    return CloudModelJobs(studio()).cleanup(uid,job_id)
+
+
+@app.post('/api/models/callback/{uid}/{job_id}/{token}')
+async def model_callback(uid: str, job_id: str, token: str, request: Request):
+    raw=bytearray()
+    async for chunk in request.stream():
+        raw.extend(chunk)
+        if len(raw)>1024*1024: raise HTTPException(413,'Notification too large.')
+    rid=await run_in_threadpool(cloud_model_provider.verify_callback,request.headers,bytes(raw))
+    try: payload=json.loads(raw)
+    except ValueError: raise HTTPException(422,'Invalid notification.') from None
+    if not isinstance(payload,dict) or payload.get('request_id')!=rid or payload.get('status') not in ('OK','ERROR'):
+        raise HTTPException(422,'Invalid notification.')
+    try:
+        await run_in_threadpool(CloudModelJobs(studio()).request_received,uid,job_id,rid,token,payload['status']=='ERROR')
+    except HTTPException as exc:
+        if exc.status_code!=403: raise
+    return {'status':'received'}
+
+
 @app.post('/api/billing/revenuecat/webhook')
 def revenuecat_webhook(payload: dict, authorization: str = Header(default='')):
     return reconcile_webhook(studio().db, payload, authorization)
@@ -162,4 +216,4 @@ def revenuecat_webhook(payload: dict, authorization: str = Header(default='')):
 
 @app.api_route('/api/{path:path}',methods=['GET','POST','DELETE','PATCH'])
 def unavailable(path: str, account=Depends(owner)):
-    raise HTTPException(503,'Cloud generation and purchase delivery are being prepared. No Tokens were charged.')
+    raise HTTPException(503,'This cloud feature is being prepared. No Tokens were charged.')

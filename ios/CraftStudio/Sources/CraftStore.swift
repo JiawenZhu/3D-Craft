@@ -73,6 +73,7 @@ struct PendingGeneration: Codable, Equatable {
         didSet { UserDefaults.standard.set(showPriceDetails, forKey: "craftShowPriceDetails") }
     }
     @Published var modelPrices: [String: CraftModelPrice] = [:]
+    @Published var cloudModelEngineIDs: Set<String> = ["rodin", "trellis-2", "hunyuan3d-2.1", "hunyuan3d-2-white"]
     @Published var pricesVerifiedAt = ""
     @Published var serviceFeeRate: Double = 0.15
     @Published var imageModelsLoaded = false
@@ -343,7 +344,11 @@ struct PendingGeneration: Codable, Equatable {
                 do { _ = try await request("/cloud-library/claim-device",method:"POST",body:["deviceToken":legacy]) }
                 catch { migrationNotice = t("Your older device library could not be linked yet. Contact support if creations are missing.","旧设备作品库暂时无法关联。如果作品缺失，请联系支持。") }
             }
-            _=try await request("/bootstrap");connectionSucceeded()
+            if let bootstrap = try await request("/bootstrap") as? [String: Any],
+               let engines = bootstrap["engines"] as? [String] {
+                cloudModelEngineIDs = Set(engines)
+            }
+            connectionSucceeded()
             await refresh();startPolling()
             if let migrationNotice { connectionNotice = migrationNotice }
             await refreshAIAccount()
