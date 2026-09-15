@@ -1,0 +1,7 @@
+steps:
+- name: gcr.io/cloud-builders/docker
+  args: ['build', '-f', 'deploy/cloud-api/Dockerfile', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/craft-cloud/api:$BUILD_ID', '.']
+images: ['us-central1-docker.pkg.dev/$PROJECT_ID/craft-cloud/api:$BUILD_ID']
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/craft-build@$PROJECT_ID.iam.gserviceaccount.com
+options:
+  logging: CLOUD_LOGGING_ONLY

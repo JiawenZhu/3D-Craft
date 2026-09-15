@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..config import FAL_ENDPOINTS, FAL_PRICES, WEIGHTS
+from ..config import FAL_ENDPOINTS, FAL_PRICES, WEIGHTS, TRELLIS_RESOLUTIONS, TRELLIS_PRICES
 from . import fal_api
 from .base import GenRequest, GenResult, Progress
 from .common import adopt, prep_image, resolve_provider, space_client
@@ -80,6 +80,8 @@ class TrellisEngine:
     def generate(self, req: GenRequest, out_dir: Path, on: Progress) -> GenResult:
         ok, _ = self._local_available()
         provider = resolve_provider(self.id, ok)
+        if len(req.images) > 1 and provider != "api":
+            raise ValueError("This TRELLIS provider accepts one image. Use the fal multi-view provider or select one reference.")
         if provider == "api":
             return self._generate_fal(req, out_dir, on)
         if provider == "local":
@@ -93,37 +95,38 @@ class TrellisEngine:
 
         src = prep_image(req.images[0], out_dir / "input")
         on("preprocessing", 0.06, "Uploading reference to fal")
-        image_url = fal_api.upload(src)
+        image_urls = [fal_api.upload(src)]
+        for i, path in enumerate(req.images[1:], 1):
+            image_urls.append(fal_api.upload(prep_image(path, out_dir / "input" / str(i))))
+        endpoint = FAL_ENDPOINTS["trellis-multi"] if len(image_urls) > 1 else FAL_ENDPOINTS["trellis-2"]
+        image_args = ({"image_urls": image_urls}
+                      if len(image_urls) > 1 else {"image_url": image_urls[0]})
 
         ss_steps, slat_steps, _ = EFFORT.get(req.effort, EFFORT["high"])
         if req.quality == "speedy":
             ss_steps = max(4, int(ss_steps * 0.6))
             slat_steps = max(4, int(slat_steps * 0.6))
 
-        # mesh_simplify is a *reduction* ratio and the endpoint only accepts
-        # 0.9–0.98, i.e. it always discards at least 90% of the raw mesh. Map our
-        # face budget onto that window against a ~500k raw mesh; anything above
-        # ~50k faces simply pins to the 0.9 floor.
-        simplify = 0.95
-        if req.target_faces:
-            simplify = min(0.98, max(0.9, 1.0 - (req.target_faces / 500_000)))
+        resolution = 1024 if len(image_urls) > 1 else TRELLIS_RESOLUTIONS.get(req.effort, 1024)
 
         result = fal_api.run(
-            FAL_ENDPOINTS["trellis-2"],
+            endpoint,
             {
-                "image_url": image_url,
+                **image_args,
                 "seed": req.seed if req.seed is not None else 0,
                 "ss_guidance_strength": float(req.guidance),
                 "ss_sampling_steps": int(ss_steps),
-                "slat_guidance_strength": 3.0,
-                "slat_sampling_steps": int(slat_steps),
-                "mesh_simplify": round(simplify, 3),
+                "resolution": resolution,
+                "shape_slat_guidance_strength": float(req.guidance),
+                "shape_slat_sampling_steps": int(slat_steps),
+                "tex_slat_sampling_steps": int(slat_steps),
+                "decimation_target": max(5000, min(2000000, req.target_faces or 500000)),
                 "texture_size": 2048 if req.texture else 1024,
             },
             on, "sparse-structure", 0.12, 0.9,
         )
 
-        url = fal_api.pick_file(result, "model_mesh")
+        url = fal_api.pick_file(result, "model_glb")
         if not url:
             raise RuntimeError(f"fal returned no mesh (keys: {sorted(result)})")
 
@@ -131,7 +134,7 @@ class TrellisEngine:
         mesh = fal_api.download(url, out_dir / "model.glb")
         return GenResult(
             mesh_path=mesh, thumb_path=adopt(src, out_dir / "thumb.png"), provider="api",
-            note=f"fal.ai · {FAL_ENDPOINTS['trellis-2']} · ${FAL_PRICES['trellis-2']:.2f}",
+            note=f"fal.ai · {endpoint} · {len(image_urls)} reference(s) · {resolution}p · ${TRELLIS_PRICES[resolution]:.2f}",
         )
 
     # -- hosted Space ------------------------------------------------------

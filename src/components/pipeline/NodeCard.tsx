@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  AlertTriangle, Box, Check, ChevronDown, Loader2, Maximize2, Pencil, RefreshCw, Rotate3d, X,
+  AlertTriangle, Box, Check, ChevronDown, Loader2, Maximize2, Pencil, RefreshCw, Rotate3d, Sparkles, X, Zap,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { imageSrc } from '../../lib/api';
@@ -33,11 +33,9 @@ const secs = (ms?: number | null) => (ms == null ? null : ms < 1000 ? `${ms}ms` 
 /*
  * Which stage an edit re-enters the pipeline at.
  *
- *   source  -> "prompt"   your words change; Gemini rewrites them
- *   prompt  -> "concept"  the written prompt IS your edit; Gemini's text model
- *                         is skipped and the image model renders it verbatim
- *
- * That second one is the difference between reading the prompt and steering it.
+ * Editing the prompt re-runs from concept onward: Gemini writes the image prompt
+ * as written and skips its own rewriting. Editing the source photo re-runs the
+ * prompt stage, so Gemini rewrites against the new words first.
  */
 const EDIT_TARGET: Partial<Record<PipelineStage, PipelineStage>> = {
   source: 'prompt',
@@ -46,7 +44,7 @@ const EDIT_TARGET: Partial<Record<PipelineStage, PipelineStage>> = {
 
 const EDIT_META: Partial<Record<PipelineStage, { hint: string; action: string; placeholder: string }>> = {
   source: {
-    hint: 'Your words. Gemini rewrites these into a full image prompt.',
+    hint: 'Your words to Gemini. Editing them rewrites the image prompt and re-renders.',
     action: 'Rewrite & re-render',
     placeholder: 'e.g. make him a forest ranger with a lantern',
   },
@@ -66,7 +64,9 @@ export const NodeCard: React.FC<{
   onZoom: (url: string, caption: string) => void;
   /** Set when the finished mesh is loaded and the workbench can open it. */
   onOpen3D?: () => void;
-}> = ({ node, index, canRetry, onRetry, onZoom, onOpen3D }) => {
+  onSelectConcept?: (imageUrl: string) => void;
+  onDirectRecon?: () => void;
+}> = ({ node, index, canRetry, onRetry, onZoom, onOpen3D, onSelectConcept, onDirectRecon }) => {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -165,9 +165,80 @@ export const NodeCard: React.FC<{
             <p className="mt-1 text-center text-[9px] text-chalk-ghost">⌘↵ to run · esc to discard</p>
           </div>
         ) : node.status === 'failed' ? (
-          <p className="rounded-lg bg-red-500/10 p-2 text-[10px] leading-relaxed text-red-300">
+          <p className="rounded-[12px] border border-red-500/20 bg-red-500/[0.06] p-2 text-[10px] leading-relaxed text-red-300">
             {node.error ?? 'This stage failed.'}
           </p>
+        ) : node.kind === 'source' ? (
+          <div>
+            {image && (
+              <button
+                onClick={() => onZoom(image, node.label)}
+                className="group relative block h-[124px] w-full overflow-hidden rounded-[12px] border border-white/[0.06] bg-black/25"
+              >
+                <img src={image} alt={node.label} loading="lazy" decoding="async" className="h-full w-full object-contain" />
+                <span className="absolute inset-0 grid place-items-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Maximize2 className="h-4 w-4 text-white" />
+                </span>
+              </button>
+            )}
+            {canRetry && onDirectRecon && (
+              <button
+                onClick={onDirectRecon}
+                title="Photo looks great? Generate 3D directly from this image without regenerating concepts"
+                className="mt-2 flex h-[26px] w-full items-center justify-center gap-1.5 rounded-full border border-amber-400/35 bg-amber-400/10 text-[10px] font-semibold text-amber-300 transition-all hover:bg-amber-400/20 hover:border-amber-400/60"
+              >
+                <Zap className="h-3 w-3 text-amber-400" />
+                Use Directly for 3D
+              </button>
+            )}
+            {node.text && draft === null && (
+              <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-chalk-dim">“{node.text}”</p>
+            )}
+          </div>
+        ) : node.kind === 'concept' && node.images && node.images.length > 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] text-chalk-dim">
+              {node.reconstructionMode === 'multi' ? 'Reconstructing from the checked view set' : 'Reconstructing from the selected image'}
+            </p>
+            {node.warnings?.map((warning) => (
+              <p key={warning} className="text-[10px] text-amber-200">{warning}</p>
+            ))}
+            <div className={cn('grid gap-1', node.images.length > 4 ? 'grid-cols-5' : 'grid-cols-4')}>
+              {node.images.map((c, i) => {
+                const cUrl = imageSrc(c.url)!;
+                const isSelected = (node.imageUrl ?? '').includes(c.url.split('/').pop()!);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => onSelectConcept?.(c.url)}
+                    title={`${c.label} · ${c.isOriginal ? 'Use original photo directly' : 'Click to reconstruct this angle in 3D'}`}
+                    className={cn(
+                      'group relative aspect-square overflow-hidden rounded-md border transition-all',
+                      isSelected ? 'border-lilac ring-2 ring-lilac/80' : 'border-white/10 opacity-60 hover:opacity-100 hover:border-white/40',
+                    )}
+                  >
+                    <img src={cUrl} alt={c.label} className="h-full w-full object-cover" />
+                    {c.isOriginal && (
+                      <span className="absolute left-0.5 top-0.5 rounded bg-amber-400/90 px-1 py-0.2 text-[7px] font-extrabold uppercase tracking-tight text-ink shadow">
+                        Orig
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {image && (
+              <button
+                onClick={() => onZoom(image, node.label)}
+                className="group relative block h-[94px] w-full overflow-hidden rounded-[10px] border border-white/[0.06] bg-black/25"
+              >
+                <img src={image} alt={node.label} loading="lazy" decoding="async" className="h-full w-full object-contain" />
+                <span className="absolute inset-0 grid place-items-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Maximize2 className="h-4 w-4 text-white" />
+                </span>
+              </button>
+            )}
+          </div>
         ) : image ? (
           <button
             onClick={() => onZoom(image, node.label)}
@@ -178,19 +249,39 @@ export const NodeCard: React.FC<{
               <Maximize2 className="h-4 w-4 text-white" />
             </span>
           </button>
-        ) : node.kind === 'prompt' && node.text ? (
-          <div className="rounded-[12px] bg-white/[0.03] p-2">
-            {node.notes && <p className="mb-1.5 text-[10px] leading-relaxed text-lilac">{node.notes}</p>}
-            <p className={cn('text-[10px] leading-relaxed text-chalk-dim', !expanded && 'line-clamp-4')}>
-              {node.text}
-            </p>
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="mt-1 flex items-center gap-0.5 text-[9px] text-chalk-faint transition-colors hover:text-white"
-            >
-              {expanded ? 'less' : 'full prompt'}
-              <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', expanded && 'rotate-180')} />
-            </button>
+        ) : node.kind === 'prompt' && (node.text || node.coreConcept) ? (
+          <div className="flex flex-col gap-1.5 rounded-[12px] bg-white/[0.03] p-2">
+            {node.coreConcept && (
+              <div className="rounded-[8px] border border-amber-400/25 bg-amber-400/[0.08] p-1.5">
+                <div className="flex items-center gap-1 text-[9px] font-bold text-amber-300">
+                  <Sparkles className="h-2.5 w-2.5 text-amber-400" />
+                  <span>CORE CONCEPT</span>
+                </div>
+                <p className="mt-0.5 text-[10px] font-medium leading-snug text-amber-100/90">
+                  {node.coreConcept}
+                </p>
+              </div>
+            )}
+            {node.imageAssessment && (
+              <p className="text-[9px] italic text-chalk-dim">
+                {node.imageAssessment}
+              </p>
+            )}
+            {node.notes && <p className="text-[10px] leading-relaxed text-lilac">{node.notes}</p>}
+            {node.text && (
+              <>
+                <p className={cn('text-[10px] leading-relaxed text-chalk-dim', !expanded && 'line-clamp-3')}>
+                  {node.text}
+                </p>
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="flex items-center gap-0.5 text-[9px] text-chalk-faint transition-colors hover:text-white"
+                >
+                  {expanded ? 'less' : 'full prompt'}
+                  <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', expanded && 'rotate-180')} />
+                </button>
+              </>
+            )}
           </div>
         ) : node.kind === 'model3d' ? (
           <div className="grid h-[124px] place-items-center rounded-[12px] border border-white/[0.05] bg-black/20">
@@ -213,11 +304,6 @@ export const NodeCard: React.FC<{
           <div className="grid h-[124px] place-items-center rounded-[12px] border border-dashed border-white/[0.06]">
             <span className="text-[10px] text-chalk-ghost">{busy ? 'working…' : 'waiting'}</span>
           </div>
-        )}
-
-        {/* the user's own words, under their image */}
-        {node.kind === 'source' && node.text && draft === null && (
-          <p className="mt-2 line-clamp-2 text-[10px] leading-relaxed text-chalk-dim">“{node.text}”</p>
         )}
       </div>
 

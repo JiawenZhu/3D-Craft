@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Originals, concept images and previews: private cloud-service uploads.
+    match /users/{uid}/{category}/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && category in ['files', 'images', 'previews'];
+      allow write: if false;
+    }
+    match /users/{uid}/models/{file} {
+      function owner() {
+        return request.auth != null && request.auth.uid == uid
+          && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      }
+      allow read: if owner();
+      allow create: if owner() && file.matches('[a-f0-9]{64}[.]glb')
+        && request.resource.size < 100 * 1024 * 1024
+        && request.resource.contentType == 'model/gltf-binary';
+      allow update: if false;
+      allow delete: if owner();
+    }
+  }
+}

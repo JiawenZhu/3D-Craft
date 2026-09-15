@@ -4,7 +4,7 @@
  * a real parameter on one of the two local engines.
  * ------------------------------------------------------------------------- */
 
-export type EngineId = 'hunyuan3d-2.1' | 'trellis-2' | 'rodin' | 'hybrid';
+export type EngineId = 'hunyuan3d-2.1' | 'hunyuan3d-2-white' | 'trellis-2' | 'rodin' | 'hybrid';
 
 export interface Engine {
   id: EngineId;
@@ -112,6 +112,7 @@ export interface Job {
 
 export interface Asset {
   id: string;
+  ownerId?: string;
   name: string;
   prompt: string;
   engine: EngineId;
@@ -160,7 +161,7 @@ export interface Asset {
   dimensions?: [number, number, number];
 }
 
-export type ShelfTab = 'asset' | 'explore';
+export type ShelfTab = 'asset' | 'explore' | 'game';
 export type ViewportShading = 'material' | 'solid' | 'wireframe' | 'normal' | 'uv' | 'splat';
 export type StudioLight = 'studio' | 'rim' | 'sunset' | 'night' | 'flat';
 
@@ -214,10 +215,19 @@ export interface PipelineNode {
   text?: string;
   /** source / concept: the image this node holds. */
   imageUrl?: string;
+  /** concept: candidate variations in the concept set. */
+  images?: { url: string; label: string; isOriginal?: boolean; direction?: Direction }[];
+  reconstructionMode?: 'single' | 'multi';
+  warnings?: string[];
+  validation?: { usable: boolean; issues: string[] };
   /** prompt: the plain subject line handed to the 3D engine. */
   subject?: string;
   /** prompt: one line from Gemini about the call it made. */
   notes?: string;
+  /** prompt: the extracted core action/motion/essence of the subject. */
+  coreConcept?: string;
+  /** prompt: evaluation of image quality and suitability for direct 3D. */
+  imageAssessment?: string;
   /** Which model ran, and how long it took. */
   model?: string;
   ms?: number;
@@ -259,4 +269,26 @@ export interface PipelineSummary {
   conceptUrl?: string;
   sourceUrl?: string;
   assetId?: string | null;
+}
+
+export interface ConceptImage {
+  direction?: Direction;
+  id: string;
+  url: string;
+  label: string;
+  isOriginal?: boolean;
+}
+
+export interface ConceptSetResult {
+  id: string;
+  title: string;
+  subject: string;
+  core_concept?: string;
+  image_assessment?: string;
+  prompt: string;
+  notes: string;
+  images: ConceptImage[];
+  warnings?: string[];
+  validation?: { usable: boolean; issues: string[] };
+  total_ms: number;
 }

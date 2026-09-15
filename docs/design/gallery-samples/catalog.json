@@ -1,0 +1,122 @@
+[
+  {
+    "slug": "lantern-explorer",
+    "name": "Lantern Explorer",
+    "description": "An adorable ginger tabby cat adventurer, upright biped full body, expressive amber eyes, teal embroidered jacket, charcoal trousers, russet scarf, leather backpack and a chunky brass lantern held in one paw. Thick short whiskers, attractive sculpted fur clumps, sturdy paws, believable charming proportions.",
+    "kind": "character"
+  },
+  {
+    "slug": "cloud-dragon",
+    "name": "Cloud Dragon",
+    "description": "An adorable small sky-blue dragon with expressive golden eyes, ivory belly, rounded horns, thick compact wings extended slightly, rounded paws, a curled tail attached visually to body. Sitting upright, appealing stylized collectible game character, clear beautiful scales.",
+    "kind": "flying"
+  },
+  {
+    "slug": "mint-racer",
+    "name": "Mint Racer",
+    "description": "A charming premium mint-green vintage open cockpit racing car, cream number 7 roundel on hood, four thick visible black rubber tires, cream leather cockpit, stout elegant body, chrome details, subtly rounded toy-like proportions, no driver. Entire car visible in front three-quarter angle.",
+    "kind": "vehicle"
+  },
+  {
+    "slug": "coconut-island",
+    "name": "Coconut Island",
+    "description": "A single self-contained small tropical island diorama game asset, three sturdy curved coconut palms with chunky sculpted leaf fronds, coconuts, warm sand, tiny rocks and tropical shrubs, an integrated shallow turquoise lagoon on a thick oval rocky island base. All parts attached to one island, no distant background.",
+    "kind": "world"
+  },
+  {
+    "slug": "woodland-cottage",
+    "name": "Woodland Cottage",
+    "description": "A cozy whimsical woodland cottage game building, cream plaster, rounded oak front door, terracotta curved roof, small chimney and ivy, two warm windows, foundation of compact stone steps and moss integrated into a small oval ground base. Single complete building, no interior.",
+    "kind": "world"
+  },
+  {
+    "slug": "waterfall-diorama",
+    "name": "Crystal Falls",
+    "description": "A compact self-contained fantasy waterfall diorama: layered slate rock cliff with a thick sculpted translucent cyan waterfall flowing into an attached turquoise pool, lush moss and tiny plants, all integrated into a solid oval rocky base. Clearly defined water volume like polished sculpted resin, no mist obscuring form, no background scenery.",
+    "kind": "world"
+  },
+  {
+    "slug": "moss-robot",
+    "name": "Moss Robot",
+    "description": "An adorable stout cream and sage robot with large expressive dark glass eyes, small antenna, rounded metal arms and legs, orange canvas backpack and moss accents, standing fullbody. Clear mechanical joints, friendly collectible adventure robot, sturdy integrated parts.",
+    "kind": "character"
+  },
+  {
+    "slug": "moon-fox",
+    "name": "Moon Fox",
+    "description": "A charming small ivory and lavender fantasy fox, luminous amber eyes, midnight-blue short cape with gold moon clasp, thick curled fluffy tail close to body, sitting full body. Sculpted broad fur clumps, elegant ears, magical but no detached particles.",
+    "kind": "character"
+  },
+  {
+    "slug": "ancient-oak",
+    "name": "Ancient Oak",
+    "description": "One majestic stylized game oak tree, broad lush emerald canopy made from rounded sculpted foliage masses, thick twisting warm brown trunk, large visible roots on a compact soil-and-moss base. Appealing proportions, full tree crown and base visible, no tiny individual leaves, no background scenery.",
+    "kind": "world"
+  },
+  {
+    "slug": "sunblade",
+    "name": "Sunblade",
+    "description": "One premium fantasy game sword standing upright with tip on ground, thick silver blade, golden sun-shaped guard and teal wrapped handle, inset amber gem firmly attached, beautiful precise bevels. Entire sword visible, slightly turned to show blade thickness, no hand, no display stand.",
+    "kind": "prop"
+  },
+  {
+    "slug": "forest-shield",
+    "name": "Forest Shield",
+    "description": "One premium fantasy round shield, sage enamel front, warm wooden backing visibly thick at threequarter angle, brass rim, sculpted oakleaf crest and integrated central gold boss. Upright resting on lower edge, whole shield visible, no hand or character.",
+    "kind": "prop"
+  },
+  {
+    "slug": "ranger-bow",
+    "name": "Ranger Bow",
+    "description": "One compact fantasy ranger recurve bow game weapon, thick warm carved wood limbs reinforced with teal leather and brass, clearly attached robust taut string, one thick arrow clipped to bow center for a single coherent object. Entire object visible upright threequarter, no character.",
+    "kind": "prop"
+  },
+  {
+    "slug": "starlight-robe",
+    "name": "Starlight Robe",
+    "description": "A single wearable wizard robe game clothing asset, displayed as an invisible-body garment with NO visible mannequin. Deep muted purple knee-length coat with gold celestial embroidery, thick belt, broad hood, sleeves hanging naturally and a cream inner tunic. Entire standalone hollow garment visible, sculpted substantial cloth folds, no human or head or legs.",
+    "kind": "prop"
+  },
+  {
+    "slug": "ranger-outfit",
+    "name": "Ranger Outfit",
+    "description": "One cohesive game adventurer clothing outfit on invisible body with NO visible mannequin, teal cropped jacket over cream tunic, brown leather belt, attached charcoal baggy trousers, rolled cuffs. Entire complete outfit with sleeves and trouser legs, substantial cloth, refined stitched details, no head hands or feet.",
+    "kind": "prop"
+  },
+  {
+    "slug": "sunforge-helmet",
+    "name": "Sunforge Helmet",
+    "description": "One charming fantasy knight helmet game equipment, satin ivory metal with broad gold trim and teal crest, large friendly T-shaped opening, rounded sturdy silhouette, full helmet sitting flat, detailed thickness at openings, no head or stand.",
+    "kind": "prop"
+  },
+  {
+    "slug": "trail-boots",
+    "name": "Trail Boots",
+    "description": "A matching pair of premium fantasy adventure boots game gear, warm russet leather ankle boots with cream fleece cuffs, chunky soles, brass buckles, short laces, both boots touching side by side slightly staggered as a single composition, sturdy beautiful sculpted detail, no legs.",
+    "kind": "prop"
+  },
+  {
+    "slug": "bunny-knight",
+    "name": "Bunny Knight",
+    "description": "An adorable white rabbit knight standing fullbody, expressive brown eyes, large upright ears, polished ivory armor with tiny gold trim, sage cape, sturdy paws, friendly adventurous character. No weapon in hands, charming stylized proportions, sculpted fur.",
+    "kind": "character"
+  },
+  {
+    "slug": "panda-chef",
+    "name": "Panda Chef",
+    "description": "An adorable chubby panda chef standing fullbody, small white chef hat, sage apron over cream shirt, brown belt, friendly expressive eyes, one sturdy wooden spoon held close to body. Sculpted fur clumps, rounded paws, charming game character proportions.",
+    "kind": "character"
+  },
+  {
+    "slug": "star-skiff",
+    "name": "Star Skiff",
+    "description": "A charming small retro-futurist personal spaceship game vehicle, ivory and lavender rounded hull, teal glass cockpit canopy, two stout attached side engines, small landing feet, brass accent rings, complete spaceship shown at elevated front threequarter angle, no pilot, no effects.",
+    "kind": "vehicle"
+  },
+  {
+    "slug": "treasure-chest",
+    "name": "Treasure Chest",
+    "description": "A premium whimsical fantasy treasure chest game prop, warm carved walnut wood, broad gold bands and teal enamel details, sturdy lid partly open revealing large golden coins and a few faceted gems contained inside the chest. Solid integrated silhouette, no scattered external objects, entire chest visible.",
+    "kind": "prop"
+  }
+]

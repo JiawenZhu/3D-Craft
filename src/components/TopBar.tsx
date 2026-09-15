@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import {
-  ChevronDown, Cpu, ExternalLink, Github, User, Wifi, WifiOff,
+  ChevronDown, Cloud, Cpu, ExternalLink, Github, User, Wifi, WifiOff,
 } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { useStudio } from '../store/StudioContext';
 import { ENGINES } from '../data/engines';
 import { Popover, Tip } from './ui/primitives';
+import { AuthModal } from './auth/AuthModal';
+import { ConnectModal } from './ConnectModal';
 
 const TOOLS = [
   { name: 'Texture Generator', tag: 'PBR' },
@@ -17,31 +19,41 @@ const TOOLS = [
 ];
 
 export const TopBar: React.FC = () => {
-  const { health, credits } = useStudio();
+  const { health, credits, user, isGuest, authModalOpen, setAuthModalOpen } = useStudio();
   const [toolsOpen, setToolsOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
   const online = !!health;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-5 sm:px-8">
-      {/* left: product switcher, mirroring "ChatAvatar | Rodin" */}
-      <nav className="flex items-center gap-1">
-        <button className="rounded-full px-3 py-1.5 text-sm text-chalk-dim transition-colors duration-300 hover:text-white">
-          ChatAvatar
-        </button>
-        <button className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-sm text-white backdrop-blur-xl">
-          Rodin
+      {/* left: 3D Craft brand switcher */}
+      <nav className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mr-2 select-none">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-coral to-amber-400 font-serif text-xs font-bold text-ink shadow-md shadow-coral/20">
+            3D
+          </span>
+          <span className="font-semibold tracking-wider text-sm text-white font-sans">
+            3D Craft
+          </span>
+        </div>
+        <button className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl">
+          Studio
         </button>
         <div className="relative ml-1">
           <button
             onClick={() => setToolsOpen((v) => !v)}
-            className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm text-chalk-dim transition-colors hover:text-white"
+            className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs text-chalk-dim transition-colors hover:text-white"
           >
             OmniCraft <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', toolsOpen && 'rotate-180')} />
           </button>
           <Popover open={toolsOpen} onClose={() => setToolsOpen(false)} anchor="bottom" className="left-0 w-64">
             <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-chalk-faint">Toolbag for 3D</div>
             <div className="space-y-0.5">
+              <button onClick={() => { setToolsOpen(false); setConnectOpen(true); }} className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-lilac transition-colors hover:bg-white/[0.06] hover:text-white">
+                Connect your agent
+                <span className="rounded-full border border-lilac/20 px-1.5 py-0.5 font-mono text-[9px]">CLI / MCP</span>
+              </button>
               {TOOLS.map((t) => (
                 <button key={t.name} className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] text-chalk transition-colors hover:bg-white/[0.06] hover:text-white">
                   {t.name}
@@ -117,10 +129,26 @@ export const TopBar: React.FC = () => {
           <Github className="h-4 w-4" />
         </a>
 
-        <button className="flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm text-chalk-dim transition-colors hover:text-white">
-          <User className="h-4 w-4" /> <span className="hidden sm:inline">Login</span>
+        {/* Firebase Sync & User Auth Account Trigger */}
+        <button
+          onClick={() => setAuthModalOpen(true)}
+          className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-chalk transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+          title={user ? (isGuest ? 'Guest session (Firebase synced)' : `Signed in as ${user.email}`) : 'Sign in to 3D Craft'}
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <Cloud className="h-3.5 w-3.5 text-emerald-400" />
+          <User className="h-3.5 w-3.5 text-chalk-dim" />
+          <span className="hidden sm:inline font-medium">
+            {user && !isGuest ? (user.email?.split('@')[0] || 'Account') : 'Guest'}
+          </span>
         </button>
       </div>
+
+      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {connectOpen && <ConnectModal onClose={() => setConnectOpen(false)} />}
     </header>
   );
 };

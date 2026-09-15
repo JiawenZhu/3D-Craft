@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "craft-studio-bridge"
+version = "0.1.0"
+description = "Local CLI and MCP workspace bridge for 3D Craft"
+requires-python = ">=3.10"
+dependencies = ["httpx>=0.28,<1", "mcp==1.30.0"]
+
+[project.scripts]
+craft = "forma_bridge.cli:main"
+craft-mcp = "forma_bridge.mcp_server:main"
+forma = "forma_bridge.cli:main"
+forma-mcp = "forma_bridge.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["forma_bridge*"]

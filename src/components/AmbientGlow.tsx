@@ -13,7 +13,7 @@ export const AmbientGlow: React.FC = () => (
       style={{
         width: 677, height: 677, left: '46%', top: '-14%', transform: 'translateX(-50%)',
         filter: 'blur(100px)',
-        backgroundImage: 'linear-gradient(309.02deg, rgba(158,118,172,.40) 16.79%, rgba(214,120,48,.40) 93.35%)',
+        backgroundImage: 'linear-gradient(309.02deg, rgba(104,194,160,.40) 16.79%, rgba(28,101,77,.40) 93.35%)',
       }}
     />
     <div
@@ -21,7 +21,7 @@ export const AmbientGlow: React.FC = () => (
       style={{
         width: 346, height: 346, left: '62%', top: '18%',
         filter: 'blur(100px)',
-        backgroundImage: 'linear-gradient(132.64deg, rgba(255,217,142,.30) 42.55%, rgba(214,120,48,.30) 79.55%)',
+        backgroundImage: 'linear-gradient(132.64deg, rgba(214,242,231,.30) 42.55%, rgba(28,101,77,.30) 79.55%)',
       }}
     />
     <div
@@ -29,7 +29,7 @@ export const AmbientGlow: React.FC = () => (
       style={{
         width: 403, height: 403, left: '24%', top: '26%',
         filter: 'blur(100px)',
-        backgroundImage: 'linear-gradient(20deg, rgba(135,93,231,.22) 10%, rgba(158,118,172,.28) 90%)',
+        backgroundImage: 'linear-gradient(20deg, rgba(156,220,195,.22) 10%, rgba(104,194,160,.28) 90%)',
       }}
     />
     {/* vignette + film grain keep the gradients from banding */}

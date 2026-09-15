@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# Rodin 3D Studio — local inference setup.
+# 3D Craft — local inference setup.
 #
 #   ./scripts/setup.sh            base server (remote HF Space provider)
 #   ./scripts/setup.sh --local    + torch and the native pipelines

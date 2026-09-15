@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import ts from 'typescript';
+import { pathToFileURL } from 'node:url';
+const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'forma-game-assets-'));
+try {
+  const source = await fs.readFile('src/lib/gameAssetRules.ts', 'utf8');
+  const result = ts.transpileModule(source, {compilerOptions: {target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext}});
+  const file = path.join(dir, 'rules.mjs');
+  await fs.writeFile(file, result.outputText);
+  const {suggestGameAssetKind, compatibleGameIds, resolveGameAssetUrl, prepareGameAssetWithBases} = await import(pathToFileURL(file));
+  const page='http://localhost:3000', api='http://127.0.0.1:8000';
+  const cat={id:'a-cat',name:'Lantern Cat',seedShape:'figure',modelUrl:'/files/a-cat/model.glb',thumbUrl:'/files/a-cat/thumb.png',fileSizeMb:10};
+  assert.equal(suggestGameAssetKind(cat),'character');
+  assert.equal(suggestGameAssetKind({...cat,name:'Yellow Mini Vintage Car'}),'vehicle');
+  assert.equal(suggestGameAssetKind({...cat,name:'Baby Emerald Dragon'}),'flying');
+  assert.deepEqual(compatibleGameIds('vehicle'),['arena','race']);
+  assert.deepEqual(compatibleGameIds('character'),['survivor','ruins']);
+  assert.equal(resolveGameAssetUrl('/models/car.glb?v=2',page,api),page+'/models/car.glb?v=2');
+  assert.equal(resolveGameAssetUrl(cat.modelUrl,page,api),api+cat.modelUrl);
+  assert.equal(resolveGameAssetUrl('/files/model.glb',page,'/backend'),page+'/backend/files/model.glb');
+  assert.equal(resolveGameAssetUrl('https://assets.example/character?signature=abc',page,api),'https://assets.example/character?signature=abc');
+  for(const value of ['javascript:alert(1)','file:///tmp/a.glb','data:model/gltf-binary,x','//attacker.example/a.glb','https://u:p@assets.example/a.glb','\\\\host\\a.glb']) assert.throws(()=>resolveGameAssetUrl(value,page,api));
+  const prepared=prepareGameAssetWithBases(cat,'character',-90,page,api);
+  assert.equal(prepared.id,cat.id);assert.equal(prepared.url,api+cat.modelUrl);assert.equal(prepared.yaw,270);
+  assert.throws(()=>prepareGameAssetWithBases({...cat,modelUrl:undefined},'character',0,page,api));
+  assert.throws(()=>prepareGameAssetWithBases({...cat,fileSizeMb:101},'character',0,page,api));
+  assert.throws(()=>prepareGameAssetWithBases(cat,'vehicle',45,page,api));
+  assert.throws(()=>prepareGameAssetWithBases(cat,'unknown',0,page,api));
+  assert.equal(prepareGameAssetWithBases({...cat,thumbUrl:'blob:old-preview'},'character',0,page,api).thumbUrl,undefined);
+  console.log('PASS game asset classification, routing, exact model URL, validation, orientation, and optional preview');
+} finally { await fs.rm(dir,{recursive:true,force:true}); }

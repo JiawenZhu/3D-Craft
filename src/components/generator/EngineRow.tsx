@@ -4,6 +4,7 @@ import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
 import { EFFORTS, ENGINES, engineById } from '../../data/engines';
 import { Popover, Tip } from '../ui/primitives';
+import { usd } from '../../lib/pricing';
 import { seconds } from '../../lib/format';
 import type { CreationMode, EffortId } from '../../types';
 
@@ -14,7 +15,7 @@ const CREATION: { id: CreationMode; label: string; sub: string; tag: string }[] 
 ];
 
 export const EngineRow: React.FC = () => {
-  const { settings, patch, estimate, price } = useStudio();
+  const { settings, patch, estimate, price, showPricingDetails } = useStudio();
   const [effortOpen, setEffortOpen] = useState(false);
   const [creationOpen, setCreationOpen] = useState(false);
   const engine = engineById(settings.engine);
@@ -39,7 +40,7 @@ export const EngineRow: React.FC = () => {
           <button onClick={() => step(-1)} className="grid h-[27px] w-[27px] place-items-center rounded-full text-chalk-faint transition-colors hover:bg-white/10 hover:text-white">
             <ChevronLeft className="h-[15px] w-[15px]" />
           </button>
-          <span className="rd-grad-text-engine text-[15px] font-bold leading-none">{engine.label}</span>
+          <span className="text-center"><span className="rd-grad-text-engine block text-[13px] font-bold leading-none">{engine.label}</span>{showPricingDetails && <span className="mt-1 block text-[9px] text-chalk-dim">{usd(price(engine.id))} / generation</span>}</span>
           <button onClick={() => step(1)} className="grid h-[27px] w-[27px] place-items-center rounded-full text-chalk-faint transition-colors hover:bg-white/10 hover:text-white">
             <ChevronRight className="h-[15px] w-[15px]" />
           </button>
@@ -169,9 +170,7 @@ export const EngineRow: React.FC = () => {
             {backendOnline ? (
               <>
                 {engine.label} on <span className="font-mono text-chalk">{health!.engines?.[engine.id]?.provider ?? '—'}</span>
-                {price(settings.engine) > 0
-                  ? <> · <span className="text-lilac">${price(settings.engine).toFixed(2)}</span> per result</>
-                  : <> · free</>}
+                {showPricingDetails && <> · <span className="text-lilac">{usd(price(settings.engine))}</span> estimated per result</>}
               </>
             ) : (
               <>Rough estimates · start the server for numbers from your actual device.</>

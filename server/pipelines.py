@@ -184,7 +184,7 @@ def create(
             "sourceRef": source_ref,
         },
         "settings": {
-            "engine": settings.get("engine", "trellis-2"),
+            "engine": settings.get("engine", "rodin"),
             "effort": settings.get("effort", "high"),
             "quality": settings.get("quality", "default"),
             "targetFaces": int(settings.get("targetFaces", 40_000)),
@@ -251,6 +251,61 @@ def retry(run_id: str, from_stage: str, new_prompt: str | None = None) -> bool:
     return True
 
 
+def select_concept(run_id: str, image_url: str) -> bool:
+    """Set the active concept image for downstream 3D reconstruction."""
+    doc = read(run_id)
+    if not doc:
+        return False
+    concept_node = _node(doc, "concept")
+    already_active = (concept_node.get("imageUrl") == image_url
+                      and concept_node.get("reconstructionMode") != "multi")
+    concept_node["imageUrl"] = image_url
+    concept_node["reconstructionMode"] = "single"
+
+    # If the user selected a new concept variation (or original image), trigger 3D reconstruction for it
+    if not already_active and doc["status"] != "running":
+        m3d = _node(doc, "model3d")
+        m3d.update(_blank_node("model3d"))
+        doc["status"] = "running"
+        doc["error"] = None
+        _write(doc)
+        _pool.submit(_drive, run_id, "model3d")
+        return True
+
+    _write(doc)
+    return True
+
+
+def direct_recon(run_id: str) -> bool:
+    """Bypass concept generation: reconstruct 3D directly from the original uploaded photo."""
+    doc = read(run_id)
+    if not doc:
+        return False
+    source_url = _node(doc, "source").get("imageUrl")
+    if not source_url:
+        return False
+
+    _set(
+        doc, "prompt",
+        status="done",
+        text="Direct reconstruction from original image.",
+        notes="Photo looked great — bypassed concept generation to reconstruct directly.",
+    )
+    _set(
+        doc, "concept",
+        status="done",
+        imageUrl=source_url,
+        images=[{"url": source_url, "label": "Original Photo (Direct 3D)", "isOriginal": True}],
+    )
+    m3d = _node(doc, "model3d")
+    m3d.update(_blank_node("model3d"))
+    doc["status"] = "running"
+    doc["error"] = None
+    _write(doc)
+    _pool.submit(_drive, run_id, "model3d")
+    return True
+
+
 # ------------------------------------------------------------------------ worker
 def _drive(run_id: str, from_stage: str) -> None:
     doc = read(run_id)
@@ -293,6 +348,8 @@ def _stage_prompt(doc: dict) -> None:
         text=written["prompt"],
         subject=written.get("subject"),
         notes=written.get("notes"),
+        coreConcept=written.get("core_concept"),
+        imageAssessment=written.get("image_assessment"),
         model=written.get("model"),
         ms=written.get("ms"),
     )
@@ -304,20 +361,65 @@ def _stage_concept(doc: dict) -> None:
     if not prompt:
         raise RuntimeError("no prompt to render — re-run the prompt stage first")
 
-    source = _local(doc, _node(doc, "source").get("imageUrl"))
-    made = gemini.make_image(prompt, refs=[p for p in (source,) if p])
+    source_url = _node(doc, "source").get("imageUrl")
+    source = _local(doc, source_url)
 
-    ext = ".png" if "png" in made["mime"] else ".jpg"
-    dest = _run_dir(doc["id"]) / f"concept{ext}"
-    dest.write_bytes(made["bytes"])
-    _set(
-        doc, "concept",
-        status="done",
-        imageUrl=f"/runs/{doc['id']}/{dest.name}",
-        model=made.get("model"),
-        ms=made.get("ms"),
-        sizeKb=round(len(made["bytes"]) / 1024),
-    )
+    try:
+        cset = gemini.make_concept_set(doc["input"]["prompt"], source, count=4, base_prompt=prompt)
+        run_folder = _run_dir(doc["id"])
+        image_items = []
+        if source_url:
+            image_items.append({
+                "url": source_url,
+                "label": "Original (Direct 3D)",
+                "isOriginal": True,
+            })
+        for idx, item in enumerate(cset["images"]):
+            ext = ".png" if "png" in item["mime"] else ".jpg"
+            dest = run_folder / f"concept_{idx}{ext}"
+            dest.write_bytes(item["bytes"])
+            image_items.append({
+                "url": f"/runs/{doc['id']}/{dest.name}",
+                "label": item["label"],
+                "direction": item.get("direction"),
+                "isOriginal": False,
+            })
+        # Default to the first generated canonical studio angle
+        generated = [item for item in image_items if not item.get("isOriginal")]
+        primary_url = generated[0]["url"]
+        _set(
+            doc, "concept",
+            status="done",
+            imageUrl=primary_url,
+            images=image_items,
+            reconstructionMode="multi" if len(generated) > 1 and cset.get("validation", {}).get("usable") else "single",
+            validation=cset.get("validation"),
+            warnings=cset.get("warnings", []),
+            model=gemini.GEMINI_IMAGE_MODEL,
+            ms=cset.get("total_ms"),
+            sizeKb=round(len(cset["images"][0]["bytes"]) / 1024),
+        )
+    except Exception:
+        made = gemini.make_image(prompt, refs=[p for p in (source,) if p])
+        ext = ".png" if "png" in made["mime"] else ".jpg"
+        dest = _run_dir(doc["id"]) / f"concept{ext}"
+        dest.write_bytes(made["bytes"])
+        image_items = []
+        if source_url:
+            image_items.append({"url": source_url, "label": "Original (Direct 3D)", "isOriginal": True})
+        image_items.append({"url": f"/runs/{doc['id']}/{dest.name}", "label": "Concept", "isOriginal": False})
+        _set(
+            doc, "concept",
+            status="done",
+            imageUrl=f"/runs/{doc['id']}/{dest.name}",
+            images=image_items,
+            reconstructionMode="single",
+            validation=None,
+            warnings=["The view set could not be prepared. Using a single concept image."],
+            model=made.get("model"),
+            ms=made.get("ms"),
+            sizeKb=round(len(made["bytes"]) / 1024),
+        )
 
 
 def _stage_model(doc: dict) -> None:
@@ -328,10 +430,19 @@ def _stage_model(doc: dict) -> None:
         raise RuntimeError("no concept image to reconstruct")
 
     cfg = doc["settings"]
+    concept_node = _node(doc, "concept")
+    views = [item for item in concept_node.get("images", [])
+             if not item.get("isOriginal") and item.get("direction") in ("front", "back", "left", "right")]
+    if cfg.get("engine") in ("hunyuan3d-2.1", "hunyuan3d-2-white", "hybrid"):
+        views = [item for item in views if item["direction"] != "right"]
+    use_multi = concept_node.get("reconstructionMode") == "multi" and len(views) > 1
+    model_images = [_local(doc, item["url"]) for item in views] if use_multi else [concept]
+    if any(path is None for path in model_images):
+        raise RuntimeError("A selected view is missing. Regenerate the concept set.")
     req = GenRequest(
         prompt=_node(doc, "prompt").get("subject") or doc["input"]["prompt"],
-        images=[concept],
-        directions=["front"],
+        images=model_images,
+        directions=[item["direction"] for item in views] if use_multi else ["unknown"],
         seed=cfg.get("seed"),
         steps=int(cfg.get("steps", 50)),
         guidance=float(cfg.get("guidance", 7.5)),
@@ -348,7 +459,7 @@ def _stage_model(doc: dict) -> None:
         source_ref=_node(doc, "concept").get("imageUrl"),
     )
 
-    job_id = jobs.submit(cfg.get("engine", "trellis-2"), req, doc["title"])
+    job_id = jobs.submit(cfg.get("engine", "rodin"), req, doc["title"])
     _set(doc, "model3d", jobId=job_id)
 
     while True:

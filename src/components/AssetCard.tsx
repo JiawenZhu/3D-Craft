@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Heart, Layers, Lock, Rotate3d, Wand2 } from 'lucide-react';
+import { Box, Heart, Layers, Lock, Rotate3d, Trash2, Wand2 } from 'lucide-react';
 import { cn } from '../lib/cn';
 import type { Asset } from '../types';
 import { AssetThumb } from './AssetThumb';
@@ -10,9 +10,10 @@ export const AssetCard: React.FC<{
   asset: Asset;
   onOpen: (a: Asset) => void;
   onLike: (id: string) => void;
+  onDelete?: (id: string) => void;
   /** Set when this reference image already has a generated mesh. */
   builtAsset?: Asset;
-}> = ({ asset, onOpen, onLike, builtAsset }) => (
+}> = ({ asset, onOpen, onLike, onDelete, builtAsset }) => (
   <button
     onClick={() => onOpen(asset)}
     className="group relative aspect-square overflow-hidden rounded-[28px] border border-white/[0.06] bg-white/[0.03] text-left transition-all duration-300 hover:border-white/20 hover:shadow-lift"
@@ -31,7 +32,23 @@ export const AssetCard: React.FC<{
       <Heart className={cn('h-[15px] w-[15px]', asset.liked && 'fill-current')} />
     </span>
 
-    {asset.versions && asset.versions > 1 && (
+    {onDelete && (
+      <span
+        role="button"
+        title="Delete asset"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (window.confirm(`Delete "${asset.name}"?`)) {
+            onDelete(asset.id);
+          }
+        }}
+        className="absolute left-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white/70 backdrop-blur-md transition-all hover:bg-red-500 hover:text-white"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </span>
+    )}
+
+    {!onDelete && asset.versions && asset.versions > 1 && (
       <span
         title={`${asset.versions} versions of this project — the newest is shown here. All of them are in your ASSET tab.`}
         className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[9px] font-semibold text-chalk backdrop-blur-md"

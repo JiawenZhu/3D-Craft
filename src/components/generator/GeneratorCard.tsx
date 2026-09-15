@@ -5,6 +5,7 @@ import { InputCard } from './InputCard';
 import { OptionRail } from './OptionRail';
 import { ActionRow } from './ActionRow';
 import { EngineRow } from './EngineRow';
+import { PricingSummary } from './PricingSummary';
 import { JobBanner } from './JobBanner';
 import { RouteToggle } from './RouteToggle';
 import { Info } from 'lucide-react';
@@ -37,6 +38,7 @@ export const GeneratorCard: React.FC = () => {
       <ActionRow />
       <EngineRow />
       <RouteToggle />
+      <PricingSummary />
 
       {/* Neither model does text→3D directly; say so rather than letting a run fail. */}
       {needsImage && !job && (

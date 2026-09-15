@@ -1,0 +1,55 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "assets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ownerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "mobileCreations",
+      "fieldPath": "preview",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "mobileCreations",
+      "fieldPath": "prompt",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "studioConcepts",
+      "fieldPath": "prompt",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "studioProjects",
+      "fieldPath": "prompt",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "studioJobs",
+      "fieldPath": "providerEstimate",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "studioConversations",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "studioConversations",
+      "fieldPath": "reply",
+      "indexes": []
+    }
+  ]
+}

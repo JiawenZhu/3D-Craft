@@ -1,11 +1,8 @@
-# Rodin 3D Studio
+# 3D Craft
 
-A local image-to-3D workspace modelled on [Hyper3D Rodin](https://hyper3d.ai/workspace/rodin),
-driving two open models: **Tencent Hunyuan3D-2.1** and **Microsoft TRELLIS.2**.
+Next-generation generative 3D workspace driving state-of-the-art multimodal AI (**Gemini 3.8 Flash**, **Gemini 3 Pro Image**) and open 3D reconstruction engines (**Microsoft TRELLIS.2**, **Tencent Hunyuan3D-2.1**).
 
-The UI is a close recreation of the Rodin workspace — the same generator card, mode
-rails, effort tiers, asset shelf and workbench. The backend is real: each engine runs
-either natively on your own GPU or against its official Hugging Face Space.
+Featuring cloud-native **Firebase Authentication** & **Cloud Firestore** real-time synchronization, allowing seamless creation, management, exploration, and deletion of 3D assets across devices.
 
 ---
 
@@ -64,7 +61,7 @@ the reconstructor:
 ```
 your photo + a few words
         │
-        ├─► Gemini writes the full image prompt      gemini-3.7-flash    ~7s
+        ├─► Gemini writes the full image prompt      gemini-3.8-flash    ~7s
         ├─► Gemini renders a clean studio asset      gemini-3-pro-image  ~17s
         └─► TRELLIS / Hunyuan / Rodin reconstruct it fal.ai              ~30s
 ```
@@ -164,7 +161,7 @@ sets never bloat the repo.
 
 ```
 src/
-  components/generator/   the Rodin generator card — mode rail, input card, effort tiers
+  components/generator/   the 3D Craft generator card — mode rail, input card, effort tiers
   components/workbench/   three.js viewport, single-asset workbench, A/B compare
   store/StudioContext.tsx generation state machine (real backend + preview fallback)
 server/
@@ -188,13 +185,19 @@ scripts/
 | `HF_TOKEN` | Hugging Face token — raises ZeroGPU quota and download limits |
 | `FAL_KEY` | fal.ai key — enables the `api` provider and the Rodin engine |
 | `GEMINI_API_KEY` | Google AI Studio key — enables the concept pass |
-| `RODIN_GEMINI_TEXT_MODEL` | prompt writer (default `gemini-3.7-flash`) |
+| `RODIN_GEMINI_TEXT_MODEL` | prompt writer (default `gemini-3.8-flash`) |
 | `RODIN_GEMINI_IMAGE_MODEL` | concept renderer (default `gemini-3-pro-image`) |
 | `RODIN_PROVIDER` | `auto` (default), `api`, `local`, or `space` |
 | `RODIN_WEIGHTS` | weights directory (default `server/weights`) |
 | `RODIN_MPS_DTYPE` | `float32` to force the slower, higher-precision MPS path |
 | `RODIN_PORT` | API port (default 8000) |
 | `VITE_API_BASE` | where the frontend looks for the API |
+
+## Games
+
+Open **Game** on the studio page to play five local Godot scenes. **Lanternfall / 灯影夜行** adds a newly generated cat adventurer, a moonlit town, auto-combat, experience upgrades, dash and a timed boss encounter. English and Chinese share the same language switch.
+
+See [Lanternfall provenance and verification](docs/lanternfall/README.md). Rebuild browser resources with `npm run game:build` before `npm run build`; `npm run game:test` runs native gameplay checks.
 
 ## Docs
 
@@ -206,3 +209,5 @@ scripts/
 
 Hunyuan3D-2.1 is released under the Tencent Hunyuan Non-Commercial licence; TRELLIS
 under MIT. Check both before shipping anything commercial.
+
+From any completed model's 3D viewer, **Play in game** lets you choose a compatible scene and play with that exact asset. See [model handoff, supported formats, and verification](docs/PLAY_YOUR_ASSET.md).

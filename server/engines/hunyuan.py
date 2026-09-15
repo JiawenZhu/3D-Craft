@@ -12,6 +12,7 @@ Two providers:
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from pathlib import Path
 
 from ..config import FAL_ENDPOINTS, FAL_PRICES, WEIGHTS
@@ -120,8 +121,22 @@ class HunyuanEngine:
         if not req.images:
             raise RuntimeError("Hunyuan3D-2.1 is image-conditioned — add a reference image.")
 
+        # fal's v2 MV contract requires front/back/left, with no right slot.
+        # Never fill missing slots with unrelated images or relabel diagonals.
+        selected = {"front": req.images[0]}
+        if len(req.images) > 1:
+            if len(req.directions) != len(req.images):
+                raise ValueError("Multi-view requires a direction for every image.")
+            selected = {}
+            for path, direction in zip(req.images, req.directions):
+                if direction not in ("front", "back", "left") or direction in selected:
+                    raise ValueError("Hunyuan fal multi-view needs exactly front, back and left views, each once.")
+                selected[direction] = path
+            if set(selected) != {"front", "back", "left"}:
+                raise ValueError("Hunyuan fal multi-view needs front, back and left views. Select one image for single-view.")
         on("preprocessing", 0.05, "Uploading reference to fal")
-        uploads = [fal_api.upload(prep_image(p, out_dir / "input")) for p in req.images[:4]]
+        uploads = {direction: fal_api.upload(prep_image(p, out_dir / "input" / direction))
+                   for direction, p in selected.items()}
 
         steps, octree = EFFORT.get(req.effort, EFFORT["high"])
         if req.quality == "speedy":
@@ -136,19 +151,13 @@ class HunyuanEngine:
         }
 
         # The multi-view endpoint wants named views and needs at least three.
-        if len(uploads) >= 3:
+        if len(uploads) > 1:
             endpoint = FAL_ENDPOINTS["hunyuan3d-2.1-mv"]
-            slots = {}
-            for img_url, direction in zip(uploads, req.directions or []):
-                slot = DIRECTION_TO_SLOT.get(direction)
-                if slot and f"{slot}_image_url" not in slots:
-                    slots[f"{slot}_image_url"] = img_url
-            for name, img_url in zip(("front_image_url", "back_image_url", "left_image_url"), uploads):
-                slots.setdefault(name, img_url)
+            slots = {f"{direction}_image_url": url for direction, url in uploads.items()}
             args = {**shared, **slots}
         else:
             endpoint = FAL_ENDPOINTS["hunyuan3d-2.1"]
-            args = {**shared, "input_image_url": uploads[0]}
+            args = {**shared, "input_image_url": uploads["front"]}
 
         result = fal_api.run(endpoint, args, on, "latent", 0.12, 0.9)
 
@@ -158,10 +167,10 @@ class HunyuanEngine:
 
         on("packaging", 0.94, "Downloading GLB")
         mesh = fal_api.download(url, out_dir / "model.glb")
-        price = FAL_PRICES["hunyuan3d-2.1-textured" if req.texture else "hunyuan3d-2.1"]
+        price = (.051 if req.texture else .017) if len(uploads) > 1 else FAL_PRICES["hunyuan3d-2.1-textured" if req.texture else "hunyuan3d-2.1"]
         return GenResult(
             mesh_path=mesh, thumb_path=adopt(Path(prep_image(req.images[0], out_dir / "input")), out_dir / "thumb.png"),
-            provider="api", note=f"fal.ai · {endpoint} · ${price:.2f}",
+            provider="api", note=f"fal.ai · {endpoint} · ${price:g}",
         )
 
     # -- hosted Space ------------------------------------------------------
@@ -225,7 +234,7 @@ class HunyuanEngine:
         if not files:
             raise RuntimeError(f"Space returned no mesh (got {[type(r).__name__ for r in result]})")
         on("texture", 0.85, "Downloading result")
-        chosen = files[-1]  # textured mesh when both are present
+        chosen = files[-1] if req.texture else files[0]  # honor the shape-only selection
         mesh = adopt(chosen, out_dir / f"model{Path(chosen).suffix or '.glb'}")
         thumb = adopt(primary, out_dir / "thumb.png")
         on("packaging", 0.97, "Writing GLB")
@@ -317,3 +326,20 @@ class HunyuanEngine:
             note += " · geometry only (Hunyuan Paint needs the CUDA rasterizer)"
         return GenResult(mesh_path=mesh, thumb_path=adopt(image, out_dir / "thumb.png"),
                          provider="local", note=note)
+
+
+class HunyuanWhiteEngine:
+    """An explicit shape-only product; callers cannot accidentally enable paint."""
+    id = "hunyuan3d-2-white"
+    label = "Hunyuan 3D 2 · White mesh"
+
+    def __init__(self, base):
+        self._base = base
+
+    def status(self):
+        status = dict(self._base.status())
+        status["note"] += " · White mesh (no texture)"
+        return status
+
+    def generate(self, req, out_dir, on):
+        return self._base.generate(replace(req, texture=False), out_dir, on)

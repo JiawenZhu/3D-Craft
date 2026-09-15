@@ -2,17 +2,18 @@
 from __future__ import annotations
 
 from .base import GenRequest, GenResult, Progress  # noqa: F401
-from .hunyuan import HunyuanEngine
+from .hunyuan import HunyuanEngine, HunyuanWhiteEngine
 from .hybrid import HybridEngine
 from .rodin import RodinEngine
 from .trellis import TrellisEngine
 
 _hunyuan = HunyuanEngine()
+_white = HunyuanWhiteEngine(_hunyuan)
 _trellis = TrellisEngine()
 _hybrid = HybridEngine(_trellis, _hunyuan)
 _rodin = RodinEngine()
 
-ENGINES = {e.id: e for e in (_hunyuan, _trellis, _rodin, _hybrid)}
+ENGINES = {e.id: e for e in (_hunyuan, _white, _trellis, _rodin, _hybrid)}
 
 
 def get(engine_id: str):

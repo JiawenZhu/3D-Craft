@@ -1,12 +1,14 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  ArrowUp, Compass, HelpCircle, Image as ImageIcon, Images, Plus, Sparkles, Wand2, X,
+  ArrowUp, Camera, Compass, Image as ImageIcon, Images, Plus, Sparkles, Wand2, X,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
 import { Popover, Tip } from '../ui/primitives';
 import { DirectionPicker } from './DirectionPicker';
 import { imageSrc } from '../../lib/api';
+import { ConceptSetModal } from './ConceptSetModal';
+import type { ConceptImage, RefImage } from '../../types';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/avif';
 
@@ -24,18 +26,44 @@ const PILL_LABELS = [
 ];
 
 export const InputCard: React.FC = () => {
-  const { settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection } = useStudio();
+  const { settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, generate } = useStudio();
   const [dragging, setDragging] = useState(false);
   const [dirFor, setDirFor] = useState<string | null>(null);
   const [pill, setPill] = useState(0);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [conceptModalOpen, setConceptModalOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const meta = MODE_META[settings.mode];
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDragging(false);
-    if (e.dataTransfer.files?.length) { addImages(e.dataTransfer.files); patch({ inputMode: 'image' }); }
+    if (e.dataTransfer.files?.length) {
+      addImages(e.dataTransfer.files);
+      patch({ inputMode: 'image' });
+      setConceptModalOpen(true);
+    }
   }, [addImages, patch]);
+
+  const handleApplyConcept = useCallback(async (concept: ConceptImage, fullPrompt: string) => {
+    const ref = await addFromUrl(concept.url, `${concept.label}.png`, concept.direction ?? 'unknown');
+    const newSettings = { ...settings, imageMode: 'single' as const, prompt: fullPrompt || settings.prompt, inputMode: 'image' as const };
+    patch(newSettings);
+    generate(newSettings, [ref]);
+  }, [addFromUrl, patch, settings, generate]);
+
+  const handleApplyMultiView = useCallback(async (concepts: ConceptImage[], fullPrompt: string) => {
+    // The original is a separate single-image option, not a guessed front view.
+    const views = concepts.filter((c) => !c.isOriginal && c.direction && c.direction !== 'unknown');
+    if (views.length < 2) throw new Error('At least two labelled views are needed.');
+    const refs: RefImage[] = [];
+    for (const view of views) {
+      refs.push(await addFromUrl(view.url, `${view.label}.png`, view.direction));
+    }
+    const newSettings = { ...settings, imageMode: 'multi' as const, prompt: fullPrompt || settings.prompt, inputMode: 'image' as const };
+    patch(newSettings);
+    generate(newSettings, refs);
+  }, [addFromUrl, patch, settings, generate]);
 
   const textMode = settings.inputMode === 'text' || settings.mode === 'worldgen';
 
@@ -69,9 +97,9 @@ export const InputCard: React.FC = () => {
                 )}
               </button>
             </Tip>
-            <Tip label="Both engines run locally — nothing is uploaded">
-              <button className="grid h-[20px] w-[20px] place-items-center rounded-full bg-white/20 text-white/90 transition-colors hover:bg-white/35">
-                <HelpCircle className="h-[11px] w-[11px]" />
+            <Tip label="Take a photo · uses your camera on supported phones">
+              <button aria-label="Take a photo" onClick={() => cameraRef.current?.click()} className="grid h-[20px] w-[20px] place-items-center rounded-full bg-white/20 text-white/90 transition-colors hover:bg-white/35">
+                <Camera className="h-[11px] w-[11px]" />
               </button>
             </Tip>
           </div>
@@ -88,6 +116,7 @@ export const InputCard: React.FC = () => {
             />
           ) : images.length === 0 ? (
             <button
+              aria-label="Upload reference image"
               onClick={() => fileRef.current?.click()}
               className="group grid h-full w-full place-items-center rounded-[10px] transition-colors hover:bg-white/[0.04]"
             >
@@ -149,10 +178,39 @@ export const InputCard: React.FC = () => {
           </button>
         )}
 
+        {/* Concept Set Button over image */}
+        {images.length > 0 && !textMode && (
+          <button
+            onClick={() => setConceptModalOpen(true)}
+            title="Create candidate concept image set before 3D reconstruction"
+            className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 rounded-full border border-lilac/30 bg-ink-900/90 px-2 py-0.5 text-[9px] font-semibold text-lilac shadow-md backdrop-blur-md transition-all hover:scale-105 hover:border-lilac"
+          >
+            <Sparkles className="h-2.5 w-2.5" />
+            Concept Set
+          </button>
+        )}
+
         <input
           ref={fileRef} type="file" accept={ACCEPT} hidden
           multiple={settings.imageMode === 'multi'}
-          onChange={(e) => e.target.files && addImages(e.target.files)}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length) {
+              addImages(e.target.files);
+              setConceptModalOpen(true);
+            }
+            e.target.value = '';
+          }}
+        />
+        <input
+          ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
+          onChange={(e) => {
+            if (e.target.files?.length) {
+              addImages(e.target.files);
+              patch({ inputMode: 'image' });
+              setConceptModalOpen(true);
+            }
+            e.target.value = '';
+          }}
         />
       </div>
 
@@ -234,6 +292,17 @@ export const InputCard: React.FC = () => {
         </span>
         <Sparkles className="ml-1 h-3 w-3 text-lilac/70" />
       </button>
+
+      {/* Candidate Concept Set Modal */}
+      {images.length > 0 && (
+        <ConceptSetModal
+          sourceImage={images[0]}
+          isOpen={conceptModalOpen}
+          onClose={() => setConceptModalOpen(false)}
+          onApplyConcept={handleApplyConcept}
+          onApplyMultiView={handleApplyMultiView}
+        />
+      )}
     </div>
   );
 };

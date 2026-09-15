@@ -1,0 +1,56 @@
+[
+  {
+    "id": "retro_camper_van",
+    "source": "public/models/retro_camper_van.glb",
+    "sha256": "0c78521571161ccfff00648c6da33e3a978b731b1ef4b634b37a6965e3ba0298",
+    "bytes": 2194040
+  },
+  {
+    "id": "yellow_mini_car",
+    "source": "public/models/yellow_mini_car.glb",
+    "sha256": "571afc1a052ab63ab98af1350b61dbc153d074776693845cbb015ddfeb968776",
+    "bytes": 12803120
+  },
+  {
+    "id": "spherical_robot",
+    "source": "public/models/spherical_robot.glb",
+    "sha256": "1dd5131e7632d36dab89f72846d66f094df0ab3d32cd3250d7190192d85580a9",
+    "bytes": 9693512
+  },
+  {
+    "id": "boba_cat",
+    "source": "public/models/boba_cat.glb",
+    "sha256": "f841507fe6ebc8f509f68886181cf5b349b1b617f3ba45012274a354c813d601",
+    "bytes": 2272248
+  },
+  {
+    "id": "castle_tower",
+    "source": "public/models/castle_tower.glb",
+    "sha256": "8f6da01b771c1c2b7794e211eb37de7f67ebc8509bda277ba97ed85368bd2fef",
+    "bytes": 2420616
+  },
+  {
+    "id": "fairytale_cottage",
+    "source": "public/models/fairytale_cottage.glb",
+    "sha256": "40058641be6b690715cac52fbb3b35e53ceda7d908239bf5440390177f7ac430",
+    "bytes": 2868420
+  },
+  {
+    "id": "magma_cube",
+    "source": "public/models/magma_cube.glb",
+    "sha256": "601bb2c4a3a5444d16083699fbd228519e947147b0f6140ed3f35ab57f3608ad",
+    "bytes": 1874068
+  },
+  {
+    "id": "baby_emerald_dragon",
+    "source": "public/models/baby_emerald_dragon.glb",
+    "sha256": "7169f6538a051c381df8e482e859e2ff6d7b6b9ff01e3fb2ffe82cdd4668a2f8",
+    "bytes": 1908080
+  },
+  {
+    "id": "lantern_cat",
+    "source": "public/models/lantern_cat.glb",
+    "sha256": "54a20129345c015ad5d33bb474c2d7db5a444e6a09ec7230d11a884bbdc1dc66",
+    "bytes": 10870048
+  }
+]

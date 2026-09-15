@@ -35,15 +35,15 @@ export default {
           ghost: '#565656',
         },
         // exact accents read off the live controls
-        ember: '#d67830',   // hero glow warm
-        amber: '#ffd98e',
-        mauve: '#9e76ac',
-        rose: '#e6765d',    // gradient text start
-        coral: '#ff989b',   // primary UI gradient start
-        lilac: '#d8a1f1',   // primary UI gradient end
-        blush: '#d19ee9',   // gradient text end
-        speedy: '#ff886f',  // "Speedy" quality tint
-        iris: '#875de7',
+        ember: '#68C2A0',   // hero glow warm
+        amber: '#D6F2E7',
+        mauve: '#68C2A0',
+        rose: '#68C2A0',    // gradient text start
+        coral: '#9CDCC3',   // primary UI gradient start
+        lilac: '#68C2A0',   // primary UI gradient end
+        blush: '#9CDCC3',   // gradient text end
+        speedy: '#68C2A0',  // "Speedy" quality tint
+        iris: '#1C654D',
       },
       fontFamily: {
         sans: ['Inter', 'SF Pro Display', '-apple-system', 'Helvetica Neue', 'sans-serif'],

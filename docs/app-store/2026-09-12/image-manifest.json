@@ -1,0 +1,170 @@
+[
+  {
+    "path": "branding/AppIcon-1024.png",
+    "width": 1024,
+    "height": 1024,
+    "mode": "RGB",
+    "kind": "app-icon",
+    "sha256": "a6cc425fc83f56ff85da2ec2023cbff4b894a3fdf1a11cf3d0b1ac197470f8a4"
+  },
+  {
+    "path": "promotional/01-lantern-cat-emerald.png",
+    "width": 851,
+    "height": 1848,
+    "mode": "RGB",
+    "kind": "promotional-design-draft",
+    "sha256": "fa53064b36881c1c44752bdb8a6e65868299cbe97664f72fe55f0f8741cbe073"
+  },
+  {
+    "path": "promotional/02-blue-dragon-lavender.png",
+    "width": 851,
+    "height": 1848,
+    "mode": "RGB",
+    "kind": "promotional-design-draft",
+    "sha256": "e45ffd41e7a31d2a62dc348cfb494d4d377cb7e247c5aeaa69665ab6c1e09634"
+  },
+  {
+    "path": "promotional/03-tropical-island-emerald.png",
+    "width": 851,
+    "height": 1848,
+    "mode": "RGB",
+    "kind": "promotional-design-draft",
+    "sha256": "267f189ffd850d53e9e119a1bf45b1bd84c4704d0ce6b8aff9b874877ca5305c"
+  },
+  {
+    "path": "screenshots/ipad-13/01-discover.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "51e07bf729526e10bc66ddbd7723ff6384d322dba5a6b4ffdeac5ef87cc36ae0"
+  },
+  {
+    "path": "screenshots/ipad-13/02-model.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "44c5e75187dc36746fe883f809537d5b87f3884a37bc408f62581391b8e212ef"
+  },
+  {
+    "path": "screenshots/ipad-13/03-lighting.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "f73080348651fcb62ea9b941bcad7e3054f42eb3e87b6c21d77545e5a6316e09"
+  },
+  {
+    "path": "screenshots/ipad-13/04-concept.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "16ec50a1f5513922c15890178c0b3468036da76f5f8b341ec041f8ab7a3e416b"
+  },
+  {
+    "path": "screenshots/ipad-13/05-game-brief.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "a942074685887c4145d3a5383aa2f25739ee39ab1b48ec4d9da5af50d8909986"
+  },
+  {
+    "path": "screenshots/ipad-13/06-objects.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "5278039fb3ee55be611f4712a18b9dccec8d2c73c07c92e293d4f38c5e9ac7a2"
+  },
+  {
+    "path": "screenshots/ipad-13/07-lavender.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "2ee7bbf27084105332d3b85292a4cdcfe2b2b3d9138b7fd55bad83d86b2f53a2"
+  },
+  {
+    "path": "screenshots/iphone-6.9/01-discover.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "2bd85655e9f8ca9521f957d6f092922790c311ff5ce8ea2f01177ec88aca8edf"
+  },
+  {
+    "path": "screenshots/iphone-6.9/02-model.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "c4753fb6531204324402e197e34d0323fb4b0923ebb74f0b6691c02715f67d6a"
+  },
+  {
+    "path": "screenshots/iphone-6.9/03-lighting.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "b52773c28b5fc6f60d79e5e3d5f2c1a7b1022d1a7091c664f5b04ab6d87f7d4a"
+  },
+  {
+    "path": "screenshots/iphone-6.9/04-concept.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "56390e13042b37b1d9324ff9126416d4d2608bb15dc904cddab54f1c978da868"
+  },
+  {
+    "path": "screenshots/iphone-6.9/05-game-brief.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "bac68331433fe4269bf8ca53418af5883149a6076f7b32d3e39b4378af733891"
+  },
+  {
+    "path": "screenshots/iphone-6.9/06-objects.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "15c64c4e50154fbdd494c47dd1d5b9507322d89294977c894e90f202c500aeec"
+  },
+  {
+    "path": "screenshots/iphone-6.9/07-lavender.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "kind": "native-capture",
+    "sha256": "19937fedc4b8dfa71f90c2dcbe0870407254624eaaa668e0c99c32b48f4be578"
+  },
+  {
+    "path": "source-artwork/blue-dragon.png",
+    "width": 1254,
+    "height": 1254,
+    "mode": "RGB",
+    "kind": "original-concept",
+    "sha256": "36cbf2872abf40372a18fb4256990c28a05415bb1596564598deb8326ad643c8"
+  },
+  {
+    "path": "source-artwork/lantern-cat.png",
+    "width": 1254,
+    "height": 1254,
+    "mode": "RGB",
+    "kind": "original-concept",
+    "sha256": "8332f83caeca1c85da5d938debb2b8771a8afa1b3b5239ef74f530324b099dcb"
+  },
+  {
+    "path": "source-artwork/tropical-island.png",
+    "width": 1254,
+    "height": 1254,
+    "mode": "RGB",
+    "kind": "original-concept",
+    "sha256": "d20fadf3c2277e92ff6edc9949fb4028e854252ff9b9a7be3ba5bb4266833835"
+  }
+]

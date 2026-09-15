@@ -1,7 +1,7 @@
 {
-  "name": "rodin-3d-studio",
+  "name": "3d-craft",
   "version": "1.0.0",
-  "description": "Next-generation 3D game character and asset creation studio powered by Hunyuan3D-2.1 and Microsoft TRELLIS.2",
+  "description": "3D Craft — Next-generation generative 3D workspace powered by Hunyuan3D-2.1 and Microsoft TRELLIS.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,12 +9,16 @@
     "preview": "vite preview",
     "server": "server/.venv/bin/python -m server.app",
     "setup": "./scripts/setup.sh",
-    "doctor": "server/.venv/bin/python scripts/doctor.py"
+    "doctor": "server/.venv/bin/python scripts/doctor.py",
+    "game:build": "python3 scripts/build_games.py",
+    "game:test": "python3 scripts/build_games.py --test",
+    "game:covers": "python3 scripts/build_games.py --covers"
   },
   "dependencies": {
     "@react-three/drei": "^9.121.5",
     "@react-three/fiber": "^8.17.14",
     "clsx": "^2.1.1",
+    "firebase": "^12.18.0",
     "lucide-react": "^0.475.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -8,20 +8,20 @@ import { cn } from '../lib/cn';
  */
 export const Wordmark: React.FC<{ className?: string }> = ({ className }) => (
   <div className={cn('relative select-none', className)}>
-    <svg viewBox="0 0 391 100" width={391} height={86} className="overflow-visible" role="img" aria-label="Rodin">
+    <svg viewBox="0 0 391 100" width={391} height={86} className="overflow-visible" role="img" aria-label="3D Craft">
       <defs>
         <linearGradient id="rd-wm" x1="0" y1="0" x2="1" y2="0.4">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="62%" stopColor="#f6f1f4" />
-          <stop offset="100%" stopColor="#e9dbe7" />
+          <stop offset="0%" stopColor="#D6F2E7" />
+          <stop offset="62%" stopColor="#9CDCC3" />
+          <stop offset="100%" stopColor="#68C2A0" />
         </linearGradient>
       </defs>
       {['stroke', 'fill'].map((layer) => (
         <text
           key={layer}
           x="195.5" y="83" textAnchor="middle"
-          textLength="376" lengthAdjust="spacingAndGlyphs"
-          fontFamily="'Playfair Display', Georgia, serif" fontSize="104" fontWeight={500}
+          textLength="340" lengthAdjust="spacingAndGlyphs"
+          fontFamily="'Playfair Display', Georgia, serif" fontSize="76" fontWeight={500}
           fill={layer === 'fill' ? 'url(#rd-wm)' : 'none'}
           stroke={layer === 'stroke' ? 'rgba(255,255,255,.9)' : undefined}
           strokeWidth={layer === 'stroke' ? 0.85 : undefined}
@@ -30,7 +30,7 @@ export const Wordmark: React.FC<{ className?: string }> = ({ className }) => (
             ? 'rd-wm-in 1.2s cubic-bezier(.16,1,.3,1) .95s forwards'
             : 'rd-wm-out 1s ease 1.1s forwards' }}
         >
-          Rodin
+          3D Craft
         </text>
       ))}
     </svg>

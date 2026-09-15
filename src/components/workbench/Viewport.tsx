@@ -221,9 +221,9 @@ const Shaded: React.FC<{ shading: ViewportShading; children: React.ReactNode }> 
       if (tag === want) return;
       m.userData.__shading = want;
       if (want === 'material') { m.material = base; return; }
-      if (want === 'normal') { m.material = new THREE.MeshNormalMaterial({ flatShading: false }); return; }
+      if (want === 'normal') { m.material = new THREE.MeshNormalMaterial({ flatShading: !m.geometry.hasAttribute('normal') }); return; }
       if (want === 'wireframe') { m.material = new THREE.MeshBasicMaterial({ color: '#d8a1f1', wireframe: true }); return; }
-      if (want === 'solid') { m.material = new THREE.MeshStandardMaterial({ color: '#b9bcc4', metalness: 0.05, roughness: 0.85 }); return; }
+      if (want === 'solid') { m.material = new THREE.MeshStandardMaterial({ color: '#b9bcc4', metalness: 0.05, roughness: 0.85, flatShading: !m.geometry.hasAttribute('normal') }); return; }
       if (want === 'uv') { m.material = new THREE.MeshBasicMaterial({ color: '#8ea2ff', wireframe: true, transparent: true, opacity: 0.55 }); return; }
       m.material = base;
     });
@@ -239,9 +239,10 @@ export const Viewport = forwardRef<ViewportHandle, {
   autoRotate: boolean;
   showGrid: boolean;
   showGizmo?: boolean;
+  background?: string;
   /** Multipliers layered over the preset, driven by the light sliders. */
   trim?: LightTrim;
-}>(({ asset, shading, light, autoRotate, showGrid, showGizmo = true, trim }, ref) => {
+}>(({ asset, shading, light, autoRotate, showGrid, showGizmo = true, trim, background }, ref) => {
   const base = RIGS[light];
   // sliders scale the preset rather than replacing it, so presets stay meaningful
   const rig: Rig = trim
@@ -260,9 +261,9 @@ export const Viewport = forwardRef<ViewportHandle, {
       camera={{ position: [2.6, 1.7, 3.4], fov: 42 }}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
     >
-      <color attach="background" args={[rig.bg]} />
+      <color attach="background" args={[background ?? rig.bg]} />
       {/* fog was pulling everything toward the background colour — push it back */}
-      <fog attach="fog" args={[rig.bg, 18, 46]} />
+      <fog attach="fog" args={[background ?? rig.bg, 18, 46]} />
 
       <Exposure value={rig.exposure} />
       <StudioEnvironment rig={rig} />

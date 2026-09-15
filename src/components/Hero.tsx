@@ -11,7 +11,7 @@ const STRAPLINES = [
   ['Controllable large-scale generative models', 'for creating high-quality 3D assets.'],
   ['Slow down, zoom in.', 'The details are everything.'],
   ['Clean and sharp surfaces. No distractions.', 'Less is more.'],
-  ['Two open engines, one workspace.', 'Everything runs on your own GPU.'],
+  ['Your ideas, one workspace.', 'From image or text to concepts and 3D.'],
 ];
 
 export const Hero: React.FC = () => {

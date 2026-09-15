@@ -1,5 +1,5 @@
 """
-Rodin 3D Studio — local inference API.
+3D Craft — local inference API.
 
 Fronts Tencent Hunyuan3D-2.1 and Microsoft TRELLIS.2. Each engine runs either
 natively (when torch + the CUDA kernels are present) or against its official
@@ -13,19 +13,58 @@ import tempfile
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
+from fastapi.responses import JSONResponse
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import engines, gemini, jobs, pipelines
+from . import pricing, engines, gemini, jobs, pipelines, thumbnails
+from .mobile import router as mobile_router
+from .mobile_ai import router as mobile_ai_router
+from .gallery import router as gallery_router
+from .community import router as community_router
 from .config import EXPORTS, HOST, INBOX, PORT, PROVIDER, ROOT, RUNS, STORAGE
 from .engines.base import GenRequest
 
-app = FastAPI(title="Rodin 3D Studio API", version="2.1.0")
+app = FastAPI(title="3D Craft API", version="2.1.0")
+from .billing import router as billing_router
+app.include_router(billing_router)
+from .revenuecat_billing import router as revenuecat_billing_router
+app.include_router(revenuecat_billing_router)
+from .showcase import router as showcase_router
+app.include_router(showcase_router)
+from .cloud_library import router as cloud_library_router
+app.include_router(cloud_library_router)
+app.include_router(mobile_router)
+app.include_router(mobile_ai_router)
+app.include_router(gallery_router)
+app.include_router(community_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def protect_legacy_workspace(request: Request, call_next):
+    """Old global web endpoints cannot bypass the owner-scoped commercial API."""
+    path = request.url.path
+    legacy = (path.startswith(("/api/generate", "/api/jobs", "/api/pipelines", "/api/concept-set", "/api/assets", "/api/inbox", "/runs/", "/files/", "/inbox/")))
+    from .config import IS_PRODUCTION
+    local_review = (not IS_PRODUCTION and os.getenv("CRAFT_ALLOW_LOCAL_REVIEW") == "1"
+                    and request.client and request.client.host in ("127.0.0.1", "::1", "testclient"))
+    if legacy and request.method != "OPTIONS" and not local_review:
+        from .identity import require_account, require_paid
+        try:
+            owner = require_account(request.headers.get("authorization", ""))
+            require_paid(owner)
+            # Legacy storage and pipelines are global, without owner binding or
+            # trusted settlement. Fail closed instead of exposing other accounts.
+            raise HTTPException(503, "The paid workspace is being connected. No credits have been charged.")
+        except HTTPException as error:
+            return JSONResponse({"detail": error.detail}, status_code=error.status_code)
+    return await call_next(request)
 
 
 def _device() -> tuple[str, str]:
@@ -38,6 +77,11 @@ def _device() -> tuple[str, str]:
     if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
         return "mps", torch.__version__
     return "cpu", torch.__version__
+
+
+@app.get("/api/pricing")
+def provider_pricing():
+    return pricing.catalog()
 
 
 @app.get("/api/health")
@@ -67,7 +111,7 @@ async def generate(
     except json.JSONDecodeError as exc:
         raise HTTPException(400, f"bad settings payload: {exc}") from exc
 
-    engine_id = cfg.get("engine", "trellis-2")
+    engine_id = cfg.get("engine", "rodin")
     if engine_id not in engines.ENGINES:
         raise HTTPException(400, f"unknown engine {engine_id!r}")
 
@@ -192,7 +236,7 @@ async def start_pipeline(
     except json.JSONDecodeError as exc:
         raise HTTPException(400, f"bad settings payload: {exc}") from exc
 
-    engine_id = cfg.get("engine", "trellis-2")
+    engine_id = cfg.get("engine", "rodin")
     if engine_id not in engines.ENGINES:
         raise HTTPException(400, f"unknown engine {engine_id!r}")
 
@@ -251,6 +295,108 @@ def retry_pipeline(run_id: str, stage: str = Form(...), prompt: str | None = For
     return {"ok": True}
 
 
+@app.post("/api/concept-set")
+def create_concept_set(
+    image: UploadFile | None = File(None),
+    image_url: str | None = Form(None),
+    prompt: str = Form(""),
+    count: int = Form(4),
+) -> dict:
+    """
+    Generate candidate concept variations from an uploaded photo or image reference
+    before 3D reconstruction.
+    """
+    scratch: Path | None = None
+    source_path: Path | None = None
+
+    if image is not None and image.filename:
+        scratch = Path(tempfile.mkdtemp(prefix="rodin-cset-"))
+        source_path = scratch / Path(image.filename).name
+        with source_path.open("wb") as fh:
+            shutil.copyfileobj(image.file, fh)
+    elif image_url:
+        clean_url = image_url.split("?")[0]
+        if clean_url.startswith("/runs/"):
+            rel = clean_url.removeprefix("/runs/")
+            cand = RUNS / rel
+            if cand.is_file():
+                source_path = cand
+        elif clean_url.startswith("/files/"):
+            rel = clean_url.removeprefix("/files/")
+            cand = STORAGE / rel
+            if cand.is_file():
+                source_path = cand
+        elif clean_url.startswith("/images/"):
+            rel = clean_url.removeprefix("/images/")
+            cand = ROOT.parent / "public" / "images" / rel
+            if cand.is_file():
+                source_path = cand
+
+    if source_path is None and not prompt.strip():
+        raise HTTPException(400, "Provide an image or a prompt to generate concept images.")
+
+    try:
+        set_id = f"cset-{uuid.uuid4().hex[:10]}"
+        set_dir = RUNS / set_id
+        set_dir.mkdir(parents=True, exist_ok=True)
+
+        cset = gemini.make_concept_set(prompt, source_path, count=count)
+        rendered_images = []
+        if source_path and source_path.is_file():
+            saved_source = set_dir / f"source{source_path.suffix.lower() or '.png'}"
+            shutil.copyfile(source_path, saved_source)
+            rendered_images.append({
+                "id": f"{set_id}-orig",
+                "url": f"/runs/{set_id}/{saved_source.name}",
+                "label": "Original (Direct 3D)",
+                "isOriginal": True,
+            })
+
+        for i, item in enumerate(cset["images"]):
+            ext = ".png" if "png" in item["mime"] else ".jpg"
+            filename = f"concept_{i}{ext}"
+            file_dest = set_dir / filename
+            file_dest.write_bytes(item["bytes"])
+            rendered_images.append({
+                "id": f"{set_id}-{i}",
+                "url": f"/runs/{set_id}/{filename}",
+                "label": item["label"],
+                "direction": item.get("direction"),
+                "isOriginal": False,
+            })
+
+        return {
+            "id": set_id,
+            "title": cset["title"],
+            "subject": cset["subject"],
+            "core_concept": cset.get("core_concept", ""),
+            "image_assessment": cset.get("image_assessment", ""),
+            "prompt": cset["prompt"],
+            "notes": cset["notes"],
+            "images": rendered_images,
+            "warnings": cset.get("warnings", []),
+            "validation": cset.get("validation"),
+            "total_ms": cset["total_ms"],
+        }
+    finally:
+        if scratch:
+            shutil.rmtree(scratch, ignore_errors=True)
+
+
+@app.post("/api/pipelines/{run_id}/select-concept")
+def select_pipeline_concept(run_id: str, image_url: str = Form(...)) -> dict:
+    if not pipelines.select_concept(run_id, image_url):
+        raise HTTPException(404, "no such run")
+    return {"ok": True}
+
+
+@app.post("/api/pipelines/{run_id}/direct-recon")
+def direct_pipeline_recon(run_id: str) -> dict:
+    if not pipelines.direct_recon(run_id):
+        raise HTTPException(404, "no such run or no source image")
+    return {"ok": True}
+
+
 @app.delete("/api/pipelines/{run_id}")
 def delete_pipeline(run_id: str) -> dict:
     pipelines.delete(run_id)
@@ -269,6 +415,22 @@ def run_file(run_id: str, name: str) -> FileResponse:
 @app.get("/api/assets")
 def assets() -> list[dict]:
     return jobs.list_assets()
+
+
+@app.get("/api/assets/{asset_id}/thumbnail-display")
+def thumbnail_display(asset_id: str) -> FileResponse:
+    # Same public example registry as /api/assets; no arbitrary filesystem or
+    # network reference is accepted from a query parameter.
+    asset = next((item for item in jobs.list_assets() if item["id"] == asset_id and item.get("visibility", "public") == "public"), None)
+    if asset is None:
+        raise HTTPException(404, "Asset not found")
+    try:
+        path, transparent = thumbnails.display_path(asset)
+    except FileNotFoundError:
+        raise HTTPException(404, "Thumbnail not found") from None
+    return FileResponse(path, media_type="image/png" if transparent else None,
+                        headers={"Cache-Control": "private, max-age=86400" if transparent else "no-cache",
+                                 "X-Craft-Thumbnail": "transparent-display" if transparent else "original-fallback"})
 
 
 # What we can genuinely produce from a GLB with trimesh. FBX and USDZ are

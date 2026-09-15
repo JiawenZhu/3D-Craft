@@ -8,9 +8,18 @@ import type {
 import { engineById } from '../data/engines';
 import { EXPLORE_ASSETS } from '../data/gallery';
 import * as api from '../lib/api';
+import { generationPrice } from '../lib/pricing';
+import {
+  subscribeToUserAssets,
+  saveAssetToFirestore,
+  deleteAssetFromFirestore,
+  onAuthStateChanged,
+  auth,
+  type User,
+} from '../lib/firebase';
 
 const DEFAULT_SETTINGS: GenerationSettings = {
-  engine: 'trellis-2',
+  engine: 'rodin',
   mode: 'image-to-3d',
   inputMode: 'image',
   imageMode: 'single',
@@ -31,7 +40,7 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   removeBackground: true,
   isPrivate: false,
   compare: false,
-  compareWith: 'rodin',
+  compareWith: 'trellis-2',
 };
 
 /** Narration used by the preview simulator when no backend is running. */
@@ -95,7 +104,7 @@ interface StudioValue {
   images: RefImage[];
   addImages: (files: FileList | File[]) => void;
   /** Pull a handed-off inbox image in as a reference. */
-  addFromUrl: (url: string, name: string, direction?: RefImage['direction']) => Promise<void>;
+  addFromUrl: (url: string, name: string, direction?: RefImage['direction']) => Promise<RefImage>;
   inbox: api.InboxImage[];
   refreshInbox: () => void;
   removeImage: (id: string) => void;
@@ -129,7 +138,7 @@ interface StudioValue {
   /** Last user-facing problem that was not a generation failure. */
   notice: string | null;
   dismissNotice: () => void;
-  generate: () => void;
+  generate: (settingsOverride?: GenerationSettings, imagesOverride?: RefImage[]) => void;
   /** Re-run an existing asset's source image against a new prompt. */
   regenerate: (asset: Asset, prompt: string) => void;
   cancel: () => void;
@@ -151,15 +160,23 @@ interface StudioValue {
   shelfTab: ShelfTab;
   setShelfTab: (t: ShelfTab) => void;
 
+  user: User | null;
+  isGuest: boolean;
+  authModalOpen: boolean;
+  setAuthModalOpen: (open: boolean) => void;
+
   health: api.Health | null;
   backendOnline: boolean;
   credits: number;
   /** Seconds for an effort tier, from the backend when it knows better. */
   estimate: (engine: EngineId, effort: string) => number;
-  /** USD per generation for an engine — 0 when it runs locally / free. */
-  price: (engine: EngineId) => number;
+  pricing: api.PricingCatalog | null;
+  showPricingDetails: boolean;
+  setShowPricingDetails: (show: boolean) => void;
+  /** Published USD estimate; null when the active configuration is unpriced. */
+  price: (engine: EngineId) => number | null;
   /** What this GENERATE press will actually cost, across the whole run. */
-  runCost: number;
+  runCost: number | null;
 }
 
 const Ctx = createContext<StudioValue | null>(null);
@@ -174,23 +191,73 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [settings, setSettings] = useState<GenerationSettings>(DEFAULT_SETTINGS);
   const [images, setImages] = useState<RefImage[]>([]);
   const [job, setJob] = useState<Job | null>(null);
-  const [assets, setAssets] = useState<Asset[]>(EXPLORE_ASSETS);
+  const [assets, setAssets] = useState<Asset[]>([]);
   /** Reference cards built from the hand-off folder; merged into EXPLORE below. */
   const [inboxCards, setInboxCards] = useState<Asset[]>([]);
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
   const [comparison, setComparison] = useState<Asset[] | null>(null);
   const [shelfTab, setShelfTab] = useState<ShelfTab>('explore');
+  const [showPricingDetails, setShowPricingDetails] = useState(() => {
+    try { return localStorage.getItem('craft.showPricingDetails') === 'true'; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('craft.showPricingDetails', String(showPricingDetails)); } catch { /* storage may be unavailable */ }
+  }, [showPricingDetails]);
+  const [pricing, setPricing] = useState<api.PricingCatalog | null>(null);
   const [health, setHealth] = useState<api.Health | null>(null);
   const [inbox, setInbox] = useState<api.InboxImage[]>([]);
-  const [credits, setCredits] = useState(120);
+  const [credits, setCredits] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [pipeline, setPipeline] = useState<PipelineRun | null>(null);
   const [pipelineRuns, setPipelineRuns] = useState<PipelineSummary[]>([]);
   const [usePipeline, setUsePipeline] = useState(true);
 
+  const [user, setUser] = useState<User | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const isGuest = !user || user.isAnonymous;
+
   const abort = useRef(false);
   const running = useRef(false);
   const inboxSignature = useRef('');
+
+  /* ---- Firebase Auth initialization ------------------------------------ */
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAssets([]);setActiveAsset(null);setComparison(null);setImages([]);
+      setJob(null);setPipeline(null);setPipelineRuns([]);setCredits(0);
+      abort.current=true;running.current=false;
+
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.isAnonymous) return;
+    let active=true;
+    const refresh=()=>api.authenticatedFetch(`${api.API_BASE}/api/billing/account`).then(async r=>{if(!r.ok)return;const w=await r.json();if(active)setCredits(w.available ?? 0);}).catch(()=>{});
+    void refresh();const timer=setInterval(refresh,10000);
+    return ()=>{active=false;clearInterval(timer);};
+  },[user?.uid]);
+
+  /* ---- Firebase Firestore real-time sync ------------------------------- */
+  useEffect(() => {
+    if (!user?.uid || user.isAnonymous) return;
+    let active = true;
+    const unsub = subscribeToUserAssets(user.uid, (remoteAssets) => {
+      if (!active) return;
+      setAssets((prev) => {
+        const remoteIds = new Set(remoteAssets.map((a) => a.id));
+        // Retain local-only / simulated items not yet in Firestore
+        const localOnly = prev.filter((p) => p.local && !remoteIds.has(p.id));
+        const merged = [...remoteAssets, ...localOnly];
+        try { localStorage.setItem('user_generated_assets', JSON.stringify(merged)); } catch {}
+        return merged;
+      });
+    });
+    return () => { active=false;unsub(); };
+  }, [user?.uid]);
 
   const patch = useCallback((p: Partial<GenerationSettings>) => setSettings((s) => ({ ...s, ...p })), []);
 
@@ -214,7 +281,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [settings.imageMode]);
 
-  const addFromUrl = useCallback(async (url: string, name: string, direction: RefImage['direction'] = 'unknown') => {
+  const addFromUrl = useCallback(async (url: string, name: string, direction: RefImage['direction'] = 'unknown'): Promise<RefImage> => {
     const abs = api.imageSrc(url)!;
     const res = await fetch(abs);
     const blob = await res.blob();
@@ -227,14 +294,23 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       throw new Error(why);
     }
     const file = new File([blob], name, { type: blob.type });
+    const ref: RefImage = {
+      id: `inbox-${Date.now()}-${name}`,
+      url: URL.createObjectURL(file),
+      name,
+      direction,
+      file,
+      sourceUrl: url,
+    };
     setImages((prev) => {
       const room = settings.imageMode === 'single' ? 1 : 8;
       const next = [
         ...(settings.imageMode === 'single' ? [] : prev),
-        { id: `inbox-${Date.now()}-${name}`, url: URL.createObjectURL(file), name, direction, file, sourceUrl: url },
+        ref,
       ];
       return next.slice(0, room);
     });
+    return ref;
   }, [settings.imageMode]);
 
   const refreshInbox = useCallback(() => {
@@ -249,7 +325,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         id: `ref-${img.url}`,
         name: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
         prompt: img.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '),
-        engine: 'trellis-2' as const,
+        engine: 'rodin' as const,
         createdAt: img.modifiedAt,
         thumbUrl: img.url,
         seedShape: 'prop' as const,
@@ -292,8 +368,9 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let stop = false;
     let misses = 0;
     const tick = async () => {
-      const h = await api.getHealth();
+      const [h, rates] = await Promise.all([api.getHealth(), api.getPricing()]);
       if (stop) return;
+      setPricing(rates);
       // One dropped poll used to null this out, and the next run would quietly
       // simulate instead of calling the API — producing a fake asset that looks
       // real. Only give up after several consecutive misses.
@@ -305,7 +382,18 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => { stop = true; window.clearInterval(iv); };
   }, []);
 
-  useEffect(() => { api.listAssets().then((a) => a.length && setAssets(a)); }, [health?.status]);
+  useEffect(() => {
+    api.listAssets().then((serverAssets) => {
+      if (serverAssets && serverAssets.length) {
+        setAssets((prev) => {
+          const ids = new Set(serverAssets.map((x) => x.id));
+          const merged = [...serverAssets, ...prev.filter((p) => !ids.has(p.id))];
+          try { localStorage.setItem('user_generated_assets', JSON.stringify(merged)); } catch {}
+          return merged;
+        });
+      }
+    });
+  }, [health?.status]);
 
   /* ---- one engine run --------------------------------------------------- */
   const patchJob = useCallback((p: Partial<Job>) => setJob((j) => (j ? { ...j, ...p } : j)), []);
@@ -405,6 +493,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     abort.current = false;
     const cfg = settingsOverride ?? settings;
     const refs = imagesOverride ?? images;
+    if (imagesOverride) setImages(imagesOverride);
 
     const queue = compareQueue(cfg);
     setJob({
@@ -429,9 +518,21 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           produced.push(...made);
         }
 
-        setAssets((prev) => [...produced, ...prev]);
+        setAssets((prev) => {
+          const next = [...produced, ...prev];
+          try { localStorage.setItem('user_generated_assets', JSON.stringify(next)); } catch {}
+          return next;
+        });
+
+        // Persist to Firebase Firestore
+        if (user?.uid) {
+          for (const a of produced) {
+            saveAssetToFirestore(a, user.uid).catch((err) => console.warn('Firestore save failed:', err));
+          }
+        }
+
         setShelfTab('asset');
-        setCredits((c) => Math.max(0, c - produced.length * 0.5));
+        // Credit balance is refreshed from the server; never invent a local debit.
         patchJob({
           stage: 'done', progress: 100, message: 'Complete',
           finishedAt: Date.now(), assetIds: produced.map((a) => a.id),
@@ -446,14 +547,25 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (message === 'cancelled') setJob(null);
         else patchJob({ stage: 'failed', message, error: message, finishedAt: Date.now() });
         // keep whatever finished before the failure
-        if (produced.length) setAssets((prev) => [...produced, ...prev]);
+        if (produced.length) {
+          setAssets((prev) => {
+            const next = [...produced, ...prev];
+            try { localStorage.setItem('user_generated_assets', JSON.stringify(next)); } catch {}
+            return next;
+          });
+          if (user?.uid) {
+            for (const a of produced) {
+              saveAssetToFirestore(a, user.uid).catch(() => {});
+            }
+          }
+        }
       } finally {
         running.current = false;
       }
     })();
   }, [settings, images, runEngine, patchJob]);
 
-  const generate = useCallback(() => run(), [run]);
+  const generate = useCallback((settingsOverride?: GenerationSettings, imagesOverride?: RefImage[]) => run(settingsOverride, imagesOverride), [run]);
 
   /**
    * Same pipeline as generate(), but seeded from an asset already on screen:
@@ -536,7 +648,21 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           refreshRuns();
           // The finished mesh is a new asset; the shelf and the 3D node both
           // need it before "Open in 3D" can do anything.
-          api.listAssets().then((a) => a.length && setAssets(a));
+          api.listAssets().then((serverAssets) => {
+            if (serverAssets && serverAssets.length) {
+              setAssets((prev) => {
+                const ids = new Set(serverAssets.map((x) => x.id));
+                const merged = [...serverAssets, ...prev.filter((p) => !ids.has(p.id))];
+                try { localStorage.setItem('user_generated_assets', JSON.stringify(merged)); } catch {}
+                if (user?.uid) {
+                  for (const sa of serverAssets) {
+                    saveAssetToFirestore(sa, user.uid).catch(() => {});
+                  }
+                }
+                return merged;
+              });
+            }
+          });
         }
       } catch {
         /* transient — the next tick tries again */
@@ -604,35 +730,41 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const removeAsset = useCallback((id: string) => {
-    setAssets((p) => p.filter((a) => a.id !== id));
+    setAssets((p) => {
+      const next = p.filter((a) => a.id !== id);
+      try { localStorage.setItem('user_generated_assets', JSON.stringify(next)); } catch {}
+      return next;
+    });
     setActiveAsset((p) => (p && p.id === id ? null : p));
     api.deleteAsset(id).catch(() => {});
+    deleteAssetFromFirestore(id).catch((err) => {
+      console.warn('Firestore delete failed:', err);
+    });
   }, []);
 
   /**
-   * EXPLORE: every 3D project, then the gallery images nobody has built yet.
-   *
-   * It used to be the hand-off folder and nothing else, which made it a list of
-   * pictures on a page whose whole subject is meshes. A reference that has
-   * already produced a mesh is dropped here rather than shown twice — the mesh
-   * IS that reference, further along.
+   * EXPLORE: showcase 3D projects + any unbuilt inbox reference images.
+   * Completely separated from user-generated ASSETS.
    */
   const exploreAssets = useMemo(() => {
-    // A gallery image is "built" if anything points at it — as the reference a
-    // generation used, OR as the image a concept run started from.
-    const all3d = [...assets, ...EXPLORE_ASSETS];
-    const built = new Set(
-      all3d.flatMap((a) => [a.sourceRef, a.originRef]).filter(Boolean) as string[],
-    );
+    // Collect all references associated with already-built 3D showcase projects
+    const builtUrls = new Set<string>();
+    const builtFilenames = new Set<string>();
 
-    const public3d = all3d
+    for (const a of EXPLORE_ASSETS) {
+      for (const ref of [a.thumbUrl, a.sourceRef, a.originRef]) {
+        if (ref) {
+          builtUrls.add(ref);
+          const fname = ref.split('/').pop()?.toLowerCase();
+          if (fname) builtFilenames.add(fname);
+        }
+      }
+    }
+
+    const public3d = EXPLORE_ASSETS
       .filter((a) => a.modelUrl && a.visibility !== 'private')
       .sort((a, b) => b.createdAt - a.createdAt);
 
-    // Newest per project wins: the list is already newest-first, so the first
-    // time a key appears is the version to show. The rest are counted, not
-    // dropped silently — a card saying "4 versions" explains why the ASSET tab
-    // has more rows than EXPLORE.
     const counts = new Map<string, number>();
     for (const a of public3d) counts.set(projectKey(a), (counts.get(projectKey(a)) ?? 0) + 1);
 
@@ -645,9 +777,17 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       projects.push({ ...a, versions: counts.get(key) ?? 1 });
     }
 
-    const unbuilt = inboxCards.filter((c) => !c.thumbUrl || !built.has(c.thumbUrl));
+    // Filter out any inbox references that duplicate an existing showcase 3D model
+    const unbuilt = inboxCards.filter((c) => {
+      if (!c.thumbUrl) return false;
+      if (builtUrls.has(c.thumbUrl)) return false;
+      const fname = c.thumbUrl.split('/').pop()?.toLowerCase();
+      if (fname && builtFilenames.has(fname)) return false;
+      return true;
+    });
+
     return [...projects, ...unbuilt];
-  }, [assets, inboxCards]);
+  }, [inboxCards]);
 
   /** The static table is a guess; the server knows the device it will run on. */
   const estimate = useCallback((engine: EngineId, effort: string) => {
@@ -657,15 +797,20 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [health]);
 
   const price = useCallback(
-    (engine: EngineId) => health?.engines?.[engine]?.pricePerGen ?? 0,
-    [health],
+    (engine: EngineId) => generationPrice(pricing, engine, settings.texture,
+      usePipeline && geminiReady ? 1 : Math.max(1, images.filter((image) => image.file).length), settings.effort),
+    [pricing, settings.texture, settings.effort, images, usePipeline, geminiReady],
   );
 
   // A compare run bills both engines; a batch bills every result.
   const runCost = useMemo(() => {
-    const queue = compareQueue(settings);
-    return queue.reduce((sum, e) => sum + price(e) * settings.batch, 0);
-  }, [settings, price]);
+    // A concept pass chooses validated views at runtime and includes image/token
+    // usage, so no exact total can be promised before it completes.
+    if (usePipeline && geminiReady) return null;
+    const amounts = compareQueue(settings).map(price);
+    if (amounts.some((amount) => amount === null)) return null;
+    return amounts.reduce<number>((sum, amount) => sum + amount! * settings.batch, 0);
+  }, [settings, price, usePipeline, geminiReady]);
 
   const value = useMemo<StudioValue>(() => ({
     settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
@@ -676,12 +821,14 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     activeAsset, openAsset: setActiveAsset, closeAsset: () => setActiveAsset(null),
     comparison, openComparison: setComparison, closeComparison: () => setComparison(null),
     shelfTab, setShelfTab,
-    health, backendOnline: !!health, credits, estimate, price, runCost,
+    user, isGuest, authModalOpen, setAuthModalOpen,
+    health, pricing, showPricingDetails, setShowPricingDetails, backendOnline: !!health, credits, estimate, price, runCost,
   }), [settings, patch, images, addImages, addFromUrl, inbox, refreshInbox, removeImage, setDirection, clearImages,
       pipeline, pipelineRuns, geminiReady, usePipeline, startPipeline, openRun, closeRun, retryStage, repromptRun, deleteRun,
       job, notice, generate, regenerate,
       cancel, assets, exploreAssets, toggleLike, removeAsset, activeAsset, comparison, shelfTab,
-      health, credits, estimate, price, runCost]);
+      user, isGuest, authModalOpen,
+      health, pricing, showPricingDetails, credits, estimate, price, runCost]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };

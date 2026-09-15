@@ -4,6 +4,7 @@ import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
 import { Popover, Tip } from '../ui/primitives';
 import { AdvancedPanel } from './AdvancedPanel';
+import { usd } from '../../lib/pricing';
 import { elapsed } from '../../lib/format';
 
 const BATCHES = [1, 2, 4, 10];
@@ -25,7 +26,7 @@ const Ring: React.FC<{ value: number }> = ({ value }) => {
 
 export const ActionRow: React.FC = () => {
   const {
-    settings, patch, generate, cancel, job, images, runCost,
+    settings, patch, generate, cancel, job, images, runCost, showPricingDetails,
     usePipeline, geminiReady, startPipeline, pipeline,
   } = useStudio();
   const [advOpen, setAdvOpen] = useState(false);
@@ -65,7 +66,7 @@ export const ActionRow: React.FC = () => {
       {/* GENERATE -------------------------------------------------------- */}
       <div className="rd-generate-halo relative">
         <button
-          onClick={running ? cancel : viaPipeline ? startPipeline : generate}
+          onClick={running ? cancel : viaPipeline ? startPipeline : () => generate()}
           disabled={piping || (!ready && !running)}
           className={cn(
             'group relative flex h-[60px] w-[191px] items-center justify-center overflow-hidden rounded-full border transition-all duration-300',
@@ -111,7 +112,7 @@ export const ActionRow: React.FC = () => {
                 GENERATE
               </span>
               <span className="absolute inset-0 grid place-items-center text-[18px] font-bold text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                {runCost > 0 ? `$${runCost.toFixed(2)}` : 'Free · local'}
+                {!showPricingDetails ? 'GENERATE' : runCost == null ? 'See estimate below' : `~ ${usd(runCost)}`}
               </span>
             </>
           )}

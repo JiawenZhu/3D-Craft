@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import requests
+import httpx
 
 from ..config import FAL_KEY
 from .base import Progress
@@ -92,9 +92,9 @@ def pick_file(result: dict, *keys: str) -> str | None:
 def download(url: str, dest: Path) -> Path:
     """Copy a fal result into our own storage — their URLs are not permanent."""
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with requests.get(url, stream=True, timeout=180) as r:
+    with httpx.stream("GET", url, timeout=180) as r:
         r.raise_for_status()
         with dest.open("wb") as fh:
-            for chunk in r.iter_content(1 << 16):
+            for chunk in r.iter_bytes(1 << 16):
                 fh.write(chunk)
     return dest

@@ -43,13 +43,30 @@ HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
 # this process and never to fal directly.
 FAL_KEY = os.getenv("FAL_KEY")
 
-# Gemini — the concept stage that runs before the 3D engines. Server-side only.
+# Gemini / Vertex AI — the concept stage that runs before the 3D engines. Server-side only.
 # Never define this as VITE_GEMINI_API_KEY: Vite inlines VITE_* into the browser
 # bundle, which publishes the key to everyone who loads the page.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Google Cloud Vertex AI configuration
+VERTEX_PROJECT_ID = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or "forma-studio-2026"
+VERTEX_LOCATION = os.getenv("VERTEX_LOCATION") or os.getenv("GOOGLE_CLOUD_REGION") or "us-central1"
+VERTEX_API_KEY = os.getenv("VERTEX_API_KEY")
+USE_VERTEX_API = (
+    os.getenv("USE_VERTEX_API", "").lower() in ("1", "true", "yes")
+    or os.getenv("RODIN_USE_VERTEX", "").lower() in ("1", "true", "yes")
+    or bool(os.getenv("VERTEX_PROJECT_ID"))
+)
+
+# Production environment flag
+IS_PRODUCTION = (
+    os.getenv("RODIN_ENV", "").lower() in ("production", "prod")
+    or os.getenv("RODIN_PRODUCTION", "").lower() in ("1", "true", "yes")
+)
+
 # The planner writes every prompt the image model executes, so a weaker text
 # model degrades the concept and no amount of image quality rescues it.
-GEMINI_TEXT_MODEL = os.getenv("RODIN_GEMINI_TEXT_MODEL", "gemini-3.7-flash")
+GEMINI_TEXT_MODEL = os.getenv("RODIN_GEMINI_TEXT_MODEL", "gemini-3.8-flash")
 # The concept image sets the ceiling on the mesh — image-to-3D cannot recover
 # detail that was never rendered — so this defaults to the pro model.
 GEMINI_IMAGE_MODEL = os.getenv("RODIN_GEMINI_IMAGE_MODEL", "gemini-3-pro-image")
@@ -64,7 +81,8 @@ PROVIDER = os.getenv("RODIN_PROVIDER", "auto").lower()
 
 # fal endpoint ids, overridable so a new model version is a config change.
 FAL_ENDPOINTS = {
-    "trellis-2": os.getenv("RODIN_FAL_TRELLIS", "fal-ai/trellis"),
+    "trellis-2": os.getenv("RODIN_FAL_TRELLIS", "fal-ai/trellis-2"),
+    "trellis-multi": os.getenv("RODIN_FAL_TRELLIS_MULTI", "fal-ai/trellis-2/multi"),
     "hunyuan3d-2.1": os.getenv("RODIN_FAL_HUNYUAN", "fal-ai/hunyuan3d/v2"),
     "hunyuan3d-2.1-mv": os.getenv("RODIN_FAL_HUNYUAN_MV", "fal-ai/hunyuan3d/v2/multi-view"),
     "rodin": os.getenv("RODIN_FAL_RODIN", "fal-ai/hyper3d/rodin"),
@@ -72,11 +90,15 @@ FAL_ENDPOINTS = {
 
 # Published list price per generation, shown in the UI so cost is never a surprise.
 FAL_PRICES = {
-    "trellis-2": 0.02,
+    "trellis-2": 0.30,             # 1024p: 6 billing units at $0.05 each
     "hunyuan3d-2.1": 0.16,          # 0.48 when textured_mesh=True
     "hunyuan3d-2.1-textured": 0.48,
     "rodin": 0.40,
 }
+
+# Shared by the request adapter and quote; changing effort changes resolution cost.
+TRELLIS_RESOLUTIONS = {"extreme-low": 512, "low": 512, "medium": 1024, "high": 1024, "extreme-high": 1536}
+TRELLIS_PRICES = {512: .25, 1024: .30, 1536: .35}
 
 SPACES = {
     "hunyuan3d-2.1": os.getenv("RODIN_HUNYUAN_SPACE", "tencent/Hunyuan3D-2.1"),

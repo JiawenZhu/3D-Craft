@@ -124,3 +124,38 @@
   filter: blur(14px);
   pointer-events: none;
 }
+
+/* Shared with the native Emerald green palette. */
+:root {
+  --g-accent: linear-gradient(93deg, #D6F2E7, #68C2A0);
+  --g-accent-soft: linear-gradient(93deg, #D6F2E71a, #68C2A01a);
+  --g-text: linear-gradient(90deg, #9CDCC3, #68C2A0);
+  --g-engine: linear-gradient(93deg, #D6F2E7, #9CDCC3, #68C2A0);
+  --g-send: linear-gradient(107deg, #9CDCC3, #68C2A0);
+}
+.rd-accent-text { background-image: var(--g-text); }
+::selection { background: #68C2A066; }
+.craft-footer { position:relative; z-index:10; display:flex; gap:24px; flex-wrap:wrap; align-items:center; justify-content:space-between; padding:32px max(24px, calc((100vw - 1200px)/2)); font-size:13px; color:#9CDCC3; border-top:1px solid #68C2A033; }
+.craft-footer nav { display:flex; flex-wrap:wrap; gap:18px; }
+.craft-footer a:hover { text-decoration:underline; }
+.craft-legal { background:radial-gradient(ellipse at top left,#D6F2E7,transparent 60%),#F8FCFA; color:#123428; min-height:100vh; color-scheme:light; }
+.craft-legal header { max-width:1160px; margin:auto; padding:30px 24px; display:flex; justify-content:space-between; gap:24px; align-items:center; }
+.craft-legal header a { display:flex; align-items:center; gap:8px; font-size:14px; }
+.craft-legal header .craft-brand { font-size:22px; font-weight:750; color:#1C654D; }
+.craft-legal main { max-width:900px; margin:auto; padding:55px 24px 90px; }
+.craft-eyebrow { letter-spacing:.15em; color:#1C654D; font-size:11px; font-weight:700; }
+.craft-legal h1 { font-size:clamp(38px,6vw,64px); line-height:1.1; letter-spacing:-.045em; font-weight:750; margin:22px 0; }
+.craft-intro { color:#48685B; font-size:18px; line-height:1.7; max-width:680px; }
+.craft-toc { display:flex; flex-wrap:wrap; gap:10px; margin:36px 0 48px; }
+.craft-toc a { border:1px solid #9CDCC3; border-radius:24px; padding:8px 14px; font-size:13px; color:#1C654D; }
+.craft-toc a:hover { background:#D6F2E7; }
+.craft-legal section { display:flex; gap:22px; border-top:1px solid #9CDCC380; padding:30px 0; scroll-margin-top:24px; }
+.craft-section-number { color:#1C654D; font-size:12px; padding-top:7px; }
+.craft-legal h2 { font-size:23px; font-weight:650; margin-bottom:16px; letter-spacing:-.02em; }
+.craft-body { font-size:16px; line-height:1.85; color:#395B4C; overflow-wrap:anywhere; }
+.craft-body a { color:#1C654D; text-decoration:underline; text-underline-offset:3px; }
+.craft-body p { margin-top:16px; }
+.craft-contact { display:inline-flex; gap:10px; align-items:center; padding:14px 20px; border-radius:20px; background:#D6F2E7; font-weight:650; }
+.craft-legal .craft-footer { color:#1C654D; }
+a:focus-visible,button:focus-visible { outline:2px solid #68C2A0; outline-offset:4px; }
+@media(max-width:540px){.craft-legal header{padding:24px 18px}.craft-legal main{padding:30px 20px 60px}.craft-legal section{gap:12px}.craft-contact{padding:12px;font-size:14px}.craft-footer{padding:26px 20px}}

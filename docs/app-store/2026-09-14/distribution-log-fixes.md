@@ -1,0 +1,33 @@
+# Distribution validation fixes
+
+Source: `CraftStudio_2026-09-14_18-58-28.992.xcdistributionlogs` supplied by the developer. Historical logs are preserved unchanged.
+
+## Findings
+
+- **90474 — iPad multitasking orientations:** the rejected archive omitted upside-down portrait. `ios/project.yml` now supplies all four orientations under `UISupportedInterfaceOrientations~ipad`, retaining the existing iPhone orientations. XcodeGen regenerates the app's Info.plist from that source.
+- **90534 — unsupported SDK/Xcode:** the rejected archive was built with Xcode `27A5218g` and iOS SDK `24A5380g`, an early beta. Changing the archive metadata cannot fix this; create a new archive with an Apple-supported release or RC. Apple's release page lists Xcode 27 `27A266a` on September 14, 2026; the Mac App Store currently offers Xcode 26.6. The only locally installed Xcode at inspection was `/Applications/Xcode-beta.app`.
+- **Account access:** an initial App Store Connect account failure recovered at 23:59:10 UTC in the same log. Subsequent application lookup and validation succeeded in contacting Apple. This is not an app code issue; sign-in may need refreshing if it recurs.
+- **Version consistency:** the rejected archive recorded build `1`, despite the project build-number setting. The generated Info.plist now explicitly uses `$(CURRENT_PROJECT_VERSION)` and `$(MARKETING_VERSION)`, and the next build is `2026091403` / `1.0`.
+
+## Remaining distribution steps
+
+The Mac App Store download was cancelled, as requested by the user; no replacement Xcode was installed. Work continued through the CLI using the existing Xcode beta. A supported release/RC toolchain is still required to resolve error 90534; revalidating the same beta does not remove that restriction. Do not reuse or alter the previously rejected archive. This change does not establish overall App Review readiness; see `release-readiness.md` for independent product/backend blockers.
+
+References:
+- https://developer.apple.com/news/releases/
+- https://developer.apple.com/documentation/bundleresources/information-property-list/uisupportedinterfaceorientations
+
+## Additional build warnings
+
+- Marked the concurrent vote-read helper `@Sendable`.
+- Resolved the localized photo-picker label on the main actor before passing it into the picker label closure.
+- The optional App Intents metadata extraction notice is expected because this app has no App Intents dependency; no unrelated framework was added to hide that notice.
+
+## Verified CLI results
+
+- Release build: succeeded (`/tmp/craft-distribution-check.log`).
+- Signed archive: succeeded (`/tmp/CraftStudio-2026091403.xcarchive`).
+- Strict/deep code-signature validation: succeeded.
+- App Store distribution export: succeeded (`/tmp/CraftStudio-2026091403-export/CraftStudio.ipa`; log `/tmp/craft-distribution-export.log`).
+- Verified in archive and exported IPA: version 1.0, build 2026091403, four iPad orientations. Archive also includes AppIcon and https://3d-craft.web.app.
+- No new Apple server validation or upload was performed: the archive still reports the rejected beta toolchain 27A5218g / SDK 24A5380g. Local export success does not resolve error 90534.

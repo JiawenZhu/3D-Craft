@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "forma-studio-2026"
+  },
+  "targets": {
+    "forma-studio-2026": {
+      "hosting": {
+        "app": [
+          "3d-craft"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

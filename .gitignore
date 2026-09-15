@@ -12,6 +12,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+*.egg-info/
 .env
 .env.*
 *.glb
@@ -38,3 +39,24 @@ public/models/
 server/exports/
 # concept-pipeline runs: source photos, concept renders and run.json
 server/runs/
+
+# Godot import cache and generated browser exports
+games/**/.godot/
+public/games/forma/*
+!public/games/forma/.gitkeep
+
+# Native iOS local builds
+ios/.build/
+ios/.build-device/
+ios/**/xcuserdata/
+
+# Local service state, caches, and distribution packages
+.firebase/
+*.db
+*.db-shm
+*.db-wal
+ios/.build-test/
+*.xcarchive/
+*.ipa
+*.xcdistributionlogs/
+docs/app-store/*.zip

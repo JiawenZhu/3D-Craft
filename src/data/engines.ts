@@ -3,8 +3,8 @@ import type { Engine, EngineId } from '../types';
 export const ENGINES: Engine[] = [
   {
     id: 'hunyuan3d-2.1',
-    label: 'Hunyuan3D-2.1',
-    release: 'Hunyuan3D-2.1 (PBR)',
+    label: 'Hunyuan3D 2',
+    release: 'Hunyuan3D 2 · textured',
     vendor: 'Tencent',
     blurb:
       'Shape diffusion plus PBR texture synthesis. Its shape stage is the only part of either engine that runs natively off CUDA.',
@@ -16,12 +16,22 @@ export const ENGINES: Engine[] = [
     vramGb: 10,
   },
   {
+    id: 'hunyuan3d-2-white', label: 'Hunyuan 2 · White mesh',
+    release: 'Hunyuan 3D 2 · Shape only', vendor: 'Tencent',
+    blurb: 'Geometry without color or texture. Supports one image or front, back and left views of the same object.',
+    spaceUrl: 'https://fal.ai/models/fal-ai/hunyuan3d/v2',
+    repoUrl: 'https://github.com/Tencent-Hunyuan/Hunyuan3D-2',
+    effortSeconds: { 'extreme-low': 12, low: 24, medium: 45, high: 90, 'extreme-high': 170 },
+    supports: { textToImage: false, multiView: true, pbr: false, gaussianSplat: false, quadRemesh: true },
+    outputs: ['GLB'], vramGb: 10,
+  },
+  {
     id: 'trellis-2',
     label: 'TRELLIS.2',
-    release: 'TRELLIS.2 (SLAT)',
+    release: 'TRELLIS.2',
     vendor: 'Microsoft',
     blurb:
-      'Structured LATents: one latent decodes to a radiance field, 3D Gaussians and a mesh. Fast and multi-image native, but CUDA-only.',
+      'Provider-dependent: fal uses TRELLIS.2 with single or multi-image input; the hosted TRELLIS.2 Space accepts a single image. Check the provider endpoint for the actual version.',
     spaceUrl: 'https://huggingface.co/spaces/microsoft/TRELLIS.2',
     repoUrl: 'https://github.com/microsoft/TRELLIS',
     effortSeconds: { 'extreme-low': 6, low: 11, medium: 20, high: 38, 'extreme-high': 75 },
@@ -31,7 +41,7 @@ export const ENGINES: Engine[] = [
   },
   {
     id: 'rodin',
-    label: 'Rodin Gen-2',
+    label: 'Rodin (Ultra)',
     release: 'Hyper3D Rodin (API)',
     vendor: 'Deemos',
     blurb:
@@ -71,14 +81,14 @@ export const EFFORTS = [
 ] as const;
 
 export const TIPS = [
-  'Redos are free — nothing is charged until you confirm.',
-  'TRELLIS.2 is multi-image native: drop 2–4 views for a much cleaner back side.',
-  'Hunyuan3D-2.1 is the only one of the two with real PBR texture output.',
+  'Re-running a stage creates a new provider request and may incur a charge.',
+  'TRELLIS on fal accepts multiple consistent views. Conflicting views can reduce fidelity.',
+  'Compare the texture and gray model separately to locate shape and material defects.',
   'Need ultra-fast results? Drop the effort to Extreme-Low.',
   'RGBA image? The alpha channel is used as the mask automatically.',
   'Specify image directions via the direction bar to improve accuracy.',
   'Want clean, sharp surfaces without distractions? Use Zero mode.',
-  'Both engines run entirely on this machine — nothing leaves your GPU.',
-  'Hybrid pipes TRELLIS geometry into Hunyuan Paint for the sharpest result.',
-  'Quad remesh gives you animation-friendly topology at export time.',
+  'Remote providers process your reference images. Check the active provider in the status menu.',
+  'Review the silhouette from the back and sides before exporting your asset.',
+  'Inspect topology and materials in your game engine before rigging or shipping.',
 ];

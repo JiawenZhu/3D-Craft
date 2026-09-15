@@ -1,0 +1,46 @@
+{
+  "en-US": {
+    "name": {
+      "length": 8,
+      "limit": 30
+    },
+    "subtitle": {
+      "length": 28,
+      "limit": 30
+    },
+    "promotional_text": {
+      "length": 131,
+      "limit": 170
+    },
+    "description": {
+      "length": 1697,
+      "limit": 4000
+    },
+    "keywords": {
+      "length": 83,
+      "limit": 100
+    }
+  },
+  "zh-Hans": {
+    "name": {
+      "length": 8,
+      "limit": 30
+    },
+    "subtitle": {
+      "length": 15,
+      "limit": 30
+    },
+    "promotional_text": {
+      "length": 45,
+      "limit": 170
+    },
+    "description": {
+      "length": 515,
+      "limit": 4000
+    },
+    "keywords": {
+      "length": 79,
+      "limit": 100
+    }
+  }
+}

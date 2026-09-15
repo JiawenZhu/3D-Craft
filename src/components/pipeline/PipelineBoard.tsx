@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronRight, Clock, Trash2, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import { imageSrc } from '../../lib/api';
+import { directPipelineRecon, imageSrc, selectPipelineConcept } from '../../lib/api';
 import { useStudio } from '../../store/StudioContext';
 import { NodeCard } from './NodeCard';
 import type { PipelineStage } from '../../types';
@@ -19,38 +19,28 @@ import type { PipelineStage } from '../../types';
 
 /** The line between two nodes; it fills while the node after it is working. */
 const Connector: React.FC<{ active: boolean; done: boolean }> = ({ active, done }) => (
-  <div className="relative hidden h-[1px] w-full min-w-[14px] flex-1 items-center self-center lg:flex">
-    <span className="absolute inset-0 bg-white/10" />
-    <span
+  <div className="hidden items-center justify-center lg:flex lg:w-[14px]">
+    <div
       className={cn(
-        'absolute inset-y-0 left-0 transition-all duration-700',
-        done ? 'w-full bg-emerald-400/40' : active ? 'w-full bg-lilac/60' : 'w-0',
-      )}
-    />
-    <ChevronRight
-      className={cn(
-        'absolute -right-[3px] h-3 w-3 transition-colors',
-        done ? 'text-emerald-400/50' : active ? 'text-lilac/70' : 'text-white/15',
+        'h-[2px] w-full transition-colors duration-500',
+        done ? 'bg-emerald-400/40' : active ? 'bg-lilac animate-pulse' : 'bg-white/[0.06]',
       )}
     />
   </div>
 );
 
 export const PipelineBoard: React.FC = () => {
-  const {
-    pipeline, pipelineRuns, closeRun, openRun, retryStage, deleteRun, assets, openAsset,
-  } = useStudio();
+  const { pipeline, pipelineRuns, openRun, closeRun, retryStage, openAsset, assets, deleteRun } = useStudio();
   const [zoom, setZoom] = useState<{ url: string; caption: string } | null>(null);
 
-  // The mesh node knows its asset id; the workbench needs the asset itself.
-  const asset3d = useMemo(
-    () => (pipeline?.assetId ? assets.find((a) => a.id === pipeline.assetId) : undefined),
-    [pipeline?.assetId, assets],
-  );
+  const asset3d = useMemo(() => {
+    if (!pipeline?.assetId) return null;
+    return assets.find((a) => a.id === pipeline.assetId) ?? null;
+  }, [pipeline?.assetId, assets]);
 
-  if (!pipeline && pipelineRuns.length === 0) return null;
+  if (!pipeline) return null;
 
-  const settled = pipeline ? pipeline.status !== 'running' : true;
+  const settled = pipeline.status !== 'running';
 
   return (
     <section className="relative z-10 mx-auto mt-14 w-full max-w-[1180px] animate-riseIn px-6 sm:px-[76px]">
@@ -104,6 +94,20 @@ export const PipelineBoard: React.FC = () => {
                     onRetry={(stage: PipelineStage, prompt?: string) => retryStage(stage, prompt)}
                     onZoom={(url, caption) => setZoom({ url, caption })}
                     onOpen3D={asset3d ? () => openAsset(asset3d) : undefined}
+                    onSelectConcept={(url) => {
+                      selectPipelineConcept(pipeline.id, url)
+                        .then(() => openRun(pipeline.id))
+                        .catch(() => {});
+                    }}
+                    onDirectRecon={
+                      node.kind === 'source'
+                        ? () => {
+                            directPipelineRecon(pipeline.id)
+                              .then(() => openRun(pipeline.id))
+                              .catch(() => {});
+                          }
+                        : undefined
+                    }
                   />
                 </div>
                 {i < pipeline.nodes.length - 1 && (

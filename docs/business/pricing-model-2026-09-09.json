@@ -1,0 +1,40 @@
+{
+  "version": "proposal-2026-09-09-v1",
+  "currency": "USD",
+  "status": "Planning assumptions, not live products or provider invoices",
+  "token_name": "Craft Token",
+  "standard_workflow": {"concept_2k": 3, "model_standard": 1},
+  "reserve_fraction_of_gross": 0.05,
+  "operations": [
+    {"id":"concept_2k","label":"2K concept or image edit","tokens":15,"variable_cost":0.18,"release":"v1"},
+    {"id":"concept_4k","label":"4K concept or image edit","tokens":30,"variable_cost":0.32,"release":"quality-gated"},
+    {"id":"model_standard","label":"Standard textured 3D model","tokens":55,"variable_cost":0.60,"release":"v1"},
+    {"id":"model_hd","label":"HD textured 3D model","tokens":150,"variable_cost":1.50,"release":"quality-gated"},
+    {"id":"view_set_3","label":"Three additional consistent views","tokens":45,"variable_cost":0.54,"release":"quality-gated"},
+    {"id":"retopology","label":"Retopology","tokens":50,"variable_cost":0.42,"release":"future-not-for-sale"},
+    {"id":"rig","label":"Supported character auto rig","tokens":50,"variable_cost":0.36,"release":"future-not-for-sale"},
+    {"id":"animation","label":"One supported animation retarget","tokens":20,"variable_cost":0.144,"release":"future-not-for-sale"}
+  ],
+  "plans": [
+    {"id":"ios_starter","channel":"ios","name":"Starter Pack","price":3.99,"tokens":100,"period":"one-time","launch":"v1"},
+    {"id":"ios_weekly","channel":"ios","name":"Creator Weekly","price":7.99,"tokens":300,"period":"week","launch":"v1"},
+    {"id":"ios_weekly_plus","channel":"ios","name":"Creator Plus Weekly","price":9.99,"tokens":400,"period":"week","launch":"experiment-only"},
+    {"id":"ios_monthly","channel":"ios","name":"Creator Monthly","price":24.99,"tokens":1000,"period":"month","launch":"after-retention-validation"},
+    {"id":"web_starter","channel":"web","name":"Token 500","price":9.99,"tokens":500,"period":"one-time","launch":"v1"},
+    {"id":"web_creator","channel":"web","name":"Token 1300","price":24.99,"tokens":1300,"period":"one-time","launch":"v1"},
+    {"id":"web_studio","channel":"web","name":"Token 2700","price":49.99,"tokens":2700,"period":"one-time","launch":"v1"}
+  ],
+  "scenarios": [
+    {"id":"apple_15","channel":"ios","percentage_fee":0.15,"fixed_fee":0},
+    {"id":"apple_30","channel":"ios","percentage_fee":0.30,"fixed_fee":0},
+    {"id":"web_domestic_card","channel":"web","percentage_fee":0.029,"fixed_fee":0.30}
+  ],
+  "assumptions": [
+    "Operations include an assumed retry and technical variable cost allowance; these are not observed costs.",
+    "An additional 5% of gross price is reserved for aggregate refunds, customer support and other variable exposure, not an observed refund rate.",
+    "Taxes, FX, international card fees, acquisition, free-trial acquisition costs, salaries and fixed infrastructure are excluded.",
+    "Unused paid Tokens do not expire; model future full redemption instead of assuming breakage.",
+    "Worst-cost case uses a continuous maximum variable cost per Token bound, conservative when integer operations leave a remainder.",
+    "Future operations are indicative and must not appear as purchasable before implementation and qualification."
+  ]
+}

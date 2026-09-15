@@ -17,6 +17,8 @@ const make = (a: Partial<Asset> & Pick<Asset, 'name' | 'prompt' | 'seedShape' | 
     author: ['velozetetic', 'David Austin', 'Tiffany Hood', 'mynameisn', 'Muslim', 'plgasc', 'anoliss', 'Flix Mohanad', 'Zonafarm'][n % 9],
     visibility: 'public',
     local: false,
+    sourceRef: a.thumbUrl,
+    originRef: a.thumbUrl,
     ...a,
   };
 };
@@ -42,10 +44,16 @@ export const EXPLORE_ASSETS: Asset[] = [
     seedShape: 'vehicle',
     tint: '#EAB308',
     thumbUrl: '/images/explore/rodin_clean_taxi_1788235881061.jpg',
-    modelUrl: '/models/yellow_mini_car.glb',
-    engine: 'trellis-2',
+    modelUrl: '/models/yellow_mini_car.glb?v=20260909-rodin19',
+    engine: 'rodin',
     likes: 98,
-    faces: 42000
+    faces: 100621,
+    vertices: 57620,
+    meshes: 1,
+    materials: 1,
+    dimensions: [0.9299, 0.8113, 1.8968],
+    textureRes: 2048,
+    fileSizeMb: 12.21
   }),
   make({
     name: 'Baby Emerald Dragon',
@@ -75,10 +83,16 @@ export const EXPLORE_ASSETS: Asset[] = [
     seedShape: 'mech',
     tint: '#06B6D4',
     thumbUrl: '/images/explore/rodin_clean_mech.jpg',
-    modelUrl: '/models/spherical_robot.glb',
+    modelUrl: '/models/spherical_robot.glb?v=20260909-trellis2-23',
     engine: 'trellis-2',
     likes: 89,
-    faces: 32000
+    faces: 148403,
+    vertices: 132129,
+    fileSizeMb: 9.24,
+    textureRes: 4096,
+    meshes: 1,
+    materials: 1,
+    dimensions: [0.9586, 0.9958, 0.607]
   }),
   make({
     name: 'Japanese Ramen Stall Counter',
@@ -156,7 +170,76 @@ export const EXPLORE_ASSETS: Asset[] = [
     engine: 'hybrid',
     likes: 96,
     faces: 64000
-  })
+  }),
+  make({
+    name: 'Chibi Bunny Explorer',
+    prompt: 'A cute stylized 3D character model render of an adorable floppy-eared bunny child character wearing denim overalls, standing pose, glossy friendly eyes, isolated on pure solid black studio background, no background elements, soft rim lighting, Pixar 3D animated style 8k',
+    seedShape: 'figure',
+    tint: '#F97316',
+    thumbUrl: '/images/explore/rodin_rabbit_char_1788231840467.jpg',
+    modelUrl: '/models/rabbit_character.glb',
+    engine: 'trellis-2',
+    likes: 118,
+    faces: 44000
+  }),
+  make({
+    name: 'Fairytale Mushroom Cottage',
+    prompt: 'A magical fairytale mushroom cottage with warm glowing lantern windows, mossy forest base, isolated on pure solid black studio background, no background elements, studio rim lighting, 3D asset render 8k',
+    seedShape: 'prop',
+    tint: '#EC4899',
+    thumbUrl: '/images/explore/rodin_mushroom_house_1788235604516.jpg',
+    modelUrl: '/models/mushroom_house.glb',
+    engine: 'hybrid',
+    likes: 132,
+    faces: 49000
+  }),
+  make({
+    name: 'Floating Sky Sanctuary Island',
+    prompt: 'A stylized 3D diorama of a floating fantasy sky island with ancient shrine, waterfalls cascading into clouds, golden autumn trees, isolated on pure solid black studio background, octane render 8k',
+    seedShape: 'prop',
+    tint: '#38BDF8',
+    thumbUrl: '/images/explore/rodin_floating_island_1788235634873.jpg',
+    modelUrl: '/models/floating_island.glb',
+    engine: 'hybrid',
+    likes: 154,
+    faces: 58000
+  }),
+  make({
+    name: 'Neon Cyberpunk Ramen Bar',
+    prompt: 'A detailed 3D diorama of an authentic Japanese cyberpunk ramen bar stall with neon signs, glowing lanterns, wooden counter, isolated on pure solid black studio background, 8k render',
+    seedShape: 'prop',
+    tint: '#A855F7',
+    thumbUrl: '/images/explore/rodin_ramen_shop_1788235682953.jpg',
+    modelUrl: '/models/night_ramen_stall.glb',
+    engine: 'trellis-2',
+    likes: 140,
+    faces: 62000
+  }),
+  make({
+    "faces": 94108,
+    "vertices": 53192,
+    "meshes": 1,
+    "materials": 1,
+    "dimensions": [
+        1.241,
+        1.8996,
+        1.2557
+    ],
+    "textureRes": 2048,
+    "fileSizeMb": 10.37,
+    "id": "seed-lantern-cat",
+    "name": "Lantern Cat Adventurer",
+    "prompt": "Lantern Cat - original ginger tabby adventurer in embroidered teal travel jacket, one tail, full body",
+    "seedShape": "figure",
+    "tint": "#66c1b3",
+    "thumbUrl": "/images/explore/lantern_cat.png",
+    "modelUrl": "/models/lantern_cat.glb?v=20260909-rodin37",
+    "engine": "rodin",
+    "likes": 0,
+    "author": "you",
+    "sourceRef": "/images/explore/lantern_cat.png",
+    "originRef": "/images/explore/lantern_cat.png"
+})
 ];
 
 export const FILTERS = ['Featured', 'Newest', 'Most liked', 'Image to 3D', 'Text to 3D', 'Hunyuan3D', 'TRELLIS.2'] as const;

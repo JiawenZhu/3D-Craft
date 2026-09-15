@@ -1,0 +1,25 @@
+config_version=5
+
+[application]
+config/name="Forma Arcade"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+textures/vram_compression/import_etc2_astc=true
+textures/vram_compression/import_s3tc_bptc=true
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/default_filters/anisotropic_filtering_level=2
+anti_aliasing/quality/msaa_3d=2
+environment/defaults/default_clear_color=Color(0.83, 0.88, 0.9, 1)
+
+[physics]
+common/physics_ticks_per_second=60
+3d/physics_engine="GodotPhysics3D"

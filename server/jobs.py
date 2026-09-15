@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from . import engines
+from . import engines, thumbnails
 from .config import EXPORTS, STORAGE
 from .engines.base import GenRequest
 from .engines.common import mesh_stats
@@ -58,7 +58,7 @@ def _save_index(items: list[dict]) -> None:
 
 def list_assets() -> list[dict]:
     with _lock:
-        return _load_index()
+        return [thumbnails.decorate(asset) for asset in _load_index()]
 
 
 def delete_asset(asset_id: str) -> None:
@@ -109,6 +109,8 @@ def get_job(job_id: str) -> dict | None:
 
 def submit(engine_id: str, req: GenRequest, name_hint: str) -> str:
     engine = engines.get(engine_id)  # raises early on a bad id
+    if engine_id == "hunyuan3d-2-white":
+        req = GenRequest(**{**req.__dict__, "texture": False})
     job = Job(id=f"job-{uuid.uuid4().hex[:10]}", engine=engine_id, prompt=req.prompt)
     _jobs[job.id] = job
     _pool.submit(_run, job, engine, req, name_hint)
@@ -142,6 +144,7 @@ def _run(job: Job, engine, req: GenRequest, name_hint: str) -> None:
             stats = mesh_stats(result.mesh_path)
             asset = {
                 "id": asset_id,
+                "ownerId": "local",
                 "name": (name_hint or "Untitled asset")[:48],
                 "prompt": req.prompt or f"image → 3d ({engine.label})",
                 "engine": engine.id,
@@ -166,6 +169,9 @@ def _run(job: Job, engine, req: GenRequest, name_hint: str) -> None:
                 "provider": result.provider,
                 "note": result.note,
                 "sourceRef": req.source_ref,
+                "inputViews": len(req.images),
+                "inputDirections": req.directions,
+                "generationSettings": {k: v for k, v in per.__dict__.items() if k != "images"},
             }
             _record(asset)
             made.append(asset_id)

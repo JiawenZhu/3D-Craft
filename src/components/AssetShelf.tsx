@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { ChevronDown, RefreshCw, Search, X } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { useStudio } from '../store/StudioContext';
@@ -6,10 +6,12 @@ import { AssetCard } from './AssetCard';
 import { StoryRail } from './StoryRail';
 import type { Asset } from '../types';
 
+const GameHub = lazy(() => import('./games/GameHub').then(m => ({ default: m.GameHub })));
+
 const FILTERS = ['Featured', 'Newest', 'Most liked', 'Image to 3D', 'Text to 3D', 'Hunyuan3D', 'TRELLIS.2'] as const;
 
 export const AssetShelf: React.FC = () => {
-  const { assets, exploreAssets, shelfTab, setShelfTab, openAsset, toggleLike, addFromUrl, inbox, refreshInbox } = useStudio();
+  const { assets, exploreAssets, shelfTab, setShelfTab, openAsset, toggleLike, removeAsset, addFromUrl, inbox, refreshInbox } = useStudio();
   const [filter, setFilter] = useState<string>('Featured');
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -40,29 +42,30 @@ export const AssetShelf: React.FC = () => {
   }, [source, query, filter]);
 
   return (
-    <section className="relative z-10 mx-auto flex w-full max-w-[1500px] gap-4 px-6 pb-28 pt-20 sm:px-[76px]">
+    <section id="asset-shelf" style={{ scrollMarginTop: 80 }} className="relative z-10 mx-auto flex w-full max-w-[1500px] gap-4 px-6 pb-28 pt-20 sm:px-[76px]">
       <div className="min-w-0 flex-1">
       {/* header --------------------------------------------------------- */}
       <div className="mb-6 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-5">
-          {(['asset', 'explore'] as const).map((t) => (
+          {(['asset', 'explore', 'game'] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setShelfTab(t)}
+              onClick={() => { setShelfTab(t); if(t === 'game') requestAnimationFrame(() => document.getElementById('asset-shelf')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}
+              aria-pressed={shelfTab === t}
               className={cn(
-                'text-[26px] font-semibold uppercase tracking-[0.02em] transition-colors duration-300 sm:text-[30px]',
+                'text-[21px] font-semibold uppercase tracking-[0.02em] transition-colors duration-300 sm:text-[30px]',
                 shelfTab === t ? 'text-white' : 'text-white/25 hover:text-white/50',
               )}
             >
               {t}
               <span className="ml-2 align-middle text-[13px] font-normal text-white/25">
-                {t === 'asset' ? assets.length : exploreAssets.length}
+                {t === 'game' ? 5 : t === 'asset' ? assets.length : exploreAssets.length}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", shelfTab === 'game' && 'hidden')}>
           {shelfTab === 'explore' && (
             <button
               onClick={refreshInbox}
@@ -115,6 +118,7 @@ export const AssetShelf: React.FC = () => {
         </div>
       </div>
 
+      {shelfTab === 'game' ? <Suspense fallback={<p className="py-12 text-chalk-dim">Loading games…</p>}><GameHub /></Suspense> : <>
       <div className="mb-6">
         <span className="inline-flex items-center rounded-full border border-rose/30 px-3.5 py-1 text-[12px] text-rose" style={{ background: 'rgba(230,118,93,.08)' }}>
           {filter}
@@ -126,12 +130,12 @@ export const AssetShelf: React.FC = () => {
         <div className="grid h-64 place-items-center rounded-[28px] border border-dashed border-white/8 text-center">
           <div>
             <p className="text-[13px] text-chalk-dim">
-              {shelfTab === 'asset' ? 'Nothing generated yet.' : 'Nothing to explore yet.'}
+              {shelfTab === 'asset' ? 'No personal assets yet.' : 'Nothing in public explore yet.'}
             </p>
             <p className="mt-1 text-[11px] text-chalk-ghost">
               {shelfTab === 'asset'
-                ? 'Pick a starting point from EXPLORE, or drop your own image above.'
-                : 'Finished 3D projects land here, alongside any images dropped into public/images/explore/.'}
+                ? 'Your individual 3D creations appear here. Pick a starting reference from EXPLORE, or upload your own photo above.'
+                : 'Community 3D projects and public showcase models accessible to all users land here.'}
             </p>
           </div>
         </div>
@@ -142,6 +146,7 @@ export const AssetShelf: React.FC = () => {
               key={a.id}
               asset={a}
               onLike={toggleLike}
+              onDelete={shelfTab === 'asset' ? removeAsset : undefined}
               onOpen={(x) => {
                 if (x.isReference && x.thumbUrl) {
                   // Already turned into a mesh? Show the mesh. Otherwise load it
@@ -160,8 +165,9 @@ export const AssetShelf: React.FC = () => {
           ))}
         </div>
       )}
+      </>}
       </div>
-      <StoryRail />
+      {shelfTab !== 'game' && <StoryRail />}
     </section>
   );
 };

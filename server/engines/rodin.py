@@ -28,7 +28,7 @@ ESTIMATES = {"extreme-low": 15, "low": 25, "medium": 40, "high": 70, "extreme-hi
 
 class RodinEngine:
     id = "rodin"
-    label = "Rodin Gen-2"
+    label = "Rodin (Ultra)"
 
     def status(self) -> dict:
         ok, why = fal_api.available()
@@ -48,6 +48,8 @@ class RodinEngine:
             raise RuntimeError(f"Rodin is API-only and {why}. Set FAL_KEY and restart the server.")
         if not req.images and not req.prompt.strip():
             raise RuntimeError("Rodin needs an image or a prompt.")
+        if len(req.images) > 5:
+            raise ValueError("Rodin accepts at most five reference views. Remove extra images before generating.")
 
         urls: list[str] = []
         thumb_src: Path | None = None
@@ -60,7 +62,8 @@ class RodinEngine:
 
         args = {
             "prompt": req.prompt or "",
-            "condition_mode": "fuse" if len(urls) > 1 else "concat",
+            # These are views of ONE object; fuse invents a feature blend.
+            "condition_mode": "concat",
             "seed": (req.seed or 0) % 65_536,
             "geometry_file_format": "glb",
             "material": "PBR" if req.texture else "Shaded",

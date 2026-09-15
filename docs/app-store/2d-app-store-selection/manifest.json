@@ -1,0 +1,139 @@
+{
+  "selection": "Original 2D concept artwork and native gallery/concept screenshots only",
+  "excluded": [
+    "3D model view",
+    "lighting view",
+    "game brief view",
+    "AI-redrawn promotional phone inserts"
+  ],
+  "files": [
+    {
+      "path": "original-2d-art/lantern-explorer.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "8332f83caeca1c85da5d938debb2b8771a8afa1b3b5239ef74f530324b099dcb",
+      "unchanged_source": "server/storage/gallery-samples/lantern-explorer.png"
+    },
+    {
+      "path": "original-2d-art/cloud-dragon.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "36cbf2872abf40372a18fb4256990c28a05415bb1596564598deb8326ad643c8",
+      "unchanged_source": "server/storage/gallery-samples/cloud-dragon.png"
+    },
+    {
+      "path": "original-2d-art/moon-fox.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "79d2e7e80cd6be0825dc9c9baf3c1599b5d8c63544f30bd5ca1ee00f967962c2",
+      "unchanged_source": "server/storage/gallery-samples/moon-fox.png"
+    },
+    {
+      "path": "original-2d-art/moss-robot.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "041c956ab4fef303bc28920ef0dd3bd11ad41a81ee30f4fb79d1741150969330",
+      "unchanged_source": "server/storage/gallery-samples/moss-robot.png"
+    },
+    {
+      "path": "original-2d-art/panda-chef.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "3ef1bcd440dc1225e7a689ce1aa6d4ec24a7a2a545159fa9190a7061d63afc28",
+      "unchanged_source": "server/storage/gallery-samples/panda-chef.png"
+    },
+    {
+      "path": "original-2d-art/bunny-knight.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "acfc6c176b7bbf742a80a7e028226370c5b7f30aa224dd6f0598b756359d52ce",
+      "unchanged_source": "server/storage/gallery-samples/bunny-knight.png"
+    },
+    {
+      "path": "original-2d-art/coconut-island.png",
+      "kind": "original-2d-concept",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "d20fadf3c2277e92ff6edc9949fb4028e854252ff9b9a7be3ba5bb4266833835",
+      "unchanged_source": "server/storage/gallery-samples/coconut-island.png"
+    },
+    {
+      "path": "screenshots/iphone-6.9/01-discover.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 1320,
+      "height": 2868,
+      "sha256": "2bd85655e9f8ca9521f957d6f092922790c311ff5ce8ea2f01177ec88aca8edf",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/iphone-6.9/01-discover.png"
+    },
+    {
+      "path": "screenshots/iphone-6.9/04-concept.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 1320,
+      "height": 2868,
+      "sha256": "56390e13042b37b1d9324ff9126416d4d2608bb15dc904cddab54f1c978da868",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/iphone-6.9/04-concept.png"
+    },
+    {
+      "path": "screenshots/iphone-6.9/06-objects.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 1320,
+      "height": 2868,
+      "sha256": "15c64c4e50154fbdd494c47dd1d5b9507322d89294977c894e90f202c500aeec",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/iphone-6.9/06-objects.png"
+    },
+    {
+      "path": "screenshots/iphone-6.9/07-lavender.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 1320,
+      "height": 2868,
+      "sha256": "19937fedc4b8dfa71f90c2dcbe0870407254624eaaa668e0c99c32b48f4be578",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/iphone-6.9/07-lavender.png"
+    },
+    {
+      "path": "screenshots/ipad-13/01-discover.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 2064,
+      "height": 2752,
+      "sha256": "51e07bf729526e10bc66ddbd7723ff6384d322dba5a6b4ffdeac5ef87cc36ae0",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/ipad-13/01-discover.png"
+    },
+    {
+      "path": "screenshots/ipad-13/04-concept.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 2064,
+      "height": 2752,
+      "sha256": "16ec50a1f5513922c15890178c0b3468036da76f5f8b341ec041f8ab7a3e416b",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/ipad-13/04-concept.png"
+    },
+    {
+      "path": "screenshots/ipad-13/06-objects.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 2064,
+      "height": 2752,
+      "sha256": "5278039fb3ee55be611f4712a18b9dccec8d2c73c07c92e293d4f38c5e9ac7a2",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/ipad-13/06-objects.png"
+    },
+    {
+      "path": "screenshots/ipad-13/07-lavender.png",
+      "kind": "native-screen-with-2d-art",
+      "width": 2064,
+      "height": 2752,
+      "sha256": "2ee7bbf27084105332d3b85292a4cdcfe2b2b3d9138b7fd55bad83d86b2f53a2",
+      "unchanged_source": "docs/app-store/2026-09-12/screenshots/ipad-13/07-lavender.png"
+    },
+    {
+      "path": "branding/AppIcon-1024.png",
+      "kind": "app-icon",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "a6cc425fc83f56ff85da2ec2023cbff4b894a3fdf1a11cf3d0b1ac197470f8a4",
+      "unchanged_source": "docs/app-store/2026-09-12/branding/AppIcon-1024.png"
+    }
+  ]
+}

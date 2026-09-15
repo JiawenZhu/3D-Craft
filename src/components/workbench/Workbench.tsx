@@ -1,7 +1,8 @@
+import { usd } from '../../lib/pricing';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   ArrowLeft, Box, Camera, Copy, Download, Expand, Grid3x3, Heart, Info, Layers, Lightbulb,
-  Maximize2, RefreshCw, RotateCw, Trash2, Wand2, ZoomIn, ZoomOut, AlertTriangle,
+  Maximize2, RefreshCw, RotateCw, Trash2, Wand2, ZoomIn, ZoomOut, AlertTriangle, Gamepad2,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useStudio } from '../../store/StudioContext';
@@ -10,6 +11,8 @@ import { Popover, Slider, Tip } from '../ui/primitives';
 import { engineById } from '../../data/engines';
 import { API_BASE } from '../../lib/api';
 import { AssetThumb } from '../AssetThumb';
+import { AssetGameLauncher } from '../games/AssetGameLauncher';
+import { translator, type GameLocale } from '../games/i18n';
 import { ago, compact } from '../../lib/format';
 import type { LightTrim, StudioLight, ViewportShading } from '../../types';
 
@@ -37,7 +40,7 @@ const slug = (name: string) =>
 export const Workbench: React.FC = () => {
   const {
     activeAsset, closeAsset, assets, exploreAssets, openAsset, toggleLike, removeAsset,
-    patch, settings, regenerate, job, price, pipeline, repromptRun, geminiReady,
+    patch, settings, regenerate, job, price, pipeline, repromptRun, geminiReady, showPricingDetails,
   } = useStudio();
   const [shading, setShading] = useState<ViewportShading>('material');
   const [light, setLight] = useState<StudioLight>('studio');
@@ -45,6 +48,11 @@ export const Workbench: React.FC = () => {
   const [grid, setGrid] = useState(true);
   const [lightOpen, setLightOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
+  const [playingInGame, setPlayingInGame] = useState(false);
+  const [gameLocale,setGameLocale] = useState<GameLocale>(()=>{try{return localStorage.getItem('forma-game-language')==='zh'?'zh':'en';}catch{return 'en';}});
+  const gameText=translator(gameLocale);
+  const changeGameLocale=(value:GameLocale)=>{setGameLocale(value);try{localStorage.setItem('forma-game-language',value);}catch{}};
   const [infoOpen, setInfoOpen] = useState(true);
   const [trim, setTrim] = useState<LightTrim>({ directional: 1, environment: 1, exposure: 1 });
   const [reprompt, setReprompt] = useState('');
@@ -109,6 +117,7 @@ export const Workbench: React.FC = () => {
           >
             <Heart className={cn('h-4 w-4', a.liked && 'fill-current')} />
           </button>
+          <button onClick={()=>{setExportOpen(false);setGameOpen(true);}} disabled={!a.modelUrl} aria-label={gameText('在游戏中试玩')} title={!a.modelUrl?gameText('生成完成后，即可带进游戏。'):gameText('在游戏中试玩')} className="workbench-play-game flex shrink-0 items-center gap-2 rounded-full border border-lavender/35 bg-lavender/15 px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-lavender/25 disabled:cursor-not-allowed disabled:opacity-35"><Gamepad2 className="h-4 w-4"/><span>{gameText('在游戏中试玩')}</span></button>
           <div className="relative">
             <button
               onClick={() => setExportOpen((v) => !v)}
@@ -149,6 +158,8 @@ export const Workbench: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {gameOpen&&<AssetGameLauncher key={a.id} asset={a} locale={gameLocale} onLocaleChange={changeGameLocale} onPlayingChange={setPlayingInGame} onClose={()=>{setGameOpen(false);setPlayingInGame(false);}}/>}
 
       {/* body ----------------------------------------------------------- */}
       <div className="flex min-h-0 flex-1 gap-4 px-6 pb-6">
@@ -204,7 +215,7 @@ export const Workbench: React.FC = () => {
               <RefreshCw className={cn('h-3.5 w-3.5', busy && 'animate-spin')} />
               {busy ? 'Generating…'
                 : viaRun ? 'Re-prompt the concept'
-                  : `Regenerate · $${(price(a.engine)).toFixed(2)}`}
+                  : showPricingDetails ? `Regenerate · ${usd(price(a.engine))}` : 'Regenerate'}
             </button>
 
             {/* Concept runs report per-stage, not as one job. */}
@@ -259,9 +270,13 @@ export const Workbench: React.FC = () => {
             >
               <Copy className="h-3.5 w-3.5" /> Fork a copy
             </button>
-            {a.local && (
+            {(a.local || assets.some((x) => x.id === a.id)) && (
               <button
-                onClick={() => removeAsset(a.id)}
+                onClick={() => {
+                  if (window.confirm(`Delete "${a.name}"?`)) {
+                    removeAsset(a.id);
+                  }
+                }}
                 className="flex w-full items-center justify-center gap-2 rounded-full border border-red-500/20 py-2.5 text-[12px] text-red-400/80 transition-all hover:border-red-500/40 hover:text-red-300"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -272,7 +287,7 @@ export const Workbench: React.FC = () => {
 
         {/* centre: viewport --------------------------------------------- */}
         <main ref={stage} className="relative min-w-0 flex-1 overflow-hidden rounded-3xl border border-white/[0.07]">
-          <Viewport
+          {!playingInGame&&<Viewport
             ref={view}
             asset={a}
             shading={shading}
@@ -280,7 +295,7 @@ export const Workbench: React.FC = () => {
             autoRotate={autoRotate}
             showGrid={grid}
             trim={trim}
-          />
+          />}
 
           {/* model info, mirroring what any GLB viewer shows */}
           {infoOpen && (

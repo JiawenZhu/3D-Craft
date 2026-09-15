@@ -1,0 +1,61 @@
+{
+  "generator": "built-in image_gen",
+  "entries": [
+    {
+      "slug": "starlight-robe",
+      "name": "Starlight Robe",
+      "description": "A single wearable wizard robe game clothing asset, displayed as an invisible-body garment with NO visible mannequin. Deep muted purple knee-length coat with gold celestial embroidery, thick belt, broad hood, sleeves hanging naturally and a cream inner tunic. Entire standalone hollow garment visible, sculpted substantial cloth folds, no human or head or legs.",
+      "kind": "prop",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: A single wearable wizard robe game clothing asset, displayed as an invisible-body garment with NO visible mannequin. Deep muted purple knee-length coat with gold celestial embroidery, thick belt, broad hood, sleeves hanging naturally and a cream inner tunic. Entire standalone hollow garment visible, sculpted substantial cloth folds, no human or head or legs."
+    },
+    {
+      "slug": "ranger-outfit",
+      "name": "Ranger Outfit",
+      "description": "One cohesive game adventurer clothing outfit on invisible body with NO visible mannequin, teal cropped jacket over cream tunic, brown leather belt, attached charcoal baggy trousers, rolled cuffs. Entire complete outfit with sleeves and trouser legs, substantial cloth, refined stitched details, no head hands or feet.",
+      "kind": "prop",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: One cohesive game adventurer clothing outfit on invisible body with NO visible mannequin, teal cropped jacket over cream tunic, brown leather belt, attached charcoal baggy trousers, rolled cuffs. Entire complete outfit with sleeves and trouser legs, substantial cloth, refined stitched details, no head hands or feet."
+    },
+    {
+      "slug": "sunforge-helmet",
+      "name": "Sunforge Helmet",
+      "description": "One charming fantasy knight helmet game equipment, satin ivory metal with broad gold trim and teal crest, large friendly T-shaped opening, rounded sturdy silhouette, full helmet sitting flat, detailed thickness at openings, no head or stand.",
+      "kind": "prop",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: One charming fantasy knight helmet game equipment, satin ivory metal with broad gold trim and teal crest, large friendly T-shaped opening, rounded sturdy silhouette, full helmet sitting flat, detailed thickness at openings, no head or stand."
+    },
+    {
+      "slug": "trail-boots",
+      "name": "Trail Boots",
+      "description": "A matching pair of premium fantasy adventure boots game gear, warm russet leather ankle boots with cream fleece cuffs, chunky soles, brass buckles, short laces, both boots touching side by side slightly staggered as a single composition, sturdy beautiful sculpted detail, no legs.",
+      "kind": "prop",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: A matching pair of premium fantasy adventure boots game gear, warm russet leather ankle boots with cream fleece cuffs, chunky soles, brass buckles, short laces, both boots touching side by side slightly staggered as a single composition, sturdy beautiful sculpted detail, no legs."
+    },
+    {
+      "slug": "bunny-knight",
+      "name": "Bunny Knight",
+      "description": "An adorable white rabbit knight standing fullbody, expressive brown eyes, large upright ears, polished ivory armor with tiny gold trim, sage cape, sturdy paws, friendly adventurous character. No weapon in hands, charming stylized proportions, sculpted fur.",
+      "kind": "character",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: An adorable white rabbit knight standing fullbody, expressive brown eyes, large upright ears, polished ivory armor with tiny gold trim, sage cape, sturdy paws, friendly adventurous character. No weapon in hands, charming stylized proportions, sculpted fur."
+    },
+    {
+      "slug": "panda-chef",
+      "name": "Panda Chef",
+      "description": "An adorable chubby panda chef standing fullbody, small white chef hat, sage apron over cream shirt, brown belt, friendly expressive eyes, one sturdy wooden spoon held close to body. Sculpted fur clumps, rounded paws, charming game character proportions.",
+      "kind": "character",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: An adorable chubby panda chef standing fullbody, small white chef hat, sage apron over cream shirt, brown belt, friendly expressive eyes, one sturdy wooden spoon held close to body. Sculpted fur clumps, rounded paws, charming game character proportions."
+    },
+    {
+      "slug": "star-skiff",
+      "name": "Star Skiff",
+      "description": "A charming small retro-futurist personal spaceship game vehicle, ivory and lavender rounded hull, teal glass cockpit canopy, two stout attached side engines, small landing feet, brass accent rings, complete spaceship shown at elevated front threequarter angle, no pilot, no effects.",
+      "kind": "vehicle",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: A charming small retro-futurist personal spaceship game vehicle, ivory and lavender rounded hull, teal glass cockpit canopy, two stout attached side engines, small landing feet, brass accent rings, complete spaceship shown at elevated front threequarter angle, no pilot, no effects."
+    },
+    {
+      "slug": "treasure-chest",
+      "name": "Treasure Chest",
+      "description": "A premium whimsical fantasy treasure chest game prop, warm carved walnut wood, broad gold bands and teal enamel details, sturdy lid partly open revealing large golden coins and a few faceted gems contained inside the chest. Solid integrated silhouette, no scattered external objects, entire chest visible.",
+      "kind": "prop",
+      "prompt": "Use case: stylized-concept. Generate one square premium stylized 3D game asset concept render for an image-to-3D reconstruction workflow. Pale mint-white seamless studio background, broad soft studio side lights with gentle fill and a subtle grounding shadow. Clean readable silhouette, beautiful sculpted surfaces and substantial coherent geometry. One asset composition, all subject fully visible with at least 12% margin on every side. Restrained premium game-art materials, realistic soft illumination, charming polished forms. Three-quarter view unless subject specifies otherwise. No collage, no multiple views, no interface, no text, no watermark, no display stand, no visible mannequin, no unrelated objects. Subject: A premium whimsical fantasy treasure chest game prop, warm carved walnut wood, broad gold bands and teal enamel details, sturdy lid partly open revealing large golden coins and a few faceted gems contained inside the chest. Solid integrated silhouette, no scattered external objects, entire chest visible."
+    }
+  ]
+}

@@ -1,8 +1,19 @@
+import { auth } from './firebase';
 import type {
-  Asset, GenerationSettings, Job, PipelineRun, PipelineStage, PipelineSummary, RefImage,
+  Asset, ConceptSetResult, GenerationSettings, Job, PipelineRun, PipelineStage, PipelineSummary, RefImage,
 } from '../types';
 
-export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000';
+export const API_BASE = "https://3d-craft.web.app";
+
+export async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  await auth.authStateReady();
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) throw new Error('Sign in to your 3D Craft account.');
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${await user.getIdToken()}`);
+  return fetch(input, { ...init, headers });
+}
+
 
 export interface EngineHealth {
   installed: boolean;
@@ -31,6 +42,38 @@ const timeout = (ms: number) => {
   return c.signal;
 };
 
+export interface ModelPrice {
+  name: string;
+  unitUsd: number | null;
+  texturedUsd?: number;
+  effortUsd?: Record<string, number>;
+  effortTexturedUsd?: Record<string, number>;
+  multiUnitUsd?: number | null;
+  multiTexturedUsd?: number | null;
+  highPackUsd?: number;
+  fourKUsd?: number;
+  unit: 'generation' | 'image' | 'tokens' | 'account' | 'unknown';
+  inputPerMillion?: number;
+  outputPerMillion?: number;
+  note: string;
+  noteZh: string;
+  source: string;
+}
+export interface PricingCatalog {
+  currency: 'USD';
+  verifiedAt: string;
+  models: Record<string, ModelPrice>;
+}
+
+export async function getPricing(): Promise<PricingCatalog | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/pricing`, { signal: timeout(5000) });
+    if (!response.ok) return null;
+    const result = await response.json() as PricingCatalog;
+    return result.currency === 'USD' && result.models ? result : null;
+  } catch { return null; }
+}
+
 export async function getHealth(): Promise<Health | null> {
   try {
     const r = await fetch(`${API_BASE}/api/health`, { signal: timeout(2500) });
@@ -52,13 +95,13 @@ export async function submitJob(settings: GenerationSettings, images: RefImage[]
     fd.append('images', img.file, img.name);
     fd.append('directions', img.direction);
   });
-  const r = await fetch(`${API_BASE}/api/generate`, { method: 'POST', body: fd });
+  const r = await authenticatedFetch(`${API_BASE}/api/generate`, { method: 'POST', body: fd });
   if (!r.ok) throw new Error(`generate failed: ${r.status} ${await r.text()}`);
   return r.json();
 }
 
 export async function getJob(id: string): Promise<Job & { assets: Asset[] }> {
-  const r = await fetch(`${API_BASE}/api/jobs/${id}`);
+  const r = await authenticatedFetch(`${API_BASE}/api/jobs/${id}`);
   if (!r.ok) throw new Error(`job ${id}: ${r.status}`);
   return r.json();
 }
@@ -87,7 +130,7 @@ export const imageSrc = (url?: string) =>
 /** Reference images handed over by the image/animation side. */
 export async function listInbox(): Promise<InboxImage[]> {
   try {
-    const r = await fetch(`${API_BASE}/api/inbox`, { signal: timeout(3000) });
+    const r = await authenticatedFetch(`${API_BASE}/api/inbox`, { signal: timeout(3000) });
     if (!r.ok) return [];
     return await r.json();
   } catch {
@@ -97,7 +140,7 @@ export async function listInbox(): Promise<InboxImage[]> {
 
 export async function listAssets(): Promise<Asset[]> {
   try {
-    const r = await fetch(`${API_BASE}/api/assets`, { signal: timeout(3000) });
+    const r = await authenticatedFetch(`${API_BASE}/api/assets`, { signal: timeout(3000) });
     if (!r.ok) return [];
     return await r.json();
   } catch {
@@ -106,7 +149,7 @@ export async function listAssets(): Promise<Asset[]> {
 }
 
 export async function deleteAsset(id: string): Promise<void> {
-  await fetch(`${API_BASE}/api/assets/${id}`, { method: 'DELETE' });
+  await authenticatedFetch(`${API_BASE}/api/assets/${id}`, { method: 'DELETE' });
 }
 
 export const absolute = (url?: string) => {
@@ -132,7 +175,7 @@ export async function startPipeline(
   if (image?.file) fd.append('image', image.file, image.name);
   if (image?.sourceUrl) fd.append('sourceRef', image.sourceUrl);
 
-  const r = await fetch(`${API_BASE}/api/pipelines`, { method: 'POST', body: fd });
+  const r = await authenticatedFetch(`${API_BASE}/api/pipelines`, { method: 'POST', body: fd });
   if (!r.ok) {
     // FastAPI puts the reason in {detail}; surfacing it is the difference
     // between "503" and "GEMINI_API_KEY not set".
@@ -144,14 +187,14 @@ export async function startPipeline(
 }
 
 export async function getPipeline(id: string): Promise<PipelineRun> {
-  const r = await fetch(`${API_BASE}/api/pipelines/${id}`);
+  const r = await authenticatedFetch(`${API_BASE}/api/pipelines/${id}`);
   if (!r.ok) throw new Error(`run ${id}: ${r.status}`);
   return r.json();
 }
 
 export async function listPipelines(): Promise<PipelineSummary[]> {
   try {
-    const r = await fetch(`${API_BASE}/api/pipelines`, { signal: timeout(3000) });
+    const r = await authenticatedFetch(`${API_BASE}/api/pipelines`, { signal: timeout(3000) });
     if (!r.ok) return [];
     return await r.json();
   } catch {
@@ -164,10 +207,43 @@ export async function retryPipeline(id: string, stage: PipelineStage, prompt?: s
   const fd = new FormData();
   fd.append('stage', stage);
   if (prompt !== undefined) fd.append('prompt', prompt);
-  const r = await fetch(`${API_BASE}/api/pipelines/${id}/retry`, { method: 'POST', body: fd });
+  const r = await authenticatedFetch(`${API_BASE}/api/pipelines/${id}/retry`, { method: 'POST', body: fd });
   if (!r.ok) throw new Error(`retry failed: ${r.status}`);
 }
 
 export async function deletePipeline(id: string): Promise<void> {
-  await fetch(`${API_BASE}/api/pipelines/${id}`, { method: 'DELETE' });
+  await authenticatedFetch(`${API_BASE}/api/pipelines/${id}`, { method: 'DELETE' });
+}
+
+export async function generateConceptSet(
+  image?: File | Blob | null,
+  imageUrl?: string | null,
+  prompt: string = '',
+  count: number = 4,
+): Promise<ConceptSetResult> {
+  const fd = new FormData();
+  if (image) fd.append('image', image, 'upload.png');
+  if (imageUrl) fd.append('image_url', imageUrl);
+  fd.append('prompt', prompt);
+  fd.append('count', String(count));
+
+  const r = await authenticatedFetch(`${API_BASE}/api/concept-set`, { method: 'POST', body: fd });
+  if (!r.ok) {
+    let why = `${r.status}`;
+    try { why = (await r.json()).detail ?? why; } catch { /* keep status */ }
+    throw new Error(why);
+  }
+  return r.json();
+}
+
+export async function selectPipelineConcept(runId: string, imageUrl: string): Promise<void> {
+  const fd = new FormData();
+  fd.append('image_url', imageUrl);
+  const r = await authenticatedFetch(`${API_BASE}/api/pipelines/${runId}/select-concept`, { method: 'POST', body: fd });
+  if (!r.ok) throw new Error(`select concept failed: ${r.status}`);
+}
+
+export async function directPipelineRecon(runId: string): Promise<void> {
+  const r = await authenticatedFetch(`${API_BASE}/api/pipelines/${runId}/direct-recon`, { method: 'POST' });
+  if (!r.ok) throw new Error(`direct recon failed: ${r.status}`);
 }

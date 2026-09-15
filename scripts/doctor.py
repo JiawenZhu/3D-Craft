@@ -15,7 +15,7 @@ def line(ok: bool | None, label: str, detail: str = "") -> None:
     print(f"  {mark} {label:<26} {DIM}{detail}{OFF}")
 
 
-print("\nRodin 3D Studio — environment\n")
+print("\n3D Craft — environment\n")
 
 print(" runtime")
 line(True, "python", sys.version.split()[0])
