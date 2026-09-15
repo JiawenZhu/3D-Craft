@@ -930,6 +930,9 @@ struct WalletView: View {
         switch kind {
         case "reserve": return store.t("Generation reservation · not an extra charge", "生成预留 · 非额外扣费")
         case "settle": return store.t("Completed generation · final cost", "生成结算 · 最终消耗")
+        case "planning_reservation": return store.t("Tokens reserved for prompt improvement", "优化描述预留 Tokens")
+        case "planning_complete": return store.t("Prompt ready · unused Tokens returned", "描述已优化 · 已退回未使用 Tokens")
+        case "planning_refund": return store.t("Unused planning Tokens returned", "已退回未使用的规划 Tokens")
         case "generation_reservation": return store.t("Tokens reserved for generation", "生成任务预留 Tokens")
         case "generation_complete": return store.t("3D completed · reserved Tokens used", "3D 已完成 · 已使用预留 Tokens")
         case "generation_refund": return store.t("Unused generation Tokens returned", "已退回未使用的生成 Tokens")

@@ -16,6 +16,9 @@ from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
 from .firebase_projects import CloudProjects, MAX_BYTES
 from .firebase_model_jobs import CloudModelJobs, ModelRequest
+from .firebase_planning import CloudPlanning, PromptRequest
+from . import cloud_planner_provider
+import time
 from .firebase_community import CloudCommunity, Submission, Vote, Report, GameLink, Category
 from . import cloud_model_provider, pricing
 from pydantic import BaseModel, Field
@@ -60,6 +63,34 @@ def model_ready():
 def generate_model(concept_id: str, body: ModelRequest, account=Depends(owner)):
     if not model_ready(): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
     return public_shape(CloudModelJobs(studio()).create(account,concept_id,body),account)
+
+
+def planning_ready():
+    return os.getenv('CRAFT_PLANNING_ENABLED') == '1'
+
+
+@app.get('/api/mobile/planning/quote')
+def planning_quote(account=Depends(owner)):
+    if not planning_ready(): raise HTTPException(503, 'Cloud prompt improvement is temporarily unavailable.')
+    return cloud_planner_provider.quote(time.time())
+
+
+@app.post('/api/mobile/concepts/{concept_id}/model-prompt')
+def improve_prompt(concept_id: str, body: PromptRequest, account=Depends(owner)):
+    if not planning_ready(): raise HTTPException(503, 'Cloud prompt improvement is temporarily unavailable. No Tokens were charged.')
+    return CloudPlanning(studio()).create(account, concept_id, body)
+
+
+@app.get('/api/mobile/planning/{job_id}')
+def planning_result(job_id: str, account=Depends(owner)):
+    return CloudPlanning(studio()).get(account, job_id)
+
+
+@app.post('/internal/planning/{uid}/{job_id}')
+def planning_worker(uid: str, job_id: str, authorization: str = Header(default=''),
+                    x_craft_queued_at: int | None = Header(default=None)):
+    verify_worker(authorization)
+    return CloudPlanning(studio()).run(uid, job_id, x_craft_queued_at)
 
 
 @app.get('/api/mobile/pricing')

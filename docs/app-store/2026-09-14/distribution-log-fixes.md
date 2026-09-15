@@ -43,3 +43,7 @@ The supplied `CraftStudio_2026-09-14_19-43-55.194.xcdistributionlogs` reports th
 - The Default workflow now has an Archive action using scheme CraftStudio and App Store Connect distribution preparation (`testFlightExternalAndAppStore`). It retains the existing device-build action.
 - Cloud Build 3 (`56636a8a-4ec9-487d-880b-6d6d0a0508cc`) succeeded at 2026-09-15 00:56:56 UTC, with zero errors/warnings. Apple processed the uploaded binary as version 1.0 build 3, with state VALID and audience APP_STORE_ELIGIBLE. Build ID `d423e311-2ff4-4b24-8ae9-e7f33697ba96` was attached and saved to version 1.0; the relationship was then verified through App Store Connect. Xcode Cloud assigns build number 3, replacing the local project build number in this cloud artifact.
 - No replacement Xcode was downloaded. Cloud build success does not establish the independent backend and product acceptance requirements in `release-readiness.md`.
+
+## Latest verified distribution
+
+Xcode Cloud Build 8, source `aa025ed2cb004510c238e46779426afdba324725`, passed Build and Archive with zero errors and warnings. Apple processed it as VALID / APP_STORE_ELIGIBLE. Build `2d66a048-88b3-45f8-98bf-78705c10d98b` is attached to version 1.0 and the saved relationship was read back successfully. The historical 19:43 validation errors 90474 and 90534 were reconfirmed in the supplied log; the accepted cloud build supersedes that old archive. No new Xcode download was needed. This does not mean the app has been submitted or approved.

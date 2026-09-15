@@ -26,6 +26,7 @@ struct ModelGenerationSheet: View {
     @State private var modelPrompt = ""
     @FocusState private var promptFocused: Bool
     @State private var improvingPrompt = false
+    @State private var promptMaxTokens: Int?
     @State private var promptSuggestion: String?
     @State private var promptImprovementError: String?
     @State private var promptTask: Task<Void, Never>?
@@ -107,6 +108,13 @@ struct ModelGenerationSheet: View {
         .craftFeedback(.primaryAction, trigger: submitCount)
         .craftFeedback(.modelReady, trigger: imageReady)
         .craftAmbientHost()
+        .task(id: store.plannerModelID) {
+            promptMaxTokens = nil
+            promptImprovementError = nil
+            if modelPrompt.isEmpty, let pending = store.pendingModelPromptText(concept.id) { modelPrompt = pending }
+            do { promptMaxTokens = try await store.modelPromptQuote() }
+            catch { promptImprovementError = error.localizedDescription }
+        }
         .onDisappear { promptTask?.cancel() }
     }
 
@@ -295,18 +303,19 @@ struct ModelGenerationSheet: View {
                 }.font(.caption)
                 PlannerModelPicker().disabled(improvingPrompt)
                 Button {
+                    guard let promptMaxTokens else { return }
                     promptFocused = false
                     improvingPrompt = true; promptImprovementError = nil; promptSuggestion = nil
                     let original = modelPrompt
                     promptTask = Task { @MainActor in
                         defer { improvingPrompt = false }
                         do {
-                            let suggestion = try await store.improveModelPrompt(concept, text: original)
+                            let suggestion = try await store.improveModelPrompt(concept, text: original, maxTokens: promptMaxTokens)
                             guard !Task.isCancelled else { return }
                             promptSuggestion = suggestion
                         } catch {
                             guard !Task.isCancelled else { return }
-                            promptImprovementError = t("Couldn’t improve the prompt with this model. Your text is unchanged. You can try again or write it yourself.", "此模型暂时无法优化描述，原文保持不变。你可以重试或自己编辑。")
+                            promptImprovementError = error.localizedDescription
                         }
                     }
                 } label: {
@@ -314,8 +323,12 @@ struct ModelGenerationSheet: View {
                         if improvingPrompt { ProgressView() }
                         Label(improvingPrompt ? t("Improving prompt…", "正在优化描述……") : t("Improve with AI", "用 AI 优化描述"), systemImage: "sparkles")
                     }
-                }.disabled(improvingPrompt || !imageReady || modelPrompt.unicodeScalars.count > 4000)
+                }.disabled(improvingPrompt || promptMaxTokens == nil || !imageReady || modelPrompt.unicodeScalars.count > 4000)
                     .accessibilityIdentifier("modelImprovePrompt")
+                if let promptMaxTokens {
+                    Text(t("Up to \(promptMaxTokens) Tokens · charged by actual usage; unused reservation returned.", "最多 \(promptMaxTokens) Token · 按实际用量结算，未使用的预留会退回。"))
+                        .font(.caption).foregroundStyle(appearance.ink)
+                }
                 Text(t("Uses your selected planning model and this image. Review the suggestion before using it. This does not start 3D generation.", "使用你选择的规划模型和这张图片。请先检查建议再采用，不会自动开始 3D 生成。"))
                     .font(.caption).foregroundStyle(.secondary)
                 if let promptImprovementError { Text(promptImprovementError).font(.caption).foregroundStyle(coral) }

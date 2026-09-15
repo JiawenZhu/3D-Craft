@@ -189,7 +189,7 @@ struct PendingGeneration: Codable, Equatable {
             case .notConnectedToInternet, .networkConnectionLost:
                 connectionNotice = t("Connection lost. Check Wi-Fi; your creations are saved.", "连接已断开，请检查 Wi-Fi。作品已保存。")
             case .cannotConnectToHost, .cannotFindHost, .timedOut:
-                connectionNotice = t("Studio unavailable. Keep your Mac awake and use the same Wi-Fi.", "工作室暂不可用。请保持 Mac 唤醒并连接相同 Wi-Fi。")
+                connectionNotice = t("The cloud studio is unavailable. Check your internet connection and try again.", "云端工作室暂不可用。请检查网络连接后重试。")
             case .appTransportSecurityRequiresSecureConnection:
                 connectionNotice = t("This server needs a secure connection. Check the address in Profile.", "此服务需要安全连接，请在我的页面检查地址。")
             default: connectionNotice = t("Couldn’t reach the cloud studio. Check your internet connection and try again.", "无法连接云端工作室，请检查互联网连接后重试。")
@@ -307,8 +307,8 @@ struct PendingGeneration: Codable, Equatable {
         draftPrompt = ""; saveDraftImage(nil)
         UserDefaults.standard.removeObject(forKey: "craftActiveConversation:" + apiBase)
         if let uid = CraftAccount.shared.uid {
-            let prefix = "craftPendingUpload:" + uid + ":"
-            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+            let prefixes = ["craftPendingUpload:", "craft.promptDraft:", "craft.promptRequest:"].map { $0 + uid + ":" }
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where prefixes.contains(where: { key.hasPrefix($0) }) {
                 UserDefaults.standard.removeObject(forKey: key)
             }
         }
@@ -665,14 +665,79 @@ struct PendingGeneration: Codable, Equatable {
         if let modelPrompt { payload["modelPrompt"] = modelPrompt }
         return payload
     }
-    func improveModelPrompt(_ concept: CraftConcept, text: String) async throws -> String {
-        guard plannerIsReady() else { throw CraftError(message: error ?? t("Choose an available planning model.", "请选择可用的规划模型。")) }
-        let result = try await request("/concepts/\(concept.id)/model-prompt", method: "POST",
-            body: ["prompt": text, "plannerModel": plannerModelID, "plannerEffort": plannerEffort]) as? [String:Any]
-        guard let prompt = result?["prompt"] as? String, !prompt.isEmpty, prompt.unicodeScalars.count <= 800 else {
-            throw CraftError(message: t("No usable prompt was returned. Your text is unchanged.", "未收到可用的描述，原文保持不变。"))
+    private func promptDraftKey(_ conceptID: String) -> String? {
+        guard let uid = CraftAccount.shared.uid else { return nil }
+        return "craft.promptDraft:" + uid + ":" + apiBase + ":" + conceptID
+    }
+    func pendingModelPromptText(_ conceptID: String) -> String? {
+        guard let key = promptDraftKey(conceptID),
+              let draft = UserDefaults.standard.dictionary(forKey: key),
+              draft["plannerModel"] as? String == plannerModelID else { return nil }
+        return draft["prompt"] as? String
+    }
+    func modelPromptQuote() async throws -> Int {
+        guard plannerModelID == CraftPlannerModel.defaultID else {
+            throw CraftError(message: t("This account-connected model is not yet available in the cloud.", "此账户关联模型暂未在云端开放。"))
         }
-        return prompt
+        let quote = try await request("/planning/quote") as? [String: Any]
+        guard let cost = quote?["maxTokens"] as? Int, cost > 0,
+              quote?["model"] as? String == plannerModelID else {
+            throw CraftError(message: t("The planning price is unavailable. Try again later.", "暂时无法获取规划价格，请稍后重试。"))
+        }
+        return cost
+    }
+    func improveModelPrompt(_ concept: CraftConcept, text: String, maxTokens: Int) async throws -> String {
+        guard let uid = CraftAccount.shared.uid, plannerModelID == CraftPlannerModel.defaultID else {
+            throw CraftError(message: t("Sign in and select an available cloud planning model.", "请登录并选择可用的云端规划模型。"))
+        }
+        let endpoint = apiBase
+        let fields: [String: Any] = ["prompt": text, "plannerModel": plannerModelID,
+            "plannerEffort": plannerEffort, "maxTokens": maxTokens]
+        let signature = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
+        let digest = SHA256.hash(data: signature).map { String(format: "%02x", $0) }.joined()
+        let key = "craft.promptRequest:" + uid + ":" + endpoint + ":" + concept.id + ":" + digest
+        var payload = fields
+        let requestID = UserDefaults.standard.string(forKey: key) ?? UUID().uuidString
+        UserDefaults.standard.set(requestID, forKey: key)
+        payload["idempotencyKey"] = requestID
+        let draftKey = promptDraftKey(concept.id)
+        if let draftKey { UserDefaults.standard.set(fields, forKey: draftKey) }
+        var accepted = false
+        do {
+            var result = try await request("/concepts/\(concept.id)/model-prompt", method: "POST", body: payload) as? [String: Any] ?? [:]
+            accepted = true
+            for _ in 0..<120 {
+                try Task.checkCancellation()
+                guard CraftAccount.shared.uid == uid, apiBase == endpoint else { throw CancellationError() }
+                let state = result["status"] as? String
+                if state == "failed" {
+                    UserDefaults.standard.removeObject(forKey: key)
+                    if let draftKey { UserDefaults.standard.removeObject(forKey: draftKey) }
+                    await refresh()
+                    throw CraftError(message: result["error"] as? String ?? t("The suggestion could not be completed. Reserved Tokens were released.", "未能完成建议，已释放预留 Token。"))
+                }
+                if state == "done", let prompt = result["prompt"] as? String,
+                   !prompt.isEmpty, prompt.unicodeScalars.count <= 800 {
+                    try Task.checkCancellation()
+                    await refresh()
+                    try Task.checkCancellation()
+                    guard CraftAccount.shared.uid == uid, apiBase == endpoint else { throw CancellationError() }
+                    UserDefaults.standard.removeObject(forKey: key)
+                    if let draftKey { UserDefaults.standard.removeObject(forKey: draftKey) }
+                    return prompt
+                }
+                guard let jobID = result["id"] as? String else { break }
+                try await Task.sleep(for: .seconds(2))
+                result = try await request("/planning/\(jobID)") as? [String: Any] ?? [:]
+            }
+            throw CraftError(message: t("Your suggestion is still being checked. Retry with the same description to recover it without starting another request.", "建议仍在处理中。使用相同描述重试即可恢复，不会另开请求。"))
+        } catch {
+            if !accepted, let code = (error as? CraftError)?.statusCode, (400..<500).contains(code) {
+                UserDefaults.standard.removeObject(forKey: key)
+                if let draftKey { UserDefaults.standard.removeObject(forKey: draftKey) }
+            }
+            throw error
+        }
     }
     func generateModel(_ concept:CraftConcept,engine:String="rodin",quality:String="default",effort:String="high",conceptIds:[String]=[],modelPrompt:String?=nil) async {
         guard !busy else { return }
