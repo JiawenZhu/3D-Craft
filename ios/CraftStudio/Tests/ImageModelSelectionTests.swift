@@ -24,6 +24,27 @@ final class ImageModelSelectionTests: XCTestCase {
         XCTAssertTrue(legacy.matches(base: store.apiBase, path: legacy.requestPath, payload: store.imagePayload(["count": 4])))
     }
 
+    @MainActor func testPendingConceptKeepsApprovedPriceAndNewRequestUsesCurrentPrice() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = CraftStore(pendingURL: url)
+        let previous = (store.imageModelID, store.plannerModelID)
+        defer { store.imageModelID = previous.0; store.plannerModelID = previous.1 }
+        store.imageModelID = CraftImageModel.defaultID
+        store.plannerModelID = CraftPlannerModel.defaultID
+        var approved = store.imagePayload(["count": 1])
+        approved["maxTokens"] = 20
+        let pending = try PendingGeneration.make(base: store.apiBase, path: "/projects/p/concepts", projectID: "p", payload: approved)
+        try store.persistPending(pending)
+        let retry = store.imagePayload(["count": 1])
+        XCTAssertEqual(retry["maxTokens"] as? Int, 20)
+        XCTAssertTrue(pending.matches(base: store.apiBase, path: pending.requestPath, payload: retry))
+        XCTAssertFalse(pending.matches(base: store.apiBase, path: pending.requestPath, payload: store.imagePayload(["count": 2])))
+        XCTAssertEqual(store.pendingGeneration?.body, pending.body)
+        try store.persistPending(nil)
+        XCTAssertEqual(store.imagePayload(["count": 1])["maxTokens"] as? Int, store.conceptTokenCost(count: 1))
+    }
+
     @MainActor func testUnavailableRendererCannotCreateProjectOrPendingCharge() async {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         let store = CraftStore(pendingURL: url)

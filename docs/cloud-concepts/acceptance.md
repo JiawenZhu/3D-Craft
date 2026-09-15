@@ -25,3 +25,7 @@ The four-image test did **not** pass camera consistency. The model produced thre
 Physical-phone confirmation, interrupted-network recovery, full reference-to-3D rendering/export and account-connected AI remain open. Overall `generationReady` remains false. No phone installation or App Store submission is claimed by these tests.
 
 Local evidence: `/tmp/craft-concept-tests-final.log`, `/tmp/craft-concepts-recovery-complete.log`, `/tmp/craft-concepts-canonical.log`, `/tmp/craft-concepts-ios-final.log`, `/tmp/craft-concepts-complete-build.log` and `/tmp/craft-concepts-complete-deploy.log`. Temporary logs are machine-local and may later expire.
+
+## Native retry verification — September 15
+
+A pending concept request now retains its original approved `maxTokens`, including preserving the absence of this field on historical requests. Refreshing the catalog cannot change the identity or authorized amount of a retry. New requests still use the current price. Nineteen native simulator checks passed across account/model selection and source selection, including replay after a changed price and legacy-body preservation. Evidence: `/tmp/craft-cloud-native-tests.log`. This does not replace physical-device or complete UI acceptance.

@@ -492,9 +492,15 @@ struct PendingGeneration: Codable, Equatable {
     }
     func imagePayload(_ fields: [String:Any]) -> [String:Any] {
         var payload = fields
-        payload["maxTokens"] = conceptTokenCost(count: fields["count"] as? Int ?? 1)
-        // A legacy pending Gemini request must keep its exact original body.
+        // A retry keeps the price the user approved, even after the catalog changes.
+        // Older requests without a price remain exact and can be reconciled or
+        // rejected by the server; never add spending consent during a retry.
         let legacy = pendingGeneration.flatMap { try? JSONSerialization.jsonObject(with: $0.body) as? [String:Any] }
+        if let legacy {
+            payload["maxTokens"] = legacy["maxTokens"]
+        } else {
+            payload["maxTokens"] = conceptTokenCost(count: fields["count"] as? Int ?? 1)
+        }
         if imageModelID != CraftImageModel.defaultID || legacy == nil || legacy?["imageModel"] != nil {
             payload["imageModel"] = imageModelID
         }

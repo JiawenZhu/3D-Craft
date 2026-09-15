@@ -23,7 +23,7 @@ Assessment: 14 September 2026. **Not ready for App Review or replacement of the 
 ## App Store Connect finish list
 
 - Align the release version with the App Store version, assign an unused build number, archive with an Apple-supported distribution toolchain and validate signing.
-- Completed: Xcode Cloud Builds 3–10 uploaded and processed as version 1.0, VALID / APP_STORE_ELIGIBLE. Build 10 (source e776c69) completed Build and Archive with zero errors/warnings and is attached to version 1.0. Its build ID is 7a51645a-3a00-4f3c-bb5e-80b59c2c226b. Upload success does not satisfy the implementation and acceptance requirements above. The new concept-generation UI needs the next processed native build.
+- Completed: Xcode Cloud Builds 3–11 uploaded and processed as version 1.0, VALID / APP_STORE_ELIGIBLE. Build 11 (source f1b44a9) completed Build and Archive with zero errors/warnings and is attached to version 1.0. Its build ID is d9be9a74-ccdf-40d4-8154-583c340fb869. Upload success does not satisfy the implementation and acceptance requirements above. The concept-generation UI is included; the later retry-price fix needs the next processed native build.
 - Supply a dedicated functioning reviewer login and current contact information in App Review Information.
 - Replace stale screenshots with exact iPhone/iPad captures from the release; verify support, privacy and terms URLs and localized metadata.
 - Complete accurate age-rating, content-rights, privacy, encryption and availability answers. Recheck the community browser-game feature; do not reuse the old claim that no public user feed exists.
