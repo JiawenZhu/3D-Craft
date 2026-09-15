@@ -16,7 +16,7 @@ from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
 from .firebase_projects import CloudProjects, MAX_BYTES
 from .firebase_model_jobs import CloudModelJobs, ModelRequest
-from .firebase_planning import CloudPlanning, PromptRequest
+from .firebase_planning import CloudPlanning, PromptRequest, ChatRequest
 from . import cloud_planner_provider
 import time
 from .firebase_community import CloudCommunity, Submission, Vote, Report, GameLink, Category
@@ -70,9 +70,15 @@ def planning_ready():
 
 
 @app.get('/api/mobile/planning/quote')
-def planning_quote(account=Depends(owner)):
+def planning_quote(kind: Literal['prompt','chat']='prompt', account=Depends(owner)):
     if not planning_ready(): raise HTTPException(503, 'Cloud prompt improvement is temporarily unavailable.')
-    return cloud_planner_provider.quote(time.time())
+    return cloud_planner_provider.quote(time.time(),kind)
+
+
+@app.post('/api/mobile/projects/{project_id}/chat')
+def send_chat(project_id: str, body: ChatRequest, account=Depends(owner)):
+    if not planning_ready(): raise HTTPException(503,'Cloud creative chat is temporarily unavailable. No Tokens were charged.')
+    return CloudPlanning(studio()).create_chat(account,project_id,body)
 
 
 @app.post('/api/mobile/concepts/{concept_id}/model-prompt')

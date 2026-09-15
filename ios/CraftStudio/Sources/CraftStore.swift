@@ -93,6 +93,7 @@ struct PendingGeneration: Codable, Equatable {
     private var aiAccountRevision = 0
     private var aiSnapshotRevision = 0
     var selectedPlannerModel: CraftPlannerModel? { aiAccount.models.first { $0.id == plannerModelID } }
+    var selectedPlanningEffort: String { plannerModelID == CraftPlannerModel.defaultID ? "low" : plannerEffort }
     var plannerDisplayName: String {
         plannerModelID == CraftPlannerModel.defaultID ? CraftPlannerModel.defaultName : selectedPlannerModel?.name ?? plannerModelID
     }
@@ -100,20 +101,53 @@ struct PendingGeneration: Codable, Equatable {
         didSet { UserDefaults.standard.set(activeConversationID, forKey: "craftActiveConversation:" + apiBase) }
     }
     @Published var sendingChat: Set<String> = []
-    func startConversation() async {
-        guard draftImage == nil else { return }
+    @Published private var chatPrice: (model: String, uid: String, maxTokens: Int, expiresAt: Double)?
+    @Published var chatPriceError: String?
+    private var chatPriceRequest = UUID()
+    var chatMaximumTokens: Int? {
+        guard let price = chatPrice, price.model == plannerModelID,
+              price.uid == CraftAccount.shared.uid, price.expiresAt > Date().timeIntervalSince1970 else { return nil }
+        return price.maxTokens
+    }
+    func refreshChatPrice() async {
+        let requestID = UUID(); chatPriceRequest = requestID
+        chatPrice = nil; chatPriceError = nil
+        guard let uid = CraftAccount.shared.uid else { return }
+        guard plannerModelID == CraftPlannerModel.defaultID else {
+            chatPriceError = t("This account-connected model is not yet available in cloud chat.", "此账户关联模型暂未在云端对话中开放。")
+            return
+        }
+        let endpoint = apiBase
+        do {
+            let quote = try await request("/planning/quote?kind=chat") as? [String: Any] ?? [:]
+            guard requestID == chatPriceRequest, CraftAccount.shared.uid == uid,
+                  plannerModelID == CraftPlannerModel.defaultID, apiBase == endpoint else { return }
+            guard let cost = quote["maxTokens"] as? Int, cost > 0,
+                  let expiry = quote["expiresAt"] as? Double,
+                  quote["kind"] as? String == "chat", quote["model"] as? String == plannerModelID else {
+                throw CraftError(message: t("Chat pricing is unavailable. Please refresh it.", "暂时无法获取对话价格，请刷新。"))
+            }
+            chatPrice = (plannerModelID, uid, cost, expiry)
+        } catch {
+            guard requestID == chatPriceRequest else { return }
+            chatPriceError = error.localizedDescription
+        }
+    }
+    func startConversation(maxTokens: Int) async {
+        guard draftImage == nil, maxTokens > 0 else { return }
         guard let id = await createConcepts(count: 1, originalOnly: true) else { return }
         activeConversationID = id
         let text = draftPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? t("Help me turn this reference into a game asset.", "帮我把这张参考图变成游戏资产。") : draftPrompt
         draftPrompt = ""; saveDraftImage(nil)
-        _ = await sendChat(projectID: id, text: text)
+        _ = await sendChat(projectID: id, text: text, maxTokens: maxTokens)
     }
-    @discardableResult func sendChat(projectID: String, text: String, conceptID: String? = nil) async -> Bool {
-        guard !sendingChat.contains(projectID), plannerIsReady() else { return false }
+    @discardableResult func sendChat(projectID: String, text: String, conceptID: String? = nil, maxTokens: Int) async -> Bool {
+        guard let uid = CraftAccount.shared.uid, maxTokens > 0, !sendingChat.contains(projectID), plannerIsReady() else { return false }
         sendingChat.insert(projectID); defer { sendingChat.remove(projectID) }
-        let key = "craftPendingChat:" + apiBase + ":" + projectID
-        let fields: [String: Any] = ["text": text, "plannerModel": plannerModelID, "plannerEffort": plannerEffort, "conceptId": conceptID as Any? ?? NSNull(), "style": draftStyle]
+        let endpoint = apiBase
+        let key = "craftPendingChat:" + uid + ":" + apiBase + ":" + projectID
+        let fields: [String: Any] = ["text": text, "plannerModel": plannerModelID, "plannerEffort": selectedPlanningEffort, "conceptId": conceptID as Any? ?? NSNull(), "style": draftStyle, "maxTokens": maxTokens]
         var payload = fields
         if let data = UserDefaults.standard.data(forKey: key),
            let previous = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -125,6 +159,7 @@ struct PendingGeneration: Codable, Equatable {
         }
         do {
             _ = try await request("/projects/" + projectID + "/chat", method: "POST", body: payload)
+            guard !Task.isCancelled, CraftAccount.shared.uid == uid, apiBase == endpoint else { return false }
             UserDefaults.standard.removeObject(forKey: key)
             await refresh(); startPolling()
             if payload["text"] as? String != text { return false }
@@ -307,7 +342,7 @@ struct PendingGeneration: Codable, Equatable {
         draftPrompt = ""; saveDraftImage(nil)
         UserDefaults.standard.removeObject(forKey: "craftActiveConversation:" + apiBase)
         if let uid = CraftAccount.shared.uid {
-            let prefixes = ["craftPendingUpload:", "craft.promptDraft:", "craft.promptRequest:"].map { $0 + uid + ":" }
+            let prefixes = ["craftPendingUpload:", "craftPendingChat:", "craft.promptDraft:", "craft.promptRequest:"].map { $0 + uid + ":" }
             for key in UserDefaults.standard.dictionaryRepresentation().keys where prefixes.contains(where: { key.hasPrefix($0) }) {
                 UserDefaults.standard.removeObject(forKey: key)
             }
@@ -484,7 +519,7 @@ struct PendingGeneration: Codable, Equatable {
     }
 
     func selectPlanner(_ id: String) {
-        if id == CraftPlannerModel.defaultID { plannerModelID = id; return }
+        if id == CraftPlannerModel.defaultID { plannerModelID = id; plannerEffort = "low"; return }
         guard aiAccount.connected, let model = aiAccount.models.first(where: { $0.id == id }) else { return }
         plannerModelID = model.id
         if let effort = model.fastEffort { plannerEffort = effort }
@@ -692,7 +727,7 @@ struct PendingGeneration: Codable, Equatable {
         }
         let endpoint = apiBase
         let fields: [String: Any] = ["prompt": text, "plannerModel": plannerModelID,
-            "plannerEffort": plannerEffort, "maxTokens": maxTokens]
+            "plannerEffort": selectedPlanningEffort, "maxTokens": maxTokens]
         let signature = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
         let digest = SHA256.hash(data: signature).map { String(format: "%02x", $0) }.joined()
         let key = "craft.promptRequest:" + uid + ":" + endpoint + ":" + concept.id + ":" + digest

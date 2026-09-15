@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from server import cloud_planner_provider as p, firebase_api as api
-from server.firebase_planning import PromptRequest, CloudPlanning
+from server.firebase_planning import PromptRequest, ChatRequest, CloudPlanning, bounded_history, image_path
 
 
 class ProviderTests(unittest.TestCase):
@@ -49,9 +49,36 @@ class ProviderTests(unittest.TestCase):
             with self.assertRaises(ValidationError):PromptRequest(**{**valid,**changes})
         with self.assertRaises(ValidationError):PromptRequest(idempotencyKey='request-1')
 
+    def test_chat_price_history_and_reply_validation(self):
+        self.assertEqual(p.quote(0,'chat')['maxTokens'],4)
+        self.assertEqual(p.quote(p.PRICE_CHANGE,'chat')['maxTokens'],8)
+        turns=[{'status':'done','text':'Old '*1000,'reply':'Reply '*600,'brief':'Keep the red frame.'} for _ in range(30)]
+        turns.append({'status':'failed','text':'Failed request','brief':'Ignore me'})
+        history,brief=bounded_history(turns,'Use a green canopy. Generate now.')
+        self.assertLessEqual(len(history),21)
+        self.assertLessEqual(sum(len(t['text']) for t in history),12000)
+        self.assertEqual(brief,'Keep the red frame.')
+        self.assertEqual(history[-1]['text'],'Use a green canopy. Generate now.')
+        payload=p.chat_body(history,brief,'Stylized',None)
+        self.assertEqual(payload['generationConfig']['maxOutputTokens'],p.CHAT_MAX_OUTPUT)
+        self.assertEqual(len(payload['contents'][0]['parts']),1)
+        valid={'reply':'Ready.','brief':'A garden swing.','ready':True,'suggestions':['Green','Green']}
+        self.assertEqual(p.validate_answer(valid,'chat')['suggestions'],['Green'])
+        for altered in ({'ready':'true'},{'brief':''},{'suggestions':[5]},{'suggestions':['a']*4}):
+            with self.assertRaises(ValueError):p.validate_answer({**valid,**altered},'chat')
+        with self.assertRaises(ValidationError):ChatRequest(clientId='chat-test',text='Help me')
+
+    def test_reference_paths_are_private_and_migration_compatible(self):
+        for kind in ('images','files','previews'):
+            self.assertEqual(image_path('alice',f'gs://{api.BUCKET}/users/alice/{kind}/ref.png'),f'users/alice/{kind}/ref.png')
+        for source in (None,'https://example.com/ref.png',f'gs://{api.BUCKET}/users/bob/images/ref.png',
+                       f'gs://{api.BUCKET}/users/alice/images/../ref.png',f'gs://{api.BUCKET}/users/alice/models/a.glb'):
+            with self.assertRaises(HTTPException):image_path('alice',source)
+
     def test_private_jobs_and_worker_require_identity(self):
         client=TestClient(api.app)
         self.assertEqual(client.get('/api/mobile/planning/quote').status_code,401)
+        self.assertEqual(client.post('/api/mobile/projects/example/chat',json={'clientId':'chat-test','text':'Hello','maxTokens':4}).status_code,401)
         self.assertEqual(client.get('/api/mobile/planning/pj-'+'a'*64).status_code,401)
         self.assertEqual(client.post('/api/mobile/concepts/example/model-prompt',json={'idempotencyKey':'request-1','maxTokens':2}).status_code,401)
         with patch.object(api,'verify_worker',side_effect=HTTPException(401,'Required')):

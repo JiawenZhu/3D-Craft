@@ -182,6 +182,10 @@ struct CraftConversationView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("3D Craft", systemImage: "sparkles").font(.caption.weight(.semibold)).foregroundStyle(appearance.ink)
                     Text(reply).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    if let charged = turn.charged {
+                        Text(store.t("\(charged) \(charged == 1 ? "Token" : "Tokens") used", "已使用 \(charged) Token"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
                 }.accessibilityIdentifier("chat.reply." + turn.id)
                 if project?.turns.last?.id == turn.id, !thinking { nextStep(turn) }
             } else if turn.isActive {
@@ -262,6 +266,7 @@ struct CraftConversationView: View {
     }
     private var composer: some View {
         VStack(spacing: 8) {
+            if pendingReference == nil { CraftChatPriceCaption() }
             if let selected = pendingReference ?? selected {
                 HStack(spacing: 8) {
                     CraftCachedImage(url: URL(string: selected.imageUrl)).frame(width: 34, height: 34).clipShape(RoundedRectangle(cornerRadius: 8))
@@ -281,7 +286,7 @@ struct CraftConversationView: View {
                 Button { send(message) } label: {
                     Group { if thinking || uploading { ProgressView() } else { Image(systemName: "arrow.up").font(.title3.bold()) } }
                         .frame(width: 44, height: 44).background(appearance.fill, in: Circle())
-                }.disabled((message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && pendingReference == nil) || thinking || uploading || store.busy || working)
+                }.disabled((message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && pendingReference == nil) || thinking || uploading || store.busy || working || (pendingReference == nil && store.chatMaximumTokens == nil))
                     .accessibilityLabel(store.t("Send message", "发送消息")).accessibilityIdentifier("chat.send")
             }.padding(6).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 28))
                 .overlay(RoundedRectangle(cornerRadius: 28).strokeBorder(.white.opacity(0.8)))
@@ -315,7 +320,11 @@ struct CraftConversationView: View {
         }
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !thinking else { return }
         let sent = text; focused = false
-        Task { if await store.sendChat(projectID: projectID, text: sent, conceptID: selected?.id), message == sent { message = "" } }
+        guard let maximum = store.chatMaximumTokens else {
+            store.error = store.t("Refresh the chat price before sending.", "请先刷新对话价格再发送。")
+            return
+        }
+        Task { if await store.sendChat(projectID: projectID, text: sent, conceptID: selected?.id, maxTokens: maximum), message == sent { message = "" } }
     }
 }
 
@@ -349,5 +358,29 @@ private struct ConversationModelCard: View {
             Button { studio = true } label: { Label(store.t("Lighting, play & export", "灯光、试玩与导出"), systemImage: "slider.horizontal.3").frame(maxWidth: .infinity) }.buttonStyle(CraftSecondary())
         }.tint(appearance.ink)
             .sheet(isPresented: $studio) { NavigationStack { AssetDetailView(onClose: { studio = false }, onPlay: { studio = false; store.path.append(.games(asset)) }, asset: asset) }.craftAmbientHost() }
+    }
+}
+
+
+struct CraftChatPriceCaption: View {
+    @EnvironmentObject private var store: CraftStore
+    @Environment(\.scenePhase) private var scenePhase
+    var body: some View {
+        HStack(spacing: 8) {
+            if let maximum = store.chatMaximumTokens {
+                Text(store.t("AI chat · up to \(maximum) Tokens per reply. Unused Tokens returned.", "AI 对话 · 每次回复最多 \(maximum) Token，未使用部分会退回。"))
+            } else {
+                Text(store.chatPriceError ?? store.t("Loading chat price…", "正在加载对话价格……"))
+            }
+            Spacer(minLength: 0)
+            Button { Task { await store.refreshChatPrice() } } label: {
+                Image(systemName: "arrow.clockwise").frame(width: 44, height: 44)
+            }.accessibilityLabel(store.t("Refresh chat price", "刷新对话价格"))
+        }
+        .font(.caption2).foregroundStyle(.secondary).padding(.horizontal, 10)
+        .task(id: store.plannerModelID + (CraftAccount.shared.uid ?? "")) { await store.refreshChatPrice() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await store.refreshChatPrice() } }
+        }
     }
 }

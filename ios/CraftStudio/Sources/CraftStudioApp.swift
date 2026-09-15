@@ -370,6 +370,7 @@ struct CraftRoot: View {
 
     private var composer: some View {
         VStack(spacing: 8) {
+            if store.draftImage == nil { CraftChatPriceCaption() }
             if let image = store.draftImage {
                 HStack(spacing: 10) {
                     Image(uiImage: image).resizable().scaledToFill()
@@ -404,7 +405,7 @@ struct CraftRoot: View {
                         promptFocused = false
                         tapCount += 1
                         if store.draftImage != nil { confirm = true }
-                        else { Task { await store.startConversation() } }
+                        else if let maximum = store.chatMaximumTokens { Task { await store.startConversation(maxTokens: maximum) } }
                     } label: {
                         ZStack {
                             Circle().fill(armed ? appearance.fill.gradient : appearance.washStrong.gradient)
@@ -415,7 +416,7 @@ struct CraftRoot: View {
                         .frame(width: 42, height: 42)
                     }
                     .buttonStyle(CraftPressStyle())
-                    .disabled(!armed || store.busy)
+                    .disabled(!armed || store.busy || (store.draftImage == nil && store.chatMaximumTokens == nil))
                     .accessibilityLabel(store.t("Start creating together", "开始对话创作"))
                     .accessibilityIdentifier("creation.generateConcepts")
                 }

@@ -930,6 +930,9 @@ struct WalletView: View {
         switch kind {
         case "reserve": return store.t("Generation reservation · not an extra charge", "生成预留 · 非额外扣费")
         case "settle": return store.t("Completed generation · final cost", "生成结算 · 最终消耗")
+        case "chat_reservation": return store.t("Tokens reserved for AI reply", "AI 回复预留 Tokens")
+        case "chat_complete": return store.t("AI reply ready · unused Tokens returned", "AI 回复已完成 · 已退回未使用 Tokens")
+        case "chat_refund": return store.t("Unused chat Tokens returned", "已退回未使用的对话 Tokens")
         case "planning_reservation": return store.t("Tokens reserved for prompt improvement", "优化描述预留 Tokens")
         case "planning_complete": return store.t("Prompt ready · unused Tokens returned", "描述已优化 · 已退回未使用 Tokens")
         case "planning_refund": return store.t("Unused planning Tokens returned", "已退回未使用的规划 Tokens")

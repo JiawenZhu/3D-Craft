@@ -14,8 +14,10 @@ PROJECT = 'forma-studio-2026'
 URL = f'https://aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/global/publishers/google/models/{MODEL}'
 MAX_INPUT = 16000
 MAX_OUTPUT = 1024
+CHAT_MAX_INPUT = 32000
+CHAT_MAX_OUTPUT = 2048
 PRICE_CHANGE = 1798761600  # 2027-01-01 UTC, published introductory-price expiry.
-from .creative_prompts import SYSTEM
+from .creative_prompts import SYSTEM, CHAT_SYSTEM, CHAT_SCHEMA
 from .commerce import policy
 
 
@@ -36,26 +38,41 @@ def cost(input_tokens, output_tokens, prices, cached_tokens=0):
     return {'providerUsd': str(usd), 'tokens': tokens}
 
 
-def quote(now):
-    return {'model': MODEL, 'maxTokens': cost(MAX_INPUT, MAX_OUTPUT, rates(now))['tokens'],
+def quote(now, kind='prompt'):
+    max_input,max_output = (CHAT_MAX_INPUT,CHAT_MAX_OUTPUT) if kind=='chat' else (MAX_INPUT,MAX_OUTPUT)
+    return {'model': MODEL, 'kind':kind,'maxTokens': cost(max_input, max_output, rates(now))['tokens'],
+            'maxInput':max_input,'maxOutput':max_output,
             'expiresAt': min(now+3600, PRICE_CHANGE) if now < PRICE_CHANGE else now+3600,
             'rates': rates(now)}
 
 
-def body(words, image, effort='low'):
-    # Uploaded source files were validated on ingestion; use a bounded preview
-    # for planning, leaving the original unchanged for 3D reconstruction.
+def image_parts(image):
+    if image is None: return []
+    # A bounded preview leaves the original reference unchanged for 3D.
     with Image.open(io.BytesIO(image)) as source:
         if source.width*source.height > 40000000:
             raise PlannerError('This image is too large to plan from.')
         source.thumbnail((1024,1024))
         output=io.BytesIO(); source.convert('RGB').save(output,format='JPEG',quality=90)
-    return {'systemInstruction': {'parts':[{'text': SYSTEM}]},
-        'contents':[{'role':'user','parts':[
-            {'inlineData':{'mimeType':'image/jpeg','data':base64.b64encode(output.getvalue()).decode()}},
-            {'text': 'User asset description:\n'+words}]}],
-        'generationConfig': {'maxOutputTokens':MAX_OUTPUT,'thinkingConfig':{'thinkingLevel':effort.upper()},
-            'responseMimeType':'application/json','responseSchema':{'type':'OBJECT','properties':{'prompt':{'type':'STRING'}},'required':['prompt']}}}
+    return [{'inlineData':{'mimeType':'image/jpeg','data':base64.b64encode(output.getvalue()).decode()}}]
+
+
+def structured_body(system, schema, text, image, effort, maximum):
+    return {'systemInstruction': {'parts':[{'text': system}]},
+        'contents':[{'role':'user','parts':image_parts(image)+[{'text':text}]}],
+        'generationConfig': {'maxOutputTokens':maximum,'thinkingConfig':{'thinkingLevel':effort.upper()},
+            'responseMimeType':'application/json','responseSchema':schema}}
+
+
+def body(words, image, effort='low'):
+    schema={'type':'OBJECT','properties':{'prompt':{'type':'STRING'}},'required':['prompt']}
+    return structured_body(SYSTEM,schema,'User asset description:\n'+words,image,effort,MAX_OUTPUT)
+
+
+def chat_body(history, brief, style, image, effort='low'):
+    schema={k:v for k,v in CHAT_SCHEMA.items() if k!='additionalProperties'}
+    text=json.dumps({'selectedStyle':style,'currentBrief':brief,'conversation':history},ensure_ascii=False)
+    return structured_body(CHAT_SYSTEM,schema,text,image,effort,CHAT_MAX_OUTPUT)
 
 
 def call(method, payload):
@@ -67,20 +84,22 @@ def call(method, payload):
         response=requests.post(URL+':'+method,headers=headers,json=payload,timeout=(15,180))
         if response.status_code != 200:
             raise PlannerError('The planning service could not finish. Reserved Tokens will be released.')
-        return response.json()
+        result=response.json()
+        if not isinstance(result,dict): raise ValueError("Invalid response")
+        return result
     except (requests.RequestException, ValueError):
         raise PlannerError('The planning response could not be confirmed. Reserved Tokens will be released.') from None
 
 
-def preflight(payload):
+def preflight(payload, maximum=MAX_INPUT):
     result=call('countTokens',{k:v for k,v in payload.items() if k!='generationConfig'})
     total=result.get('totalTokens')
-    if type(total) is not int or not 0 < total <= MAX_INPUT:
+    if type(total) is not int or not 0 < total <= maximum:
         raise PlannerError('This reference and description are too large to improve together.')
     return total
 
 
-def generate(payload, prices):
+def generate(payload, prices, kind='prompt'):
     result=call('generateContent',payload)
     candidates=result.get('candidates') or []
     if not candidates or candidates[0].get('finishReason')!='STOP':
@@ -88,8 +107,8 @@ def generate(payload, prices):
     try:
         parts=candidates[0]['content']['parts']
         text=''.join(p.get('text','') for p in parts if not p.get('thought'))
-        prompt=json.loads(text)['prompt']
-        if not isinstance(prompt,str) or not 1 <= len(prompt.strip()) <= 800: raise ValueError()
+        parsed=json.loads(text)
+        answer=validate_answer(parsed,kind)
         usage=result['usageMetadata']
         counts=[usage['promptTokenCount'],usage.get('candidatesTokenCount',0),usage.get('thoughtsTokenCount',0)]
         cached=usage.get('cachedContentTokenCount',0)
@@ -98,5 +117,22 @@ def generate(payload, prices):
         raise PlannerError('No usable suggestion was returned. Your original description is unchanged.') from None
     # Only the validated suggestion and usage counts are retained, not raw
     # responses or provider thought signatures. Charge is capped by consent.
-    return {'prompt':prompt.strip(),'model':MODEL,'usage':{'input':counts[0],'output':sum(counts[1:]),'cachedInput':cached},
+    return {**answer,'model':MODEL,'usage':{'input':counts[0],'output':sum(counts[1:]),'cachedInput':cached},
             **cost(counts[0],sum(counts[1:]),prices,cached)}
+
+
+def validate_answer(parsed, kind):
+    if not isinstance(parsed,dict): raise ValueError('Invalid response')
+    if kind=='prompt':
+        prompt=parsed.get('prompt')
+        if not isinstance(prompt,str) or not 1<=len(prompt.strip())<=800: raise ValueError('Invalid prompt')
+        return {'prompt':prompt.strip()}
+    if kind!='chat': raise ValueError('Unsupported planning operation')
+    reply,brief=parsed.get('reply'),parsed.get('brief')
+    suggestions=parsed.get('suggestions')
+    if (any(not isinstance(value,str) or not 1<=len(value.strip())<=4000 for value in (reply,brief))
+            or type(parsed.get('ready')) is not bool or not isinstance(suggestions,list)
+            or len(suggestions)>3 or any(not isinstance(s,str) or not 1<=len(s.strip())<=120 for s in suggestions)):
+        raise ValueError('Invalid creative reply')
+    return {'reply':reply.strip(),'brief':brief.strip(),'ready':parsed['ready'],
+            'suggestions':list(dict.fromkeys(s.strip() for s in suggestions))}

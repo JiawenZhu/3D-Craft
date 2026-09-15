@@ -33,4 +33,4 @@ Local evidence: `/tmp/craft-planning-final-tests.log`, `/tmp/craft-planning-live
 
 ## Remaining acceptance
 
-No new physical-phone installation or native animation/interaction acceptance is claimed for this change. The tiny synthetic reference tested transport and accounting, not facial likeness or image quality. Human review with actual character and swing images remains necessary. Conversational chat, concept-image generation, account-connected AI and complete phone/App Review acceptance remain open; `generationReady` deliberately remains false.
+No new physical-phone installation or native animation/interaction acceptance is claimed for this change. The tiny synthetic reference tested transport and accounting, not facial likeness or image quality. Human review with actual character and swing images remains necessary. Conversational chat was subsequently deployed; see `chat-acceptance.md`. Concept-image generation, account-connected AI and complete phone/App Review acceptance remain open; `generationReady` deliberately remains false.

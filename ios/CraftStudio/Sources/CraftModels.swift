@@ -53,6 +53,7 @@ struct CraftChatTurn: Identifiable, Codable {
     var id: String; var text: String; var status: String; var reply: String?
     var brief: String?; var ready: Bool?; var suggestions: [String]?; var error: String?
     var createdAt: Double
+    var charged: Int?
     var isActive: Bool { status == "working" }
 }
 struct CraftProject: Identifiable, Codable {
