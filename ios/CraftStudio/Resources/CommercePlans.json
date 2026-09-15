@@ -1,0 +1,75 @@
+{
+  "version": "2026-09-12.v2",
+  "currency": "USD",
+  "creditUsageUsd": "0.01",
+  "serviceFeeRate": "0.15",
+  "revenuecatCurrencyCode": "CRFT",
+  "revenuecatApiKey": "appl_VFwtbJPAzTWtBeGLvBVVXjKOJJI",
+  "revenuecatProjectId": "projbbd24f9b",
+  "revenuecatAppId": "appb88bdcb0f7",
+  "entitlement": "creator",
+  "offering": "default",
+  "autoExpireCredits": false,
+  "freeTrial": false,
+  "plans": [
+    {
+      "id": "craft.creator.weekly.v1",
+      "name": "Creator Weekly",
+      "period": "week",
+      "usd": "4.99",
+      "credits": 250,
+      "grantCadence": "purchase_or_renewal",
+      "package": "$rc_weekly"
+    },
+    {
+      "id": "craft.creator.monthly.v1",
+      "name": "Creator Monthly",
+      "period": "month",
+      "usd": "14.99",
+      "credits": 850,
+      "grantCadence": "purchase_or_renewal",
+      "package": "$rc_monthly"
+    }
+  ],
+  "topups": [
+    {
+      "id": "craft.credits.small.v1",
+      "name": "Mini Pack",
+      "period": "once",
+      "usd": "4.99",
+      "credits": 200,
+      "grantCadence": "purchase",
+      "package": "credits_small"
+    },
+    {
+      "id": "craft.credits.medium.v1",
+      "name": "Creator Pack",
+      "period": "once",
+      "usd": "9.99",
+      "credits": 500,
+      "grantCadence": "purchase",
+      "package": "credits_medium"
+    },
+    {
+      "id": "craft.credits.large.v1",
+      "name": "Studio Pack",
+      "period": "once",
+      "usd": "19.99",
+      "credits": 1200,
+      "grantCadence": "purchase",
+      "package": "credits_large"
+    }
+  ],
+  "status": "active",
+  "example": {
+    "name": "One concept + planning + Rodin 3D",
+    "planningUsd": "0.0013",
+    "imageUsd": "0.134",
+    "imageCount": 1,
+    "modelUsd": "0.40",
+    "completeCreationCredits": 62,
+    "fourConceptCreationCredits": 108,
+    "rodinOnlyCredits": 46,
+    "note": "Estimated. Actual chat length, images, retries and options change usage."
+  }
+}

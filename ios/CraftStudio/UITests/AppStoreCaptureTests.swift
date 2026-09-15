@@ -1,0 +1,58 @@
+import XCTest
+
+/// Real native screens with existing public sample assets. No generation calls,
+/// purchase actions, private account content, or external sharing.
+final class AppStoreCaptureTests: XCTestCase {
+    @MainActor func testCaptureListingScreens() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-craftChinese", "NO", "-craftAppearance", "emerald",
+                               "-craftAPI", "http://127.0.0.1:8001", "-craftShowPriceDetails", "NO"]
+        app.launch()
+        let cat = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@", "creation.asset.a-", "Lantern Explorer")).firstMatch
+        XCTAssertTrue(cat.waitForExistence(timeout: 35))
+        Thread.sleep(forTimeInterval: 4)
+        try capture(app, "01-discover")
+        cat.tap()
+        XCTAssertTrue(app.buttons["asset.gameHandoff"].waitForExistence(timeout: 15))
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["Loading your 3D asset…"])
+        waitForExpectations(timeout: 30)
+        Thread.sleep(forTimeInterval: 3)
+        try capture(app, "02-model")
+        app.buttons["lighting.adjust"].tap()
+        XCTAssertTrue(app.staticTexts["Lighting studio"].waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 1)
+        try capture(app, "03-lighting")
+        app.buttons["Done"].tap()
+        app.buttons["studio.openConcept"].tap()
+        XCTAssertTrue(app.buttons["concept.inspector.close"].waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 2)
+        try capture(app, "04-concept")
+        app.buttons["concept.inspector.close"].tap()
+        app.buttons["asset.gameHandoff"].tap()
+        XCTAssertTrue(app.textViews["handoff.prompt"].waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 1)
+        try capture(app, "05-game-brief")
+        app.buttons["Done"].tap()
+        app.buttons["studio.back"].tap()
+        app.buttons["creation.category.objects"].tap()
+        Thread.sleep(forTimeInterval: 4)
+        try capture(app, "06-objects")
+        app.terminate()
+        app.launchArguments = ["-craftChinese", "NO", "-craftAppearance", "lavender",
+                               "-craftAPI", "http://127.0.0.1:8001", "-craftShowPriceDetails", "NO"]
+        app.launch()
+        XCTAssertTrue(cat.waitForExistence(timeout: 20))
+        Thread.sleep(forTimeInterval: 3)
+        try capture(app, "07-lavender")
+    }
+
+    @MainActor private func capture(_ app: XCUIApplication, _ name: String) throws {
+        let folder = URL(fileURLWithPath: "/tmp/craft-appstore-captures")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let screenshot = app.screenshot()
+        try screenshot.pngRepresentation.write(to: folder.appendingPathComponent(name + ".png"))
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
+}

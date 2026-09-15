@@ -1,0 +1,8 @@
+build/
+.build/
+.build-device/
+**/xcuserdata/
+*.xcarchive/
+*.ipa
+*.xcdistributionlogs/
+.DS_Store

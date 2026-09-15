@@ -1,0 +1,188 @@
+{
+  "identifier": "D63CB8C1-16D1-4807-9496-F7124A607690",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "100001",
+      "localizations": [
+        {
+          "description": "200 Credits for 3D and concept generation. Credits do not expire.",
+          "displayName": "Extra Credits \u00b7 200 Credits",
+          "locale": "en_US"
+        },
+        {
+          "description": "200 \u521b\u4f5c\u79ef\u5206\uff0c\u7528\u4e8e\u6982\u5ff5\u56fe\u548c 3D \u6a21\u578b\u751f\u6210\u3002\u79ef\u5206\u4e0d\u8fc7\u671f\u3002",
+          "displayName": "\u989d\u5916\u79ef\u5206 \u00b7 200 \u79ef\u5206",
+          "locale": "zh_Hans"
+        }
+      ],
+      "productID": "craft.credits.small.v1",
+      "referenceName": "Extra Credits 200",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "9.99",
+      "familyShareable": false,
+      "internalID": "100006",
+      "localizations": [
+        {
+          "description": "500 Credits for 3D and concept generation. Credits do not expire.",
+          "displayName": "Creator Pack · 500 Credits",
+          "locale": "en_US"
+        },
+        {
+          "description": "500 创作积分，用于概念图和 3D 模型生成。积分不过期。",
+          "displayName": "创作者包 · 500 积分",
+          "locale": "zh_Hans"
+        }
+      ],
+      "productID": "craft.credits.medium.v1",
+      "referenceName": "Creator Pack 500",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "19.99",
+      "familyShareable": false,
+      "internalID": "100007",
+      "localizations": [
+        {
+          "description": "1,200 Credits for 3D and concept generation. Credits do not expire.",
+          "displayName": "Studio Pack · 1,200 Credits",
+          "locale": "en_US"
+        },
+        {
+          "description": "1,200 创作积分，用于概念图和 3D 模型生成。积分不过期。",
+          "displayName": "工作室包 · 1,200 积分",
+          "locale": "zh_Hans"
+        }
+      ],
+      "productID": "craft.credits.large.v1",
+      "referenceName": "Studio Pack 1200",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "3.99",
+      "familyShareable": false,
+      "internalID": "100002",
+      "localizations": [
+        {
+          "description": "100 Tokens. Enough for 3 standard concepts and 1 standard 3D asset. Tokens do not expire.",
+          "displayName": "Starter Pack \u00b7 100 Tokens",
+          "locale": "en_US"
+        },
+        {
+          "description": "100 Tokens\uff0c\u53ef\u751f\u6210 3 \u5f20\u6807\u51c6\u6982\u5ff5\u56fe\u548c 1 \u4e2a\u6807\u51c6 3D \u8d44\u4ea7\u3002\u4f59\u989d\u4e0d\u8fc7\u671f\u3002",
+          "displayName": "\u4f53\u9a8c\u5305 \u00b7 100 Tokens",
+          "locale": "zh_Hans"
+        }
+      ],
+      "productID": "craft.starter100",
+      "referenceName": "Starter Pack 100 Tokens",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_askToBuyEnabled": false,
+    "_billingGracePeriodEnabled": false,
+    "_billingIssuesEnabled": false,
+    "_disableDialogs": false,
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_renewalBillingIssuesEnabled": false,
+    "_storefront": "USA",
+    "_timeRate": 0
+  },
+  "subscriptionGroups": [
+    {
+      "id": "100002",
+      "localizations": [],
+      "name": "Craft Creator",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "4.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "100003",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "250 Credits each week for 3D modeling and concept generation. Automatically renews weekly until cancelled. Unspent credits do not expire.",
+              "displayName": "Creator Weekly \u00b7 250 Credits",
+              "locale": "en_US"
+            },
+            {
+              "description": "\u6bcf\u5468 250 \u79ef\u5206\uff0c\u53ef\u7528\u4e8e 3D \u6a21\u578b\u548c\u6982\u5ff5\u56fe\u521b\u4f5c\u3002\u6bcf\u5468\u81ea\u52a8\u7eed\u8ba2\uff0c\u968f\u65f6\u53ef\u53d6\u6d88\u3002\u672a\u4f7f\u7528\u7684\u79ef\u5206\u4e0d\u8fc7\u671f\u3002",
+              "displayName": "\u521b\u4f5c\u8005\u5468\u8ba2\u9605 \u00b7 250 \u79ef\u5206",
+              "locale": "zh_Hans"
+            }
+          ],
+          "productID": "craft.creator.weekly.v1",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Creator Weekly 250",
+          "subscriptionGroupID": "100002",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "14.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "100004",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "850 Credits each month for 3D modeling and concept generation. Automatically renews monthly until cancelled. Unspent credits do not expire.",
+              "displayName": "Creator Monthly \u00b7 850 Credits",
+              "locale": "en_US"
+            },
+            {
+              "description": "\u6bcf\u6708 850 \u79ef\u5206\uff0c\u53ef\u7528\u4e8e 3D \u6a21\u578b\u548c\u6982\u5ff5\u56fe\u521b\u4f5c\u3002\u6bcf\u6708\u81ea\u52a8\u7eed\u8ba2\uff0c\u968f\u65f6\u53ef\u53d6\u6d88\u3002\u672a\u4f7f\u7528\u7684\u79ef\u5206\u4e0d\u8fc7\u671f\u3002",
+              "displayName": "\u521b\u4f5c\u8005\u6708\u8ba2\u9605 \u00b7 850 \u79ef\u5206",
+              "locale": "zh_Hans"
+            }
+          ],
+          "productID": "craft.creator.monthly.v1",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Creator Monthly 850",
+          "subscriptionGroupID": "100002",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "7.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "100005",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "300 Tokens each week: 9 standard concepts and 3 standard 3D assets, or your own combination. Automatically renews weekly until cancelled. Unspent Tokens do not expire.",
+              "displayName": "Creator Weekly \u00b7 300 Tokens",
+              "locale": "en_US"
+            },
+            {
+              "description": "\u6bcf\u5468 300 Tokens\uff0c\u53ef\u751f\u6210 9 \u5f20\u6807\u51c6\u6982\u5ff5\u56fe\u548c 3 \u4e2a\u6807\u51c6 3D \u8d44\u4ea7\uff0c\u6216\u81ea\u7531\u7ec4\u5408\u3002\u6bcf\u5468\u81ea\u52a8\u7eed\u8ba2\uff0c\u53ef\u53d6\u6d88\u3002\u672a\u4f7f\u7528\u4f59\u989d\u4e0d\u8fc7\u671f\u3002",
+              "displayName": "\u521b\u4f5c\u8005\u5468\u8ba2\u9605 \u00b7 300 Tokens",
+              "locale": "zh_Hans"
+            }
+          ],
+          "productID": "craft.creator.weekly300",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Creator Weekly 300 Tokens",
+          "subscriptionGroupID": "100002",
+          "type": "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}
