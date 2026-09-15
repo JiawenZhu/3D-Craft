@@ -79,7 +79,7 @@ struct CraftJob: Identifiable, Codable {
     init(_ d:[String:Any],base:String) { sourcePrompt=d["sourcePrompt"] as? String;createdAt=d["createdAt"] as? Double;chargedTokens=d["charged"] as? Int;reservedTokens=d["reserved"] as? Int;imageModel=d["imageModel"] as? String;imageProvider=d["imageProvider"] as? String;stage=d["stage"] as? String;coreConcept=d["coreConcept"] as? String;selectedImageUrl=resolved(d["selectedImageUrl"] as? String,base:base);selectedConceptId=d["selectedConceptId"] as? String;viewsUsable=(d["validation"] as? [String:Any])?["usable"] as? Bool;warnings=d["warnings"] as? [String];concepts=(d["concepts"] as? [[String:Any]])?.map{CraftConcept($0,base:base)};id=d["id"] as? String ?? "";projectId=d["projectId"] as? String ?? "";kind=d["kind"] as? String ?? "concepts";status=d["status"] as? String ?? "queued";message=d["message"] as? String ?? "";progress=(d["progress"] as? NSNumber)?.doubleValue ?? 0;error=d["error"] as? String;assets=(d["assets"] as? [[String:Any]] ?? []).map{CraftAsset($0,base:base)} }
 }
 struct WalletEntry: Identifiable { var id:String;var description:String;var amount:Int;var date:Date }
-struct WalletState { var environment="PRODUCTION";var available=0;var freeConceptTokens=0;var reserved=0;var ledger:[WalletEntry]=[] }
+struct WalletState { var environment="PRODUCTION";var available=0;var packAvailable:Int?;var subscriptionAvailable=0;var subscriptionExpiresAt:Date?;var freeConceptTokens=0;var reserved=0;var ledger:[WalletEntry]=[] }
 enum CraftRoute:Hashable {case project(String),asset(CraftAsset),wallet,settings,games(CraftAsset)}
 
 /// Server-published provider costs. These are not the app's Token prices.

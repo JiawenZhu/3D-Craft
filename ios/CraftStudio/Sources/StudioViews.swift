@@ -825,6 +825,16 @@ struct WalletView: View {
                 .craftEntrance(0, style: .popIn)
                 .id("wallet.balance")
 
+                if let packs = store.wallet.packAvailable {
+                    amountRow(store.t("Token packs · Never expire", "代币包 · 永不过期"), packs, index: 1)
+                }
+                if let expiry = store.wallet.subscriptionExpiresAt, expiry > Date() {
+                    VStack(alignment: .leading, spacing: 6) {
+                        amountRow(store.t("Current plan Tokens", "本期订阅 Tokens"), store.wallet.subscriptionAvailable, index: 1)
+                        Text(store.t("Expires ", "到期时间：") + expiry.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16)
+                    }
+                }
                 amountRow(store.t("Free concept credit", "免费概念额度"), store.wallet.freeConceptTokens, index: 1)
                 amountRow(store.t("Reserved for active jobs", "进行中任务预留"), store.wallet.reserved, index: 2)
 
@@ -925,6 +935,8 @@ struct WalletView: View {
         case "sandbox_purchase": return store.t("Purchase · Sandbox test", "购买到账 · 沙盒测试")
         case "verified_purchase": return store.t("Purchase · Tokens added", "购买到账")
         case "purchase_refund": return store.t("Apple purchase refund", "Apple 购买退款")
+        case "subscription_expiry": return store.t("Previous plan Tokens expired", "上期订阅 Tokens 已到期")
+        case "subscription_refund": return store.t("Refunded plan Tokens removed", "已移除退款订阅的 Tokens")
         case "review_reconciliation": return store.t("Review balance adjustment", "测试余额调整")
         default: return store.t("Token adjustment", "额度调整")
         }

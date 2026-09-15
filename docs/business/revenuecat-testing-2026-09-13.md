@@ -1,5 +1,7 @@
 # RevenueCat purchase testing — 3D Craft
 
+> Historical September 13 local-backend evidence. The cloud implementation and current remaining acceptance are documented in [cloud subscription acceptance](cloud-subscription-acceptance-2026-09-14.md); the local setup and rollover descriptions below are not the current cloud configuration.
+
 ## Verified on September 13, 2026
 
 - Apple app `appb88bdcb0f7`, bundle `studio.craft.ios`: RevenueCat reports valid in-app purchase key credentials.

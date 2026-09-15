@@ -701,6 +701,9 @@ struct PendingGeneration: Codable, Equatable {
     }
     private func applyWallet(_ d:[String:Any]){
         wallet.environment = d["environment"] as? String ?? "PRODUCTION"
+        wallet.packAvailable = d["packAvailable"] as? Int
+        wallet.subscriptionAvailable = d["subscriptionAvailable"] as? Int ?? 0
+        wallet.subscriptionExpiresAt = (d["subscriptionExpiresAt"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue) }
         wallet.available=d["available"] as? Int ?? 0;wallet.freeConceptTokens=d["freeConceptTokens"] as? Int ?? 0;wallet.reserved=d["reserved"] as? Int ?? 0
         wallet.ledger=(d["ledger"] as? [[String:Any]] ?? []).enumerated().map{index,e in WalletEntry(id:String(describing:e["id"] ?? index),description:e["kind"] as? String ?? e["reason"] as? String ?? "Token activity",amount:e["amount"] as? Int ?? e["delta"] as? Int ?? 0,date:Date(timeIntervalSince1970:(e["createdAt"] as? NSNumber)?.doubleValue ?? (e["created"] as? NSNumber)?.doubleValue ?? Date().timeIntervalSince1970))}
     }

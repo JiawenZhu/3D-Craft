@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .identity import require_claims
 from .firebase_studio import FirebaseStudio, BUCKET
 from .firebase_billing import CloudBilling
+from .firebase_webhooks import reconcile_webhook
 from pydantic import BaseModel, Field
 from typing import Literal
 from .account_deletion import ensure_active, request_deletion, erase_account, verify_worker
@@ -125,6 +126,11 @@ def delete_account(body: DeletionConfirmation, claims=Depends(require_claims)):
 def account_deletion_worker(uid: str, authorization: str = Header(default='')):
     verify_worker(authorization)
     return erase_account(studio(), uid)
+
+
+@app.post('/api/billing/revenuecat/webhook')
+def revenuecat_webhook(payload: dict, authorization: str = Header(default='')):
+    return reconcile_webhook(studio().db, payload, authorization)
 
 
 @app.api_route('/api/{path:path}',methods=['GET','POST','DELETE','PATCH'])

@@ -109,7 +109,7 @@ struct CreatorPlansView: View {
                         DisclosureGroup(t("How Tokens work", "Tokens 如何使用"), isExpanded: $showCosts) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(t("Your own ChatGPT prompts and images: 0 app Tokens. 3D costs depend on your chosen model and include the 15% service fee.", "使用自己的 ChatGPT 提示词和图片：0 App Tokens。3D 按所选模型计费，已含 15% 服务费。"))
-                                Text(t("See the Token cost before each creation. Unused paid Tokens roll over.", "每次创作前确认 Token 费用，未使用的付费 Tokens 可结转。"))
+                                Text(t("See the Token cost before each creation. Plan Tokens expire each period; Token packs never expire.", "每次创作前确认 Token 费用。订阅 Tokens 每期到期，代币包永不过期。"))
                                 Text(t("Weekly to monthly: Apple handles the new charge and any prorated refund for the unused weekly period. Check Apple's confirmation before paying.", "周订阅升级月订阅：Apple 处理新套餐扣款及周订阅未使用时段的按比例退款，请以 Apple 确认页为准。"))
                                 Text(t("Cancel to stop future renewals. Cancellation does not automatically refund the current period; refund requests are handled by Apple.", "取消后停止后续续费，本期不会因取消自动退款；退款申请由 Apple 处理。"))
                             }.font(.caption).foregroundStyle(green.opacity(0.8)).padding(.top, 8)

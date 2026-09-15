@@ -9,7 +9,8 @@
   "revenuecatAppId": "appb88bdcb0f7",
   "entitlement": "creator",
   "offering": "default",
-  "autoExpireCredits": false,
+  "subscriptionTokensRollover": false,
+  "purchasedTokensExpire": false,
   "freeTrial": false,
   "plans": [
     {
