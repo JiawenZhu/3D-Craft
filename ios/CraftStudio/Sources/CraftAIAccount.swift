@@ -12,6 +12,8 @@ struct CraftPlannerModel: Identifiable, Equatable {
 }
 
 struct CraftAIAccount: Equatable {
+    // Version 1 launches with Gemini; account-connected AI is deferred.
+    static let enabledForRelease = false
     var available = false
     var connected = false
     var email: String?

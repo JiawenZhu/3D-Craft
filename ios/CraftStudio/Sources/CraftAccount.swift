@@ -204,7 +204,7 @@ struct CraftSignInView: View {
                 }.buttonStyle(CraftPrimary()).disabled(account.busy || email.isEmpty || password.count<6)
                 Button("Forgot password?"){Task{await account.resetPassword(email:email)}}.disabled(email.isEmpty || account.busy)
                 if let error=account.error{Text(error).font(.callout).foregroundStyle(.red)}
-                Text("Generation uses purchased or admin-granted credits. Connecting ChatGPT does not replace your 3D Craft sign-in.").font(.footnote).foregroundStyle(.secondary)
+                Text("Review the Token cost before generating. Your creations and balance sync with your 3D Craft account.").font(.footnote).foregroundStyle(.secondary)
                 HStack{Link("Terms",destination:URL(string:"https://3d-craft.web.app/terms")!);Link("Privacy",destination:URL(string:"https://3d-craft.web.app/privacy")!);Link("Support",destination:URL(string:"https://3d-craft.web.app/contact")!)}.font(.footnote)
             }.textFieldStyle(.roundedBorder).padding(30).padding(.top,50)
         }.background{StudioAtmosphere()}.tint(appearance.ink)

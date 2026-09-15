@@ -78,7 +78,7 @@ struct PendingGeneration: Codable, Equatable {
     @Published var serviceFeeRate: Double = 0.15
     @Published var imageModelsLoaded = false
     var selectedImageModel: CraftImageModel? { imageModels.first { $0.id == imageModelID } }
-    @Published var plannerModelID = UserDefaults.standard.string(forKey: "craftPlannerModel") ?? CraftPlannerModel.defaultID {
+    @Published var plannerModelID = CraftAIAccount.enabledForRelease ? (UserDefaults.standard.string(forKey: "craftPlannerModel") ?? CraftPlannerModel.defaultID) : CraftPlannerModel.defaultID {
         didSet { UserDefaults.standard.set(plannerModelID, forKey: "craftPlannerModel") }
     }
     @Published var plannerEffort = UserDefaults.standard.string(forKey: "craftPlannerEffort") ?? "low" {
@@ -533,6 +533,10 @@ struct PendingGeneration: Codable, Equatable {
     }
 
     func refreshAIAccount() async {
+        guard CraftAIAccount.enabledForRelease else {
+            aiAccount = CraftAIAccount(); aiAccountLoaded = true; aiAccountError = nil
+            return
+        }
         guard !aiAccountRefreshing else { return }
         aiAccountRefreshing = true; defer { aiAccountRefreshing = false }
         let revision = aiAccountRevision

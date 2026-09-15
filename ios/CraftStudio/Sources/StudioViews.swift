@@ -712,12 +712,13 @@ struct ProfileView: View {
 
     private var settingsRows: some View {
         VStack(spacing: 4) {
+            if CraftAIAccount.enabledForRelease {
             navigationRow("brain.head.profile", store.aiAccount.connected
                 ? store.t("ChatGPT connected", "ChatGPT 已连接") : store.t("Connect ChatGPT", "连接 ChatGPT")) {
                 aiAccountOpen = true
             }.accessibilityIdentifier("profile.aiAccount")
-
             Divider().opacity(0.4)
+            }
 
             Toggle(isOn: $store.isChinese) {
                 rowLabel("globe", store.t("Chinese interface", "中文界面"))

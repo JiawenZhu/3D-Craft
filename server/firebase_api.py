@@ -1,7 +1,7 @@
 """Cloud-only studio API. No SQLite databases, laptop paths or local sessions.
 
-Keep generation unavailable until durable worker and billing acceptance pass.
-An API returning library data is not evidence of generation readiness.
+Readiness reports whether the verified Gemini-to-3D cloud pipeline is enabled.
+It is an operational signal, not an App Store review or device-QA status.
 """
 from functools import lru_cache
 import os
@@ -52,7 +52,7 @@ def public_shape(data, account):
 
 @app.get('/api/health')
 def health():
-    return {'status':'ok','storage':'firebase','apiOrigin':'https://3d-craft.web.app','generationReady':False,
+    return {'status':'ok','storage':'firebase','apiOrigin':'https://3d-craft.web.app','generationReady':generation_ready(),
             'modelGenerationReady':model_ready()}
 
 
@@ -74,15 +74,17 @@ def concepts_ready():
     return planning_ready() and os.getenv('CRAFT_CONCEPT_JOBS_ENABLED') == '1'
 
 
+def generation_ready():
+    return concepts_ready() and model_ready()
+
+
 @app.get('/api/mobile/image-models')
 def image_models(account=Depends(owner)):
     now=time.time()
     return {'defaultModel':cloud_concept_provider.MODEL,'expiresAt':cloud_concept_provider.quote(now)['expiresAt'],
         'maxTokensByCount':{str(n):cloud_concept_provider.quote(now,n)['maxTokens'] for n in range(1,5)},
         'models':[dict(id=cloud_concept_provider.MODEL,name='Gemini 3 Pro Image · Nano Banana Pro',provider='google',
-            quality='Pro',imageSize='2K',available=concepts_ready(),unavailableReason=None if concepts_ready() else 'Cloud concepts are temporarily unavailable.'),
-            dict(id='codex-gpt-image-2',name='GPT Image 2 · ChatGPT account',provider='chatgpt',quality='Account default',imageSize='Native',
-                available=False,unavailableReason='Account-connected image generation is not yet available in the cloud.')]}
+            quality='Pro',imageSize='2K',available=concepts_ready(),unavailableReason=None if concepts_ready() else 'Cloud concepts are temporarily unavailable.')]}
 
 
 @app.post('/api/mobile/projects/{project_id}/concepts')
@@ -229,7 +231,7 @@ def bootstrap(account=Depends(owner)):
         multiView=True,multiViewDirections=['front','back','left'] if ident.startswith('hunyuan') else ['front','back','left','right'])
         for ident,label in cloud_model_provider.ENGINES.items()]
     return {'mode':'cloud','wallet':wallet(account),'products':[], 'engines':list(cloud_model_provider.ENGINES), 'engineCatalog':engines,
-            'generationReady':False,'modelGenerationReady':model_ready()}
+            'generationReady':generation_ready(),'modelGenerationReady':model_ready()}
 
 
 class DeletionConfirmation(BaseModel):

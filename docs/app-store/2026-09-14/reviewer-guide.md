@@ -15,7 +15,7 @@ Use the email sign-in option and the dedicated demo credentials supplied in App 
 ## Creation and library
 
 1. Browse Characters and Objects for public examples. These are separate from the signed-in user's private creations.
-2. Sign in, describe an idea or select a reference image, and generate concepts.
+2. Sign in, describe an idea or select a reference image, and generate concepts with Gemini. This release does not offer own-account ChatGPT generation. No personal AI-provider account or Mac service is required.
 3. Select a concept and choose Make this 3D. Review the chosen model and displayed Token cost before confirming. Where the selected engine supports it, additional views or an optional description can guide generation; capabilities differ by engine.
 4. Wait for completion or leave the screen and return to the library. Open the completed model, rotate and zoom it, and change lighting or display mode.
 5. Sign in to the website with the same app account to inspect the same private creations. Access is tied to the Firebase user; the website is not a public listing of private work.

@@ -27,8 +27,18 @@ class FirebaseAPITests(unittest.TestCase):
             api.public_shape('gs://'+api.BUCKET+'/users/bob/models/private.glb','firebase:alice')
     def test_no_generation_or_payment_readiness_is_faked(self):
         api.app.dependency_overrides[require_claims]=lambda:{'uid':'alice'}
-        self.assertFalse(self.client.get('/api/health').json()['generationReady'])
+        with patch.dict('os.environ', {}, clear=True):
+            self.assertFalse(self.client.get('/api/health').json()['generationReady'])
         with patch.object(api,'ensure_active'), patch.object(api,'studio'):
             self.assertEqual(self.client.post('/api/mobile/development/purchase').status_code,503)
+
+    def test_readiness_requires_each_cloud_generation_dependency(self):
+        enabled={'CRAFT_MODEL_JOBS_ENABLED':'1', 'FAL_KEY':'fixture-only',
+                 'CRAFT_PLANNING_ENABLED':'1', 'CRAFT_CONCEPT_JOBS_ENABLED':'1'}
+        with patch.dict('os.environ', enabled, clear=True):
+            self.assertTrue(self.client.get('/api/health').json()['generationReady'])
+        for key in enabled:
+            with self.subTest(missing=key), patch.dict('os.environ', {k:v for k,v in enabled.items() if k!=key}, clear=True):
+                self.assertFalse(self.client.get('/api/health').json()['generationReady'])
 
 if __name__=='__main__':unittest.main()

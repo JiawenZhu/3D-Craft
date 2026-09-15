@@ -45,6 +45,15 @@ final class ImageModelSelectionTests: XCTestCase {
         XCTAssertEqual(store.imagePayload(["count": 1])["maxTokens"] as? Int, store.conceptTokenCost(count: 1))
     }
 
+    func testGeminiReleaseMigratesSelectionWithoutRewritingSavedChatGPTRequest() throws {
+        XCTAssertFalse(CraftAIAccount.enabledForRelease)
+        XCTAssertEqual(CraftImageModel.restoredSelection("codex-gpt-image-2"), CraftImageModel.defaultID)
+        let pending = try PendingGeneration.make(base: StudioConnection.cloudURL, path: "/projects/p/concepts", projectID: "p", payload: ["count": 1, "imageModel": "codex-gpt-image-2", "maxTokens": 0])
+        let restored = try JSONDecoder().decode(PendingGeneration.self, from: JSONEncoder().encode(pending))
+        XCTAssertEqual(restored.body, pending.body)
+        XCTAssertFalse(restored.matches(base: StudioConnection.cloudURL, path: pending.requestPath, payload: ["count": 1, "imageModel": CraftImageModel.defaultID, "maxTokens": 33]))
+    }
+
     @MainActor func testUnavailableRendererCannotCreateProjectOrPendingCharge() async {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         let store = CraftStore(pendingURL: url)

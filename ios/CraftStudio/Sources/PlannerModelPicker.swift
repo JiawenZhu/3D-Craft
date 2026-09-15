@@ -28,6 +28,7 @@ struct PlannerModelPicker: View {
 
             if expanded {
                 modelRow(id: CraftPlannerModel.defaultID, name: CraftPlannerModel.defaultName)
+                if CraftAIAccount.enabledForRelease {
                 ForEach(store.aiAccount.models) { model in modelRow(id: model.id, name: model.name) }
                 if let selected = store.selectedPlannerModel, !selected.reasoningEfforts.isEmpty {
                     Picker(store.t("Planning effort", "规划思考程度"), selection: $store.plannerEffort) {
@@ -42,13 +43,16 @@ struct PlannerModelPicker: View {
                                  "已保存的规划模型当前不可用，请连接账户或选择 Gemini。"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                }
                 Text(store.t("Plans the instructions and reference views before the image model renders them.",
                              "先规划提示词和参考视角，再由生图模型绘制图片。"))
                     .font(.caption).foregroundStyle(.secondary)
+                if CraftAIAccount.enabledForRelease {
                 Button { accountOpen = true } label: {
                     Label(store.aiAccount.connected ? store.t("Manage ChatGPT connection", "管理 ChatGPT 连接") : store.t("Connect ChatGPT for more models", "连接 ChatGPT 使用更多模型"),
                           systemImage: "person.crop.circle")
                 }.buttonStyle(CraftSecondary()).accessibilityIdentifier("planner.account")
+                }
             }
         }
         .padding(14).background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20))

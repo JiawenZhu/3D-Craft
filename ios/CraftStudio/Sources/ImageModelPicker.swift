@@ -15,7 +15,8 @@ struct CraftImageModel: Identifiable, Codable, Equatable {
         .init(id: "codex-gpt-image-2", name: "GPT Image 2 · ChatGPT account", provider: "chatgpt", available: false, quality: "Account default", imageSize: "Native", unavailableReason: nil)
     ]
     static func restoredSelection(_ stored: String?) -> String {
-        stored == "gpt-image-2.5-sunburst" ? defaultID : stored ?? defaultID
+        guard CraftAIAccount.enabledForRelease else { return defaultID }
+        return stored == "gpt-image-2.5-sunburst" ? defaultID : stored ?? defaultID
     }
     static func displayName(for id: String) -> String {
         placeholders.first { $0.id == (id == "gpt-image-2" ? "codex-gpt-image-2" : id) }?.name ?? id
@@ -49,7 +50,7 @@ struct ImageModelPicker: View {
                 .accessibilityValue(expanded ? store.t("Expanded", "已展开") : store.t("Collapsed", "已收起"))
             if expanded {
             VStack(spacing: 10) {
-                ForEach(store.imageModels) { model in
+                ForEach(store.imageModels.filter { $0.id == CraftImageModel.defaultID || CraftAIAccount.enabledForRelease }) { model in
                     Button {
                         store.imageModelID = model.id
                     } label: {
@@ -82,10 +83,10 @@ struct ImageModelPicker: View {
                         .accessibilityIdentifier("imageModel." + model.id)
                         .accessibilityAddTraits(model.id == store.imageModelID ? .isSelected : [])
                 }
-                Text(store.t("Gemini works without a ChatGPT account. Connect your own ChatGPT account to optionally use GPT Image 2.", "无需 ChatGPT 账户即可使用 Gemini；连接自己的 ChatGPT 账户后，可选择 GPT Image 2。"))
+                Text(store.t("Gemini turns your description and reference images into concepts. Review the Token cost before generating.", "Gemini 根据你的描述和参考图片生成概念图。生成前请确认 Token 费用。"))
                     .font(.caption).foregroundStyle(.secondary)
                 if let selected = store.selectedImageModel, !selected.available, store.imageModelsLoaded {
-                    if selected.id == "codex-gpt-image-2" {
+                    if CraftAIAccount.enabledForRelease && selected.id == "codex-gpt-image-2" {
                         Button(store.t("Connect ChatGPT", "连接 ChatGPT")) { accountOpen = true }
                             .buttonStyle(CraftSecondary()).accessibilityIdentifier("imageModel.account")
                     } else {

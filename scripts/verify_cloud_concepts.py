@@ -105,7 +105,7 @@ try:
         login=requests.post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword',params={'key':config['apiKey']},json={'email':uid+'@example.com','password':password,'returnSecureToken':True},timeout=30)
         login.raise_for_status();headers={'Authorization':'Bearer '+login.json()['idToken']};base='https://3d-craft.web.app/api/mobile'
         catalog=requests.get(base+'/image-models',headers=headers,timeout=30);catalog.raise_for_status();catalog=catalog.json()
-        assert catalog['models'][0]['available'] and not catalog['models'][1]['available']
+        assert catalog['models'][0]['available'] and [m['id'] for m in catalog['models']]==[provider.MODEL]
         def live(path,body):
             before=wallet.get().to_dict()['available']
             def post():
