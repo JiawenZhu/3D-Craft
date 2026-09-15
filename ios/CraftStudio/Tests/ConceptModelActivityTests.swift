@@ -2,6 +2,39 @@ import XCTest
 @testable import CraftStudio
 
 final class ConceptModelActivityTests: XCTestCase {
+    @MainActor func testAcceptedJobAppearsImmediatelyAndCompletionCannotRegress() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = CraftStore(pendingURL: url)
+        store.jobs = []
+        let queued = CraftJob(["id":"new", "projectId":"p", "kind":"model", "status":"queued", "selectedConceptId":"front"], base:store.apiBase)
+        store.acceptJob(queued)
+        XCTAssertEqual(store.jobs.first?.selectedConceptId, "front")
+        XCTAssertTrue(store.jobs.first?.isActive == true)
+        var pending = try PendingGeneration.make(base:store.apiBase, path:"/concepts/front/model", projectID:"p", payload:["engine":"rodin"])
+        pending.jobID = "new"; try store.persistPending(pending)
+        let done = CraftJob(["id":"new", "projectId":"p", "kind":"model", "status":"done", "progress":100], base:store.apiBase)
+        store.acceptJob(done)
+        try store.resolvePending(from:store.jobs)
+        XCTAssertNil(store.pendingGeneration)
+        store.acceptJob(queued)
+        XCTAssertEqual(store.jobs.count, 1)
+        XCTAssertEqual(store.jobs.first?.status, "done")
+        XCTAssertEqual(store.jobs.first?.progress, 100)
+    }
+
+    @MainActor func testNewJobImageCanBeSelectedBeforeProjectRefresh() {
+        let store = CraftStore()
+        let project = CraftProject(["id":"selection-fixture-project", "concepts":[]], base:store.apiBase)
+        let concept = CraftConcept(["id":"selection-fixture-image", "projectId":project.id, "imageUrl":"/image.png"], base:store.apiBase)
+        let key = "craftSelectedConcept:" + store.apiBase + ":" + project.id
+        defer { UserDefaults.standard.removeObject(forKey:key) }
+        store.jobs = [CraftJob(["id":"image-job", "projectId":project.id, "status":"done", "concepts":[["id":concept.id, "projectId":project.id, "imageUrl":"/image.png"]]], base:store.apiBase)]
+        store.selectConcept(concept)
+        XCTAssertEqual(store.selectedConcept(in:project)?.id, concept.id)
+        XCTAssertNil(store.selectedConcept(in:CraftProject(["id":"another-project"], base:store.apiBase)))
+    }
+
     private func concept(_ id: String) -> CraftConcept {
         CraftConcept(["id": id, "projectId": "p", "imageUrl": "/images/\(id).png"], base: "http://localhost")
     }

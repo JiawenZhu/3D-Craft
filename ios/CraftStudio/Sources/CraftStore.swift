@@ -251,6 +251,10 @@ struct PendingGeneration: Codable, Equatable {
     }
     @Published var selectedTab=0
     private var token:String?
+    @Published var submittingModelID: String?
+    private var creationRefreshing = false
+    private var rawProjectSnapshot: [[String: Any]] = []
+    private var rawJobSnapshot: [[String: Any]] = []
     private var polling:Task<Void,Never>?
     private let pendingURL:URL
     private(set) var pendingGeneration:PendingGeneration?
@@ -297,7 +301,8 @@ struct PendingGeneration: Codable, Equatable {
             if pending.requestPath.hasSuffix("/model") { completionTracker.watching.insert(id) }
             pending.jobID=id
             try persistPending(pending)
-            if let status=job["status"] as? String,["done","partial","failed"].contains(status){try persistPending(nil)}
+            acceptJob(CraftJob(job, base: apiBase))
+            try resolvePending(from: jobs)
             return pending.projectID
         }catch {
             // A known 4xx rejection before we obtained a job ID did not enqueue
@@ -307,9 +312,51 @@ struct PendingGeneration: Codable, Equatable {
         }
     }
     private func reconcilePending() async {
-        guard !busy,pendingGeneration != nil else{return}
-        busy=true;defer{busy=false}
-        do{_=try await submitPending();await refresh()}catch{connectionNotice=t("Confirming your generation request…","正在确认生成请求……")}
+        guard let pending = pendingGeneration else { return }
+        // A known job only needs a read. Background reconciliation must not
+        // disable creation controls or wait behind an unrelated permission sheet.
+        if pending.jobID != nil {
+            do { try await refreshCreationState() }
+            catch { connectionNotice = t("Checking your creation’s latest status…", "正在查询作品的最新状态……") }
+            return
+        }
+        guard !busy else { return }
+        busy = true; defer { busy = false }
+        do { _ = try await submitPending(); try await refreshCreationState() }
+        catch { connectionNotice = t("Confirming your generation request…", "正在确认生成请求……") }
+    }
+
+    func acceptJob(_ job: CraftJob) {
+        if let index = jobs.firstIndex(where: { $0.id == job.id }) {
+            // A delayed running response cannot overwrite a terminal snapshot.
+            if !jobs[index].isActive && job.isActive { return }
+            jobs[index] = job
+        } else { jobs.insert(job, at: 0) }
+        completedModelCards.append(contentsOf: completionTracker.receive(jobs))
+    }
+
+    private func refreshCreationState() async throws {
+        guard !creationRefreshing, let uid = CraftAccount.shared.uid else { return }
+        creationRefreshing = true; defer { creationRefreshing = false }
+        let raw = try await request("/jobs") as? [[String: Any]] ?? []
+        guard CraftAccount.shared.uid == uid else { return }
+        completionTracker.watching.formUnion(jobs.filter { $0.kind == "model" && $0.isActive }.map(\.id))
+        let activeIDs = Set(jobs.filter(\.isActive).map(\.id))
+        rawJobSnapshot = raw
+        for value in raw { acceptJob(CraftJob(value, base: apiBase)) }
+        try resolvePending(from: jobs)
+        if jobs.contains(where: { activeIDs.contains($0.id) && !$0.isActive }) {
+            Task { await refreshCloudCreations() }
+        }
+        // Publish terminal status before fetching other data. An unavailable
+        // catalog, wallet or library must never leave a finished job spinning.
+        if let values = try? await request("/projects") as? [[String: Any]], CraftAccount.shared.uid == uid {
+            rawProjectSnapshot = values
+            projects = values.map { CraftProject($0, base: apiBase) }
+        }
+        if let value = try? await request("/wallet") as? [String: Any], CraftAccount.shared.uid == uid { applyWallet(value) }
+        guard CraftAccount.shared.uid == uid else { return }
+        connectionSucceeded()
     }
     private func prepareGeneration(path:String,projectID:String,payload:[String:Any],draftFingerprint:String?=nil) async throws ->Bool {
         if let provider = CraftAIProvider.recipient(path: path, method: "POST"), let uid = CraftAccount.shared.uid {
@@ -336,10 +383,12 @@ struct PendingGeneration: Codable, Equatable {
     func selectedConcept(in project:CraftProject)->CraftConcept? {
         let id=UserDefaults.standard.string(forKey:"craftSelectedConcept:"+apiBase+":"+project.id)
         return project.concepts.first{$0.id==id}
+            ?? jobs.filter { $0.projectId == project.id }.flatMap { $0.concepts ?? [] }.first { $0.id == id }
     }
     func saveDraftImage(_ image:UIImage?) {if image != nil && draftPrompt == Self.legacyDemoPrompt {draftPrompt=""};draftImage=image;if let data=image?.jpegData(compressionQuality:0.95){try?data.write(to:Self.draftURL,options:.atomic)}else{try?FileManager.default.removeItem(at:Self.draftURL)}}
     func eraseLocalAccountData() async {
         polling?.cancel(); polling = nil
+        rawProjectSnapshot = []; rawJobSnapshot = []; submittingModelID = nil
         try? FileManager.default.removeItem(at: Self.libraryCacheURL)
         try? persistPending(nil)
         draftPrompt = ""; saveDraftImage(nil)
@@ -406,24 +455,16 @@ struct PendingGeneration: Codable, Equatable {
     func refresh() async {
         guard let accountUID = CraftAccount.shared.uid else { return }
         do {
-            let cloudAssets = try await FirebaseCreationLibrary.load()
-            guard CraftAccount.shared.uid == accountUID else { return }
-            assets = cloudAssets
-            let p=try await request("/projects") as? [[String:Any]] ?? []
-            let a=try await request("/assets") as? [String:Any] ?? [:]
-            let j=try await request("/jobs") as? [[String:Any]] ?? []
-            let w=try await request("/wallet") as? [String:Any] ?? [:]
+            try await refreshCreationState()
+            if let cloudAssets = try? await FirebaseCreationLibrary.load(), CraftAccount.shared.uid == accountUID { assets = cloudAssets }
             await refreshImageModelCatalog()
             await refreshPricing()
             guard CraftAccount.shared.uid == accountUID else { return }
-            completionTracker.watching.formUnion(jobs.filter { $0.kind == "model" && $0.isActive }.map(\.id))
-            projects=p.map{CraftProject($0,base:apiBase)};jobs=j.map{CraftJob($0,base:apiBase)}
-            completedModelCards.append(contentsOf: completionTracker.receive(jobs))
-            // Private library is authoritative in Firebase, shared with the website.
             examples = PublicGallery.bundled
-            applyWallet(w);connectionSucceeded()
-            if let data=try? JSONSerialization.data(withJSONObject:["accountUID":CraftAccount.shared.uid ?? "", "apiBase":apiBase,"projects":p,"assets":a,"jobs":j]){try?data.write(to:Self.libraryCacheURL,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])}
-            try resolvePending(from:jobs)
+            if let a = try? await request("/assets") as? [String: Any], CraftAccount.shared.uid == accountUID,
+               let data = try? JSONSerialization.data(withJSONObject: ["accountUID": accountUID, "apiBase": apiBase, "projects": rawProjectSnapshot, "assets": a, "jobs": rawJobSnapshot]) {
+                try? data.write(to: Self.libraryCacheURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            }
             syncCloudLibrary()
         }catch{if CraftAccount.shared.uid == accountUID { connectionFailed(error) }}
     }
@@ -443,7 +484,7 @@ struct PendingGeneration: Codable, Equatable {
             catch { self.connectionNotice = self.t("Website library sync is pending. Your creations are saved here.","网站作品同步待完成，作品已保存在这里。") }
         }
     }
-    private func startPolling(){guard polling == nil else{return};polling=Task{[weak self] in while !Task.isCancelled {try?await Task.sleep(nanoseconds:3_000_000_000);guard let self else{return};if !self.connected{if !self.connectionNeedsSignIn && !self.connectionNeedsSetup && Date() >= self.nextConnectionAttempt {await self.connect()}}else if self.pendingGeneration != nil{await self.reconcilePending()}else if self.jobs.contains(where:{$0.isActive}) || self.projects.contains(where:{$0.turns.contains(where:{$0.isActive})}){await self.refresh()}}}}
+    private func startPolling(){guard polling == nil else{return};polling=Task{[weak self] in while !Task.isCancelled {try?await Task.sleep(nanoseconds:3_000_000_000);guard let self else{return};if !self.connected{if !self.connectionNeedsSignIn && !self.connectionNeedsSetup && Date() >= self.nextConnectionAttempt {await self.connect()}}else if self.pendingGeneration != nil{await self.reconcilePending()}else if self.jobs.contains(where:{$0.isActive}) || self.projects.contains(where:{$0.turns.contains(where:{$0.isActive})}){do { try await self.refreshCreationState() } catch { self.connectionFailed(error) }}}}}
     func createConcepts(count:Int,originalOnly:Bool=false) async ->String? {
         guard !busy else{return nil};guard connected else{error=t("Please sign in or check your connection.","请先登录或检查网络连接。");return nil}
         guard !draftPrompt.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || draftImage != nil else{error=t("Add a photo or describe your idea.","请添加照片或描述你的想法。");return nil}
@@ -487,11 +528,11 @@ struct PendingGeneration: Codable, Equatable {
         guard pendingGeneration != nil || (imageModelIsReady() && (preserveReference || plannerIsReady())) else { return false }
         guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: count) else{showPaywall=true;return false}
         busy=true;defer{busy=false}
-        do{guard try await prepareGeneration(path:"/projects/\(projectID)/concepts",projectID:projectID,payload:imagePayload(["count":count,"prompt":prompt,"referenceId":referenceID as Any? ?? NSNull(),"style":draftStyle,"preserveReference":preserveReference])) else{return false};_=try await submitPending();await refresh();startPolling();return true}catch{handleGenerationError(error);return false}
+        do{guard try await prepareGeneration(path:"/projects/\(projectID)/concepts",projectID:projectID,payload:imagePayload(["count":count,"prompt":prompt,"referenceId":referenceID as Any? ?? NSNull(),"style":draftStyle,"preserveReference":preserveReference])) else{return false};_=try await submitPending();startPolling();return true}catch{handleGenerationError(error);return false}
     }
     func refine(_ concept:CraftConcept,prompt:String) async {
         guard !busy else{return};guard pendingGeneration != nil || (imageModelIsReady() && plannerIsReady()) else{return};guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: 1) else{showPaywall=true;return};busy=true;defer{busy=false}
-        do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/refine",projectID:concept.projectId,payload:imagePayload(["prompt":prompt])) else{return};_=try await submitPending();await refresh();startPolling()}catch{handleGenerationError(error)}
+        do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/refine",projectID:concept.projectId,payload:imagePayload(["prompt":prompt])) else{return};_=try await submitPending();startPolling()}catch{handleGenerationError(error)}
     }
     func imagePayload(_ fields: [String:Any]) -> [String:Any] {
         var payload = fields
@@ -799,7 +840,7 @@ struct PendingGeneration: Codable, Equatable {
         }
     }
     func generateModel(_ concept:CraftConcept,engine:String="rodin",quality:String="default",effort:String="high",conceptIds:[String]=[],modelPrompt:String?=nil) async {
-        guard !busy else { return }
+        guard !busy else { error = t("Please wait for the current request to finish, then try again.", "请等待当前请求完成后重试。"); return }
         if pendingGeneration == nil {
             guard let cost = modelTokenCost(engine, views: max(1, conceptIds.count), effort: effort) else {
                 error = t("Price pending for these settings. Choose a single view or another model.", "此设置的价格待确认，请选择单张视图或其他模型。")
@@ -807,8 +848,8 @@ struct PendingGeneration: Codable, Equatable {
             }
             guard wallet.available >= cost else { showPaywall = true; return }
         }
-        busy=true;defer{busy=false}
-        do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/model",projectID:concept.projectId,payload:Self.modelPayload(engine:engine,quality:quality,effort:effort,conceptIds:conceptIds,modelPrompt:modelPrompt)) else{return};_=try await submitPending();await refresh();startPolling()}catch{handleGenerationError(error)}
+        busy=true; submittingModelID=concept.id; defer{busy=false; submittingModelID=nil}
+        do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/model",projectID:concept.projectId,payload:Self.modelPayload(engine:engine,quality:quality,effort:effort,conceptIds:conceptIds,modelPrompt:modelPrompt)) else{return};_=try await submitPending();startPolling()}catch{handleGenerationError(error)}
     }
     func replenishTestCredits() async {
         do {

@@ -21,6 +21,7 @@ struct ModelGenerationSheet: View {
     @State private var previewLoading = true
     @State private var previewAttempt = UUID()
     @State private var submitted = false
+    @State private var submissionError: String?
     @State private var useMultiView = false
     @State private var checkedIDs: Set<String> = []
     @State private var submitCount = 0
@@ -96,7 +97,7 @@ struct ModelGenerationSheet: View {
             .background { StudioAtmosphere(intensity: 1.15, scrollProgress: min(1, Double(scrollY) / 600)) }
             .navigationTitle(t("Confirm 3D generation", "确认生成 3D"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(t("Cancel", "取消")) { dismiss() }.foregroundStyle(.secondary) } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(t("Cancel", "取消")) { dismiss() }.disabled(submitted).foregroundStyle(.secondary) } }
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button(t("Done", "完成")) { promptFocused = false } } }
             .onChange(of: engine) { _, _ in
                 if !supportsMultiView { useMultiView = false }
@@ -106,6 +107,8 @@ struct ModelGenerationSheet: View {
                 if enabled { checkedIDs = Set(eligibleViews.prefix(5).map(\.id)) }
             }
         }
+        .interactiveDismissDisabled(submitted)
+        .alert(t("Could not start 3D", "无法开始生成 3D"), isPresented: Binding(get: { submissionError != nil }, set: { if !$0 { submissionError = nil } })) { Button("OK") { submissionError = nil } } message: { Text(submissionError ?? "") }
         .preferredColorScheme(.light)
         .craftFeedback(.primaryAction, trigger: submitCount)
         .craftFeedback(.modelReady, trigger: imageReady)
@@ -413,8 +416,15 @@ struct ModelGenerationSheet: View {
             submitted = true
             submitCount += 1
             promptFocused = false
-            onGenerate(engine, quality, effort, selectedIDs, supportsPrompt ? trimmedPrompt : nil)
-            dismiss()
+            Task { @MainActor in
+                do {
+                    guard let uid = CraftAccount.shared.uid else { throw CraftError(message: t("Sign in to create 3D.", "请先登录再生成 3D。")) }
+                    // Present consent on the stable sheet, before dismissing it.
+                    try await CraftAIPrivacy.authorize(.fal, uid: uid, chinese: chinese)
+                    onGenerate(engine, quality, effort, selectedIDs, supportsPrompt ? trimmedPrompt : nil)
+                    dismiss()
+                } catch { submitted = false; submissionError = error.localizedDescription }
+            }
         } label: {
             Label(t("Generate 3D · \(tokenLabel)", "生成 3D · \(tokenLabel)"), systemImage: "cube.transparent")
         }

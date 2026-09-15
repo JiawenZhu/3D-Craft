@@ -62,11 +62,19 @@ struct CraftConversationView: View {
                             case .job(let job): jobView(job)
                             }
                         }
+                        if let id = store.submittingModelID, project?.concepts.contains(where: { $0.id == id }) == true {
+                            Label(store.t("Starting your 3D creation…", "正在开始生成 3D……"), systemImage: "cube.transparent")
+                                .font(.headline).foregroundStyle(appearance.ink).id("model.submitting")
+                        }
                         if store.sendingChat.contains(projectID) { Label(store.t("Saving your message…", "正在保存消息……"), systemImage: "ellipsis.bubble").font(.subheadline).foregroundStyle(.secondary) }
                         Color.clear.frame(height: 1).id("conversation.bottom")
                     }
                     .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 16)
                     .frame(maxWidth: 650).frame(maxWidth: .infinity)
+                }
+                .refreshable { await store.refresh() }
+                .onChange(of: store.submittingModelID) { _, id in
+                    if id != nil { withAnimation { proxy.scrollTo("model.submitting", anchor: .center) } }
                 }
                 .clipped()
                 .scrollDismissesKeyboard(.interactively)
