@@ -5,12 +5,14 @@ An API returning library data is not evidence of generation readiness.
 """
 from functools import lru_cache
 from urllib.parse import quote
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile
+from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from .identity import require_claims
 from .firebase_studio import FirebaseStudio, BUCKET
 from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
+from .firebase_projects import CloudProjects, MAX_BYTES
 from pydantic import BaseModel, Field
 from typing import Literal
 from .account_deletion import ensure_active, request_deletion, erase_account, verify_worker
@@ -53,6 +55,25 @@ def projects(account=Depends(owner)):
         project['concepts'] = sorted([c for c in concepts if c.get('projectId') == project['id']],key=lambda c:c.get('createdAt',0))
         project['conversation'] = sorted([t for t in turns if t.get('projectId') == project['id']],key=lambda t:t.get('createdAt',0))
     return public_shape(sorted(records,key=lambda p:p.get('createdAt',0),reverse=True),account)
+
+
+@app.post('/api/mobile/projects')
+async def create_project(prompt: str = Form(default=''), name: str = Form(default='Untitled idea'),
+        style: str = Form(default='Stylized'), image: UploadFile | None = File(default=None),
+        clientId: str | None = Form(default=None), account=Depends(owner)):
+    raw = await image.read(MAX_BYTES + 1) if image else None
+    result = await run_in_threadpool(CloudProjects(studio()).create, account,
+        prompt=prompt, name=name, style=style, raw=raw, client_id=clientId)
+    return public_shape(result, account)
+
+
+@app.post('/api/mobile/projects/{project_id}/references')
+async def add_reference(project_id: str, image: UploadFile = File(...),
+        clientId: str | None = Form(default=None), account=Depends(owner)):
+    raw = await image.read(MAX_BYTES + 1)
+    result = await run_in_threadpool(CloudProjects(studio()).create, account,
+        project_id=project_id, raw=raw, client_id=clientId)
+    return public_shape(result, account)
 
 
 @app.get('/api/mobile/jobs')
@@ -126,6 +147,12 @@ def delete_account(body: DeletionConfirmation, claims=Depends(require_claims)):
 def account_deletion_worker(uid: str, authorization: str = Header(default='')):
     verify_worker(authorization)
     return erase_account(studio(), uid)
+
+
+@app.post('/internal/uploads/{uid}/{concept_id}')
+def upload_cleanup_worker(uid: str, concept_id: str, authorization: str = Header(default='')):
+    verify_worker(authorization)
+    return CloudProjects(studio()).cleanup(uid, concept_id)
 
 
 @app.post('/api/billing/revenuecat/webhook')

@@ -7,7 +7,7 @@ Assessment: 14 September 2026. **Not ready for App Review or replacement of the 
 - Physical device Jiawen's iPhone is paired and available through Apple's device tools.
 - Live https://3d-craft.web.app/api/health returns JSON with storage=firebase and generationReady=false.
 - iOS connection source is fixed to https://3d-craft.web.app; saved local/LAN addresses cannot override it.
-- The deployed server/firebase_api.py reads owner-scoped Firebase records without SQLite. Its bootstrap contains empty products/engine catalogs. Unimplemented routes return HTTP 503.
+- The deployed server/firebase_api.py reads owner-scoped Firebase records and creates projects/reference uploads without SQLite. Uploads publish shared library metadata transactionally and have durable orphan cleanup; see ../../cloud-projects/acceptance.md. Its bootstrap still contains empty products/engine catalogs. Unimplemented routes return HTTP 503.
 - Update: verified consumable Token-pack delivery is now deployed through RevenueCat to Firestore, with separate production and sandbox wallets. A live existing sandbox receipt credited 200 Tokens; retry credited 0. Subscription periods now reconcile in Firestore; generation remains incomplete. See ../../business/cloud-subscription-acceptance-2026-09-14.md for scope and remaining billing acceptance.
 - Earlier migration evidence records 77 library creations, including 28 models, and 204 referenced cloud files with none missing. These counts are a migration snapshot, not a fresh census.
 - The phone installer checks cloud readiness before installation. No new app was installed in this readiness check.
@@ -23,7 +23,7 @@ Assessment: 14 September 2026. **Not ready for App Review or replacement of the 
 ## App Store Connect finish list
 
 - Align the release version with the App Store version, assign an unused build number, archive with an Apple-supported distribution toolchain and validate signing.
-- Completed: Xcode Cloud Build 3 uploaded and processed as version 1.0 build 3 (VALID / APP_STORE_ELIGIBLE) and is attached to version 1.0. This upload does not satisfy the implementation and acceptance requirements above.
+- Completed: Xcode Cloud Builds 3, 4 and 5 uploaded and processed as version 1.0, VALID / APP_STORE_ELIGIBLE. Build 5 includes the cloud billing wallet changes and is attached to version 1.0. Upload success does not satisfy the implementation and acceptance requirements above. The subsequent native upload-retry changes need a new processed build.
 - Supply a dedicated functioning reviewer login and current contact information in App Review Information.
 - Replace stale screenshots with exact iPhone/iPad captures from the release; verify support, privacy and terms URLs and localized metadata.
 - Complete accurate age-rating, content-rights, privacy, encryption and availability answers. Recheck the community browser-game feature; do not reuse the old claim that no public user feed exists.
@@ -33,4 +33,4 @@ Creating these files does not upload a binary, attach review information, or sub
 
 Apple requires operational backend services and full reviewer access: https://developer.apple.com/app-store/review/guidelines/ (Before You Submit).
 
-Account deletion update: the native Profile now has a bilingual deletion confirmation and fresh-sign-in check. The durable Firebase/Cloud Tasks worker is deployed, and a disposable-account live test verified private file/record removal, authentication deletion, vote cleanup, RevenueCat removal, and rejection of stale credentials. See ../../account-deletion/acceptance.md. Physical-phone UI acceptance remains. Xcode Cloud Build 4 (source 07932db) completed both Build and Archive successfully; App Store processing and version attachment must still be verified. Live generationReady remains false.
+Account deletion update: the native Profile now has a bilingual deletion confirmation and fresh-sign-in check. The durable Firebase/Cloud Tasks worker is deployed, and a disposable-account live test verified private file/record removal, authentication deletion, vote cleanup, RevenueCat removal, and rejection of stale credentials. See ../../account-deletion/acceptance.md. Physical-phone UI acceptance remains. Build 4 (source 07932db) and Build 5 (source ad4d629) completed Build and Archive with no errors/warnings, processed successfully, and were attached in turn. Live generationReady remains false.

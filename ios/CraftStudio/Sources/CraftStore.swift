@@ -138,14 +138,28 @@ struct PendingGeneration: Codable, Equatable {
     }
     func attachChatReference(projectID: String, image: UIImage) async -> CraftConcept? {
         guard let photo = image.jpegData(compressionQuality: 0.95), photo.count <= 20 * 1024 * 1024 else { error = t("Choose a photo under 20 MB.", "请选择小于 20 MB 的照片。"); return nil }
+        let uploadKey = pendingUploadKey(scope: "reference:" + projectID)
+        let clientID = uploadRequestID(key: uploadKey, fingerprint: PendingGeneration.fingerprint(photo))
         let boundary = "Craft-" + UUID().uuidString
-        var data = Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"image\"; filename=\"reference.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n".utf8)
+        var data = Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"clientId\"\r\n\r\n\(clientID)\r\n--\(boundary)\r\nContent-Disposition: form-data; name=\"image\"; filename=\"reference.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n".utf8)
         data.append(photo); data.append(Data("\r\n--\(boundary)--\r\n".utf8))
         do {
             let result = try await request("/projects/" + projectID + "/references", method: "POST", data: data, contentType: "multipart/form-data; boundary=" + boundary) as? [String: Any] ?? [:]
+            guard let id = result["id"] as? String, !id.isEmpty else { throw CraftError(message: "The reference could not be saved.") }
+            UserDefaults.standard.removeObject(forKey: uploadKey)
             let concept = CraftConcept(result, base: apiBase)
             selectConcept(concept); await refresh(); return concept
         } catch { self.error = error.localizedDescription; return nil }
+    }
+    private func pendingUploadKey(scope: String) -> String {
+        "craftPendingUpload:" + (CraftAccount.shared.uid ?? "signed-out") + ":" + apiBase + ":" + scope
+    }
+    private func uploadRequestID(key: String, fingerprint: String) -> String {
+        if let saved = UserDefaults.standard.dictionary(forKey: key), saved["fingerprint"] as? String == fingerprint,
+           let id = saved["clientId"] as? String { return id }
+        let id = UUID().uuidString
+        UserDefaults.standard.set(["fingerprint": fingerprint, "clientId": id], forKey: key)
+        return id
     }
     @Published var projects:[CraftProject]=[]
     @Published var assets:[CraftAsset]=[]
@@ -291,6 +305,12 @@ struct PendingGeneration: Codable, Equatable {
         try? persistPending(nil)
         draftPrompt = ""; saveDraftImage(nil)
         UserDefaults.standard.removeObject(forKey: "craftActiveConversation:" + apiBase)
+        if let uid = CraftAccount.shared.uid {
+            let prefix = "craftPendingUpload:" + uid + ":"
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
         await CraftImageCache.shared.erase()
         await CraftThumbnailCache.shared.erase()
         CraftDecodedImages.shared.clear()
@@ -395,21 +415,25 @@ struct PendingGeneration: Codable, Equatable {
         guard originalOnly || wallet.available+wallet.freeConceptTokens >= conceptTokenCost(count: count) else{showPaywall=true;return nil}
         busy=true;defer{busy=false}
         let submittedFingerprint=draftFingerprint(count:count)
+        let uploadKey=pendingUploadKey(scope:"project")
+        let uploadID=uploadRequestID(key:uploadKey,fingerprint:submittedFingerprint)
         do {
             let boundary="Craft-"+UUID().uuidString;var data=Data()
             func add(_ text:String){data.append(Data(text.utf8))}
             let title=String(draftPrompt.prefix(44)).isEmpty ? "My new asset":String(draftPrompt.prefix(44))
-            for (key,value) in ["name":title,"prompt":draftPrompt,"style":draftStyle]{add("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(key)\"\r\n\r\n\(value)\r\n")}
+            for (key,value) in ["name":title,"prompt":draftPrompt,"style":draftStyle,"clientId":uploadID]{add("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(key)\"\r\n\r\n\(value)\r\n")}
             if let photo=draftImage?.jpegData(compressionQuality:0.95){guard photo.count<=20*1024*1024 else{throw CraftError(message:t("Choose a photo under 20 MB.","请选择小于20 MB的照片。"))};add("--\(boundary)\r\nContent-Disposition: form-data; name=\"image\"; filename=\"reference.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n");data.append(photo);add("\r\n")}
             add("--\(boundary)--\r\n")
             let p=try await request("/projects",method:"POST",data:data,contentType:"multipart/form-data; boundary=\(boundary)") as? [String:Any] ?? [:]
             guard let id=p["id"] as? String else{throw CraftError(message:"Project could not be saved.")}
             if originalOnly {
+                UserDefaults.standard.removeObject(forKey:uploadKey)
                 await refresh()
                 if let project=projects.first(where:{$0.id==id}),let original=project.concepts.first(where:{$0.isOriginal==true}) {selectConcept(original)}
                 return id
             }
             guard try prepareGeneration(path:"/projects/\(id)/concepts",projectID:id,payload:imagePayload(["count":count,"preserveReference":draftImage != nil]),draftFingerprint:submittedFingerprint) else{return nil}
+            UserDefaults.standard.removeObject(forKey:uploadKey)
             _=try await submitPending()
             await refresh();startPolling();return id
         }catch{handleGenerationError(error);return nil}
