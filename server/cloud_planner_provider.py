@@ -75,13 +75,14 @@ def chat_body(history, brief, style, image, effort='low'):
     return structured_body(CHAT_SYSTEM,schema,text,image,effort,CHAT_MAX_OUTPUT)
 
 
-def call(method, payload):
+def call(method, payload, model=MODEL):
     credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
     headers={'Content-Type':'application/json'}
     credentials.before_request(Request(), 'POST', URL+':'+method, headers)
     try:
         # A plain POST is deliberately not retried, including 401, 429 and 5xx.
-        response=requests.post(URL+':'+method,headers=headers,json=payload,timeout=(15,180))
+        url=URL if model==MODEL else URL.rsplit('/',1)[0]+'/'+model
+        response=requests.post(url+':'+method,headers=headers,json=payload,timeout=(15,180))
         if response.status_code != 200:
             raise PlannerError('The planning service could not finish. Reserved Tokens will be released.')
         result=response.json()

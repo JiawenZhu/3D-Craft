@@ -58,7 +58,7 @@ struct ConceptGenerationSheet: View {
                 .accessibilityHidden(true)
 
                 HStack {
-                    Text(store.t("Total", "合计")).foregroundStyle(.secondary)
+                    Text(store.t("Maximum", "最多预留")).foregroundStyle(.secondary)
                     Spacer()
                     Text("\(store.conceptTokenCost(count: count)) Tokens")
                         .fontWeight(.semibold).monospacedDigit()
@@ -68,6 +68,9 @@ struct ConceptGenerationSheet: View {
                 .font(.subheadline)
                 .padding(16)
                 .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 18))
+
+                Text(store.t("Only actual usage is charged. Unused Tokens return to your wallet.", "仅按实际用量扣除 Token，未使用部分会退回钱包。"))
+                    .font(.caption).foregroundStyle(.secondary)
 
                 if store.showPriceDetails {
                     Text(store.conceptPriceSummary(count: count))
@@ -80,7 +83,7 @@ struct ConceptGenerationSheet: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(CraftPrimary())
-                .disabled(store.busy)
+                .disabled(store.busy || !store.conceptPriceReady)
                 .accessibilityIdentifier("concept.generation.submit")
             }
             .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 24)
@@ -90,6 +93,7 @@ struct ConceptGenerationSheet: View {
         .presentationDetents([.height(510), .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(32)
+        .task { await store.refreshImageModelCatalog() }
         .craftFeedback(.optionSelect, trigger: count)
     }
 

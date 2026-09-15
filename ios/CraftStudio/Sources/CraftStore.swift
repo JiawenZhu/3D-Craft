@@ -492,6 +492,7 @@ struct PendingGeneration: Codable, Equatable {
     }
     func imagePayload(_ fields: [String:Any]) -> [String:Any] {
         var payload = fields
+        payload["maxTokens"] = conceptTokenCost(count: fields["count"] as? Int ?? 1)
         // A legacy pending Gemini request must keep its exact original body.
         let legacy = pendingGeneration.flatMap { try? JSONSerialization.jsonObject(with: $0.body) as? [String:Any] }
         if imageModelID != CraftImageModel.defaultID || legacy == nil || legacy?["imageModel"] != nil {
@@ -660,8 +661,14 @@ struct PendingGeneration: Codable, Equatable {
         }
         return t("Price pending verification", "价格待核实")
     }
+    @Published private var conceptQuotes: [String: Int] = [:]
+    private var conceptQuoteExpiry: Double = 0
+    private var conceptQuoteUID: String?
+    var conceptPriceReady: Bool {
+        conceptQuoteUID == CraftAccount.shared.uid && conceptQuoteUID != nil && conceptQuoteExpiry > Date().timeIntervalSince1970 && conceptQuotes.count == 4 && selectedImageModel?.available == true
+    }
     func conceptTokenCost(count: Int) -> Int {
-        imageModelID == "codex-gpt-image-2" ? 0 : count * 15
+        imageModelID == "codex-gpt-image-2" ? 0 : conceptQuotes[String(count)] ?? (count * 31 + (count > 1 ? 4 : 2))
     }
     func conceptPriceSummary(count: Int) -> String {
         var lines: [String] = []
@@ -670,23 +677,27 @@ struct PendingGeneration: Codable, Equatable {
             lines.append(t("Input and text/thinking tokens are additional; this is not the final total.", "另计输入、文字及思考 tokens；这不是最终总价。"))
         } else { lines.append(priceLabel(imageModelID)) }
         lines.append(t("Planning: ", "提示词规划：") + plannerPriceLabel(plannerModelID))
-        lines.append(t("App credits: \(conceptTokenCost(count: count)) Tokens, listed separately from API cost.", "App 积分：\(conceptTokenCost(count: count)) Tokens，与 API 成本分开列出。"))
+        lines.append(t("Up to \(conceptTokenCost(count: count)) Tokens reserved. Actual usage is charged; unused Tokens return.", "最多预留 \(conceptTokenCost(count: count)) Token，按实际用量结算，未使用部分退回。"))
         return lines.joined(separator: "\n")
     }
-    private func refreshImageModelCatalog() async {
+    func refreshImageModelCatalog() async {
         let base = apiBase
+        let uid = CraftAccount.shared.uid
         let revision = aiSnapshotRevision
         if let catalog = try? await request("/image-models") as? [String:Any],
            let entries = catalog["models"] as? [[String:Any]],
            let bytes = try? JSONSerialization.data(withJSONObject: entries),
            let models = try? JSONDecoder().decode([CraftImageModel].self, from: bytes),
-           !models.isEmpty, base == apiBase, revision == aiSnapshotRevision {
+           !models.isEmpty, base == apiBase, uid == CraftAccount.shared.uid, revision == aiSnapshotRevision {
             imageModels = models.filter { [CraftImageModel.defaultID, "codex-gpt-image-2"].contains($0.id) }; imageModelsLoaded = true
+            conceptQuotes = catalog["maxTokensByCount"] as? [String: Int] ?? [:]
+            conceptQuoteExpiry = catalog["expiresAt"] as? Double ?? 0
+            conceptQuoteUID = uid
         }
     }
     private func imageModelIsReady() -> Bool {
         if imageModelID == "codex-gpt-image-2", aiAccountLoaded, aiAccount.connected, aiAccount.imageGenerationSupported { return true }
-        guard selectedImageModel?.available == true, imageModelsLoaded else {
+        guard selectedImageModel?.available == true, imageModelsLoaded, conceptPriceReady else {
             error = imageModelID == "codex-gpt-image-2"
                 ? t("Connect your ChatGPT account in Profile to use GPT Image 2, or choose Gemini.", "请在我的页面连接自己的 ChatGPT 账户以使用 GPT Image 2，或选择 Gemini。")
                 : t("Gemini is currently unavailable. Please try again later.", "Gemini 暂不可用，请稍后重试。")

@@ -17,7 +17,8 @@ from .firebase_webhooks import reconcile_webhook
 from .firebase_projects import CloudProjects, MAX_BYTES
 from .firebase_model_jobs import CloudModelJobs, ModelRequest
 from .firebase_planning import CloudPlanning, PromptRequest, ChatRequest
-from . import cloud_planner_provider
+from . import cloud_planner_provider, cloud_concept_provider
+from .firebase_concepts import CloudConcepts, ConceptRequest
 import time
 from .firebase_community import CloudCommunity, Submission, Vote, Report, GameLink, Category
 from . import cloud_model_provider, pricing
@@ -67,6 +68,42 @@ def generate_model(concept_id: str, body: ModelRequest, account=Depends(owner)):
 
 def planning_ready():
     return os.getenv('CRAFT_PLANNING_ENABLED') == '1'
+
+
+def concepts_ready():
+    return planning_ready() and os.getenv('CRAFT_CONCEPT_JOBS_ENABLED') == '1'
+
+
+@app.get('/api/mobile/image-models')
+def image_models(account=Depends(owner)):
+    now=time.time()
+    return {'defaultModel':cloud_concept_provider.MODEL,'expiresAt':cloud_concept_provider.quote(now)['expiresAt'],
+        'maxTokensByCount':{str(n):cloud_concept_provider.quote(now,n)['maxTokens'] for n in range(1,5)},
+        'models':[dict(id=cloud_concept_provider.MODEL,name='Gemini 3 Pro Image · Nano Banana Pro',provider='google',
+            quality='Pro',imageSize='2K',available=concepts_ready(),unavailableReason=None if concepts_ready() else 'Cloud concepts are temporarily unavailable.'),
+            dict(id='codex-gpt-image-2',name='GPT Image 2 · ChatGPT account',provider='chatgpt',quality='Account default',imageSize='Native',
+                available=False,unavailableReason='Account-connected image generation is not yet available in the cloud.')]}
+
+
+@app.post('/api/mobile/projects/{project_id}/concepts')
+def generate_concepts(project_id:str,body:ConceptRequest,account=Depends(owner)):
+    if not concepts_ready():raise HTTPException(503,'Cloud concepts are temporarily unavailable. No Tokens were charged.')
+    return public_shape(CloudConcepts(studio()).create(account,project_id,body),account)
+
+
+@app.post('/api/mobile/concepts/{concept_id}/refine')
+def refine_concept(concept_id:str,body:ConceptRequest,account=Depends(owner)):
+    if not concepts_ready():raise HTTPException(503,'Cloud concepts are temporarily unavailable. No Tokens were charged.')
+    uid=account.removeprefix('firebase:');service=CloudConcepts(studio())
+    concept=service.projects.ref(uid,'studioConcepts',concept_id).get().to_dict()
+    if not concept or concept.get('ownerId')!=uid:raise HTTPException(404,'Image not found in this account.')
+    return public_shape(service.create(account,concept['projectId'],body,concept_id),account)
+
+
+@app.post('/internal/concepts/{uid}/{job_id}')
+def concept_worker(uid:str,job_id:str,authorization:str=Header(default=''),x_craft_queued_at:int|None=Header(default=None)):
+    verify_worker(authorization)
+    return CloudConcepts(studio()).run(uid,job_id,x_craft_queued_at)
 
 
 @app.get('/api/mobile/planning/quote')

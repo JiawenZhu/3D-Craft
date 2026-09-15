@@ -1,6 +1,6 @@
 # Cloud creative conversations
 
-The conversation service runs at `https://3d-craft.web.app`. Cloud Run revision `craft-api-00013-mx7` receives 100% of traffic, using image `us-central1-docker.pkg.dev/forma-studio-2026/craft-cloud/api:0eeb731f-52cc-4bde-a31c-0c463c2231ed`. Google Cloud Build completed successfully. This adds chat to the existing prompt-improvement service; concept-image generation remains a separate unfinished flow.
+The conversation service runs at `https://3d-craft.web.app`. Cloud Run revision `craft-api-00013-mx7` receives 100% of traffic, using image `us-central1-docker.pkg.dev/forma-studio-2026/craft-cloud/api:0eeb731f-52cc-4bde-a31c-0c463c2231ed`. Google Cloud Build completed successfully. This adds chat to the existing prompt-improvement service; concept-image generation was unfinished at this checkpoint and has since passed the bounded cloud acceptance in [Cloud concepts](../cloud-concepts/acceptance.md).
 
 ## Behavior and storage
 
