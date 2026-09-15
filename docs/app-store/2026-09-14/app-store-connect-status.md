@@ -13,10 +13,10 @@ RevenueCat reference: https://www.revenuecat.com/docs/platform-resources/apple-p
 ## Remaining
 
 - Content Rights is completed in the live dashboard: “Yes, this app has the necessary rights to its third-party content.” This was observed already saved; it was not inferred from source code.
-- Version 1.0 has no build selection available; its Build section requests uploading a build. No binary uploaded or attached in this update.
+- Version 1.0 now has processed build 3 attached and saved. Apple build ID: `d423e311-2ff4-4b24-8ae9-e7f33697ba96`; processing state `VALID`, audience `APP_STORE_ELIGIBLE`, iPhone and iPad supported, app icon included. The build-selection requirement is resolved.
 - Consumable Token-pack delivery has been verified in the cloud. Cloud generation, subscription delivery, and the other release blockers remain documented in release-readiness.md. Publishing privacy answers does not resolve those implementation gaps.
 - Review sign-in and contact fields are populated in the live dashboard. Credentials intentionally omitted here. The account still requires full end-to-end cloud acceptance.
 
 No Add for Review action was performed.
 
-Cloud Build 2 from eca8713 succeeded on Xcode 26.6 with no warnings or errors. The workflow was then updated with App Store Connect archive preparation and Cloud Build 3 was started. An archive upload and processed build selection are not yet verified by this status update.
+Cloud Build 2 from eca8713 succeeded on Xcode 26.6 with no warnings or errors. Cloud Build 3 also succeeded, including Archive and App Store Connect preparation; Apple processed it as version 1.0, build 3. The authenticated App Store version/build relationship was verified after saving the selection. App Store SDK build is 23F81a; the early-beta upload error no longer applies to this cloud artifact. No Add for Review or Submit for Review action was performed because product/backend acceptance is incomplete.

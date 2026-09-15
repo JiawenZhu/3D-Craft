@@ -23,7 +23,7 @@ Assessment: 14 September 2026. **Not ready for App Review or replacement of the 
 ## App Store Connect finish list
 
 - Align the release version with the App Store version, assign an unused build number, archive with an Apple-supported distribution toolchain and validate signing.
-- Upload the archive, wait for processing and attach the processed build to the intended version.
+- Completed: Xcode Cloud Build 3 uploaded and processed as version 1.0 build 3 (VALID / APP_STORE_ELIGIBLE) and is attached to version 1.0. This upload does not satisfy the implementation and acceptance requirements above.
 - Supply a dedicated functioning reviewer login and current contact information in App Review Information.
 - Replace stale screenshots with exact iPhone/iPad captures from the release; verify support, privacy and terms URLs and localized metadata.
 - Complete accurate age-rating, content-rights, privacy, encryption and availability answers. Recheck the community browser-game feature; do not reuse the old claim that no public user feed exists.
@@ -32,3 +32,5 @@ Assessment: 14 September 2026. **Not ready for App Review or replacement of the 
 Creating these files does not upload a binary, attach review information, or submit the app. No current Apple review status was inferred from older screenshots.
 
 Apple requires operational backend services and full reviewer access: https://developer.apple.com/app-store/review/guidelines/ (Before You Submit).
+
+Account deletion verification: the native Profile offers sign-out only; the website deletion page requires an email to support. Neither implements the required in-app account deletion flow. Reference: https://developer.apple.com/support/offering-account-deletion-in-your-app/. Live generationReady remained false after the cloud build was attached.
