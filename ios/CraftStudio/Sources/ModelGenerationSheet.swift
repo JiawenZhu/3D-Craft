@@ -17,6 +17,8 @@ struct ModelGenerationSheet: View {
     @State private var quality = "default"
     @State private var effort = "high"
     @State private var imageReady = false
+    @State private var previewImage: UIImage?
+    @State private var previewLoading = true
     @State private var previewAttempt = UUID()
     @State private var submitted = false
     @State private var useMultiView = false
@@ -211,7 +213,7 @@ struct ModelGenerationSheet: View {
                                 if on { checkedIDs.insert(view.id) } else { checkedIDs.remove(view.id) }
                             })) {
                                 HStack(spacing: 10) {
-                                    AsyncImage(url: URL(string: view.imageUrl)) { image in image.resizable().scaledToFit() } placeholder: { Image(systemName: "photo").foregroundStyle(.secondary) }
+                                    CraftCachedImage(url: URL(string: view.imageUrl))
                                         .frame(width: 46, height: 46)
                                         .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -454,29 +456,32 @@ struct ModelGenerationSheet: View {
         }
     }
 
-    @ViewBuilder private var preview: some View {
-        if let url = imageURL {
-            if url.isFileURL, let image = UIImage(contentsOfFile: url.path) {
-                Image(uiImage: image).resizable().scaledToFit()
-                    .onAppear { imageReady = true }
-            } else {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFit().onAppear { imageReady = true }
-                    case .failure:
-                        previewError.onAppear { imageReady = false }
-                    case .empty:
-                        VStack(spacing: 12) {
-                            ProgressView().tint(lilac)
-                            Text(t("Loading your selected image…", "正在加载你选中的图片……")).font(.caption).foregroundStyle(.secondary)
-                        }.onAppear { imageReady = false }
-                    @unknown default:
-                        previewError.onAppear { imageReady = false }
-                    }
+    private var preview: some View {
+        Group {
+            if let previewImage {
+                Image(uiImage: previewImage).resizable().scaledToFit()
+                    .accessibilityIdentifier("model.sourcePreview")
+            } else if previewLoading {
+                VStack(spacing: 12) {
+                    ProgressView().tint(lilac)
+                    Text(t("Loading your selected image…", "正在加载你选中的图片……"))
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-            }
-        } else { previewError }
+            } else { previewError }
+        }
+        .task(id: previewAttempt) {
+            imageReady = false; previewImage = nil; previewLoading = true
+            let uid = CraftAccount.shared.uid
+            let data: Data?
+            if let url = imageURL { data = await CraftImageCache.shared.data(for: url) }
+            else { data = nil }
+            guard !Task.isCancelled, CraftAccount.shared.uid == uid else { return }
+            // Use the same authenticated, unmodified-source preview pipeline as
+            // the concept card. Never make private images public to display them.
+            previewImage = data.flatMap { UIImage(data: $0) }
+            imageReady = previewImage != nil
+            previewLoading = false
+        }
     }
 
     private var previewError: some View {

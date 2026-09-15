@@ -28,8 +28,12 @@ class ProviderTests(unittest.TestCase):
     def test_no_automatic_paid_request_retry_or_raw_provider_error(self):
         credentials=Mock()
         with patch.object(p.google.auth,'default',return_value=(credentials,None)),patch.object(p.requests,'post',return_value=Mock(status_code=503,text='sensitive raw body')) as post:
-            with self.assertRaises(p.PlannerError) as exc:p.call('generateContent',{})
+            with self.assertLogs(p.__name__, level='WARNING') as logs:
+                with self.assertRaises(p.PlannerError) as exc:p.call('generateContent',{})
             post.assert_called_once();self.assertNotIn('sensitive',str(exc.exception))
+            self.assertIn('temporarily busy', str(exc.exception))
+            self.assertIn('status=503', str(logs.output))
+            self.assertNotIn('sensitive', str(logs.output))
 
     def test_bound_input_output_and_validate_suggestion_before_charge(self):
         with patch.object(p,'call',return_value={'totalTokens':p.MAX_INPUT+1}):

@@ -2,6 +2,7 @@
 import base64
 import io
 import json
+import logging
 from decimal import Decimal, ROUND_CEILING
 
 import google.auth
@@ -84,7 +85,12 @@ def call(method, payload, model=MODEL):
         url=URL if model==MODEL else URL.rsplit('/',1)[0]+'/'+model
         response=requests.post(url+':'+method,headers=headers,json=payload,timeout=(15,180))
         if response.status_code != 200:
-            raise PlannerError('The planning service could not finish. Reserved Tokens will be released.')
+            # Keep diagnostics useful without recording references, prompts,
+            # credentials, or the provider's potentially sensitive response body.
+            logging.getLogger(__name__).warning('Vertex request failed: model=%s method=%s status=%s', model, method, response.status_code)
+            service = 'planning' if model == MODEL else 'image generation'
+            reason = 'is temporarily busy' if response.status_code in (429, 500, 502, 503, 504) else 'could not finish'
+            raise PlannerError(f'The {service} service {reason}. Unused reserved Tokens will be returned. Please try again.')
         result=response.json()
         if not isinstance(result,dict): raise ValueError("Invalid response")
         return result

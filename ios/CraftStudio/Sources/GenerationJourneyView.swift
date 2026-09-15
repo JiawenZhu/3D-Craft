@@ -40,7 +40,7 @@ struct GenerationJourneyView: View {
     private var partial: Bool { job.status.lowercased() == "partial" }
     private var percentage: Double { job.progress.isFinite ? min(100, max(0, job.progress)) : 0 }
     /// The single gate every continuous loop in this file is built behind.
-    private var animates: Bool { running && !reduceMotion && ambient && contrast != .increased }
+    private var animates: Bool { job.isActive && !reduceMotion && ambient && contrast != .increased }
     private func t(_ en: String, _ zh: String) -> String { chinese ? zh : en }
 
     private var activeStep: Int {
@@ -59,6 +59,7 @@ struct GenerationJourneyView: View {
         VStack(alignment: .leading, spacing: 18) {
             if modelJob && job.isActive { PlayWhileCreatingCard(job: job) }
             header
+            if job.isActive { activityPreview }
 
             VStack(spacing: 0) {
                 ForEach(0..<4, id: \.self) { index in
@@ -106,6 +107,42 @@ struct GenerationJourneyView: View {
 
     // MARK: - Header
 
+    private var activityPreview: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle().fill(appearance.washStrong).frame(width: 148, height: 148)
+                    .craftBreathe(active: animates, from: 0.55, to: 1, period: 2.8)
+                if let url = selectedConceptURL ?? sourceURL {
+                    CraftCachedImage(url: url).frame(width: 118, height: 118)
+                        .clipShape(RoundedRectangle(cornerRadius: 22))
+                } else {
+                    Image(systemName: modelJob ? "cube.transparent.fill" : "paintbrush.pointed.fill")
+                        .font(.system(size: 45)).foregroundStyle(lilac)
+                }
+                Circle().trim(from: 0.05, to: 0.30)
+                    .stroke(appearance.ink.opacity(0.65), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .frame(width: 170, height: 170)
+                    .rotationEffect(.degrees(animates && arcSpin ? 360 : 0))
+                ForEach(0..<3) { index in
+                    Image(systemName: index == 1 ? "sparkle" : "circle.fill")
+                        .font(.system(size: index == 1 ? 17 : 6)).foregroundStyle(lilac)
+                        .offset(y: -84)
+                        .rotationEffect(.degrees(Double(index) * 120 + (animates && arcSpin ? 360 : 0)))
+                }
+            }
+            .frame(maxWidth: .infinity).frame(height: 184)
+            .accessibilityHidden(true)
+            Text(job.status == "queued" ? t("Your idea is in line. We’ll keep you updated.", "灵感已进入队列，我们会持续更新进度。")
+                 : modelJob ? t("Finding shape in your idea…", "正在让灵感成为三维……")
+                 : t("A little imagination, coming to life…", "一点点想象，正在成为作品……"))
+                .font(.subheadline.weight(.medium)).foregroundStyle(lilac)
+                .multilineTextAlignment(.center)
+        }
+        .padding(14).frame(maxWidth: .infinity)
+        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 24))
+        .accessibilityIdentifier("generation.activity")
+    }
+
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
@@ -140,9 +177,9 @@ struct GenerationJourneyView: View {
 
     private var statusChip: some View {
         HStack(spacing: 6) {
-            if running {
+            if job.isActive {
                 Circle().fill(lilac).frame(width: 7, height: 7)
-                    .craftBreathe(active: running, from: 0.45, to: 1.0, period: 1.6)
+                    .craftBreathe(active: animates, from: 0.45, to: 1.0, period: 1.6)
                     .accessibilityHidden(true)
             }
             Text(statusLabel)
@@ -346,19 +383,7 @@ struct GenerationJourneyView: View {
 
     @ViewBuilder private func referenceImage(_ url: URL?) -> some View {
         if let url {
-            Group {
-                if url.isFileURL, let image = UIImage(contentsOfFile: url.path) {
-                    Image(uiImage: image).resizable().scaledToFit()
-                } else {
-                    AsyncImage(url: url) { phase in
-                        if let image = phase.image { image.resizable().scaledToFit() }
-                        else {
-                            Label(t("Reference image", "参考图片"), systemImage: "photo")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
+            CraftCachedImage(url: url)
             .frame(maxWidth: .infinity).frame(height: 110)
             .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))

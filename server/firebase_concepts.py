@@ -118,6 +118,16 @@ class CloudConcepts:
             if data['phase'] in TERMINAL:return None,data
             if data.get('leaseUntil',0)>self.now():raise HTTPException(503,'Concept work is already running.')
             tx.update(private,{'leaseToken':token,'leaseUntil':self.now()+LEASE})
+            phase=data['phase']
+            if phase.startswith('plan'):
+                stage,message='analyzing_reference','Preparing your concept prompt'
+            elif phase.startswith('audit'):
+                stage,message='validating_views','Checking the generated views'
+            else:
+                stage,message='rendering_views','Creating your concept image'
+            # Publish work as soon as the durable worker claims it, rather than
+            # leaving the app queued until the first image has already finished.
+            tx.update(public,{'status':'running','stage':stage,'message':message})
             return token,data
         return transact(self.db,claim)
 

@@ -1,11 +1,11 @@
 import base64,io,unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from decimal import Decimal
 from PIL import Image
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from server import cloud_concept_provider as p, firebase_api as api
-from server.firebase_concepts import ConceptRequest
+from server.firebase_concepts import ConceptRequest, CloudConcepts
 
 class ConceptTests(unittest.TestCase):
     def test_usage_separates_image_and_thinking_and_caps_quote(self):
@@ -31,6 +31,33 @@ class ConceptTests(unittest.TestCase):
         self.assertIn('preserve all unmentioned identity',p.view_prompt('yellow canopy',0,'refine','Realistic'))
         with patch.object(p,'call',return_value={'totalTokens':p.MAX_INPUT+1}):
             with self.assertRaises(p.planner.PlannerError):p.preflight(p.body('x'))
+
+    def test_worker_claim_publishes_activity_without_fabricating_progress(self):
+        worker = object.__new__(CloudConcepts)
+        worker.db = Mock(); worker.now = lambda: 100
+        worker.active = Mock()
+        public, private, tx = Mock(), Mock(), Mock()
+        worker.refs = lambda uid, jid: (public, private)
+        for phase, stage in [('plan_ready', 'analyzing_reference'), ('render_ready', 'rendering_views'), ('audit_ready', 'validating_views')]:
+            tx.reset_mock()
+            private.get.return_value.to_dict.return_value = {'phase': phase, 'leaseUntil': 0}
+            with patch('server.firebase_concepts.transact', side_effect=lambda db, fn: fn(tx)):
+                token, _ = worker.claim('user', 'job')
+            self.assertTrue(token)
+            update = tx.update.call_args_list[-1]
+            self.assertIs(update.args[0], public)
+            self.assertEqual(update.args[1]['status'], 'running')
+            self.assertEqual(update.args[1]['stage'], stage)
+            self.assertNotIn('progress', update.args[1])
+        for phase, lease in [('done', 0), ('render_ready', 101)]:
+            tx.reset_mock()
+            private.get.return_value.to_dict.return_value = {'phase': phase, 'leaseUntil': lease}
+            with patch('server.firebase_concepts.transact', side_effect=lambda db, fn: fn(tx)):
+                if phase == 'done': self.assertIsNone(worker.claim('user', 'job')[0])
+                else:
+                    from fastapi import HTTPException
+                    with self.assertRaises(HTTPException): worker.claim('user', 'job')
+            tx.update.assert_not_called()
 
     def test_routes_require_auth(self):
         client=TestClient(api.app)
