@@ -18,5 +18,6 @@
 - `/tmp/craft-release-auth-tests.log`, `/tmp/craft-privacy-tests.log`
 - `/tmp/craft-apple-phone-install.log`: successful physical installation and launch against https://3d-craft.web.app.
 - `/tmp/craft-auth-hosting-deploy.log`: successful Hosting release.
-- The subsequent privacy prompt and manifest edits need their final phone installation and accepted Xcode Cloud build. Google interactive sign-in, Apple deletion, and the AI permission presentation remain UI acceptance checks; unit tests are not substitutes for those checks.
-- No claim of App Review submission is made by this document.
+- Source `1de40b8`, including the privacy prompt and manifest, was installed and launched on the physical phone and processed as Xcode Cloud / App Store build 15.
+- An interactive simulator test using the authorized reviewer account presented the Google Gemini permission alert, selected “Not now”, and verified the request-not-sent response. Test passed; `/tmp/craft-ai-consent-ui-test.log` and `/tmp/craft-ai-consent-review.png`. Temporary test credentials were removed from the checkout. This does not claim live fal permission acceptance or an end-to-end Apple deletion test.
+- App Store version 1.0 (15) is Waiting for Review. See [submission receipt](submission-2026-09-15.md).

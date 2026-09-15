@@ -53,5 +53,6 @@ and bilingual copy. Authentication endpoints and credentials are unchanged.
 - Native welcome/sign-in/live-catalog UI acceptance checks exercise password
   reveal/hide and navigation without buying anything or creating an account.
 
-App Store submission must use the build containing these changes; older build
-14 predates this update. Installation on a phone is not App Store approval.
+Source `1de40b8` was installed and launched on the connected iPhone. App Store
+version 1.0 build 15 contains these changes and is now Waiting for Review.
+See [submission receipt](submission-2026-09-15.md). Apple approval is pending.

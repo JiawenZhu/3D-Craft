@@ -1,6 +1,6 @@
-# Release evidence and blockers
+# Release evidence and acceptance limits
 
-Assessment: 15 September 2026. **Gemini cloud creation is verified and ready for phone acceptance. App Review submission is still pending the checks below.**
+Assessment: 15 September 2026. **Version 1.0 (15) was submitted successfully and is Waiting for Review.** See [submission receipt](submission-2026-09-15.md). The historical implementation notes below retain acceptance limits; they do not represent a pending submission. Apple approval and public release have not occurred.
 
 ## Current verified state
 
@@ -10,7 +10,7 @@ Assessment: 15 September 2026. **Gemini cloud creation is verified and ready for
 - The deployed server/firebase_api.py reads owner-scoped Firebase records and creates projects/reference uploads without SQLite. Uploads publish shared library metadata transactionally and have durable orphan cleanup; see ../../cloud-projects/acceptance.md. The bootstrap now lists four cloud 3D engines; image-to-3D worker acceptance is recorded in ../../cloud-models/acceptance.md. Image-conditioned prompt improvement now has durable cloud jobs and actual-usage settlement (../../cloud-planning/acceptance.md). Conversational chat now uses the same durable cloud planning service with owner-scoped history, reference-image understanding and actual-usage settlement (../../cloud-planning/chat-acceptance.md). Concept generation and image refinement now have durable cloud jobs, private 2K outputs and actual-usage settlement (../../cloud-concepts/acceptance.md). The user approved releasing with Gemini first. Own-account ChatGPT connection is deferred and hidden in this release; external model-sharing to ChatGPT / Claude Code remains available.
 - Update: verified consumable Token-pack delivery is now deployed through RevenueCat to Firestore, with separate production and sandbox wallets. A live existing sandbox receipt credited 200 Tokens; retry credited 0. Subscription periods now reconcile in Firestore; full Gemini-to-3D cloud acceptance has passed. See ../../business/cloud-subscription-acceptance-2026-09-14.md for scope and remaining billing acceptance.
 - Earlier migration evidence records 77 library creations, including 28 models, and 204 referenced cloud files with none missing. These counts are a migration snapshot, not a fresh census.
-- The phone installer checks cloud readiness before installation. Source f6c1255 was built, installed and launched on the physical iPhone after reconnection; full interactive phone acceptance remains.
+- The phone installer checks cloud readiness before installation. Source 1de40b8 was built, installed and launched on the physical iPhone with the latest account-purchase, game-catalog and sign-in updates; full interactive phone acceptance remains.
 
 ## Required implementation and acceptance
 
@@ -20,7 +20,7 @@ Assessment: 15 September 2026. **Gemini cloud creation is verified and ready for
 4. Complete physical-device acceptance with the Mac service off, including independent-network generation and sandbox purchases.
 5. Review final privacy disclosures, AI data-sharing consent, retention/deletion policy and SDK privacy manifests against the actual distribution archive.
 
-## App Store Connect finish list
+## Historical App Store Connect checklist (submission completed)
 
 - Align the release version with the App Store version, assign an unused build number, archive with an Apple-supported distribution toolchain and validate signing.
 - Completed: Xcode Cloud Builds 3–11 uploaded and processed as version 1.0, VALID / APP_STORE_ELIGIBLE. Build 11 (source f1b44a9) completed Build and Archive with zero errors/warnings and is attached to version 1.0. Its build ID is d9be9a74-ccdf-40d4-8154-583c340fb869. Upload success does not satisfy the implementation and acceptance requirements above. The retry-price fix is included in processed Build 12. Gemini-first source f6c1255 completed Build 13 with no errors/warnings, processed as VALID, and is now attached to version 1.0 (build ID 8ae0320a-c4a8-4a31-bfb3-f1ac7bdde6c7).
@@ -29,7 +29,7 @@ Assessment: 15 September 2026. **Gemini cloud creation is verified and ready for
 - Complete accurate age-rating, content-rights, privacy, encryption and availability answers. Recheck the community browser-game feature; do not reuse the old claim that no public user feed exists.
 - Finalize reviewer-guide.md only after all advertised flows pass, attach it if useful, and submit the complete version for review.
 
-Creating these files does not upload a binary, attach review information, or submit the app. No current Apple review status was inferred from older screenshots.
+The current submission used processed, VALID build 15 from source 1de40b8. App Store Connect confirmed both “1 Item Submitted” and “Waiting for Review”; see the submission receipt for exact identifiers. Earlier build attachments above are historical.
 
 Apple requires operational backend services and full reviewer access: https://developer.apple.com/app-store/review/guidelines/ (Before You Submit).
 
