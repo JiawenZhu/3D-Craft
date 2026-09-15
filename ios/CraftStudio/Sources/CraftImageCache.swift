@@ -8,6 +8,7 @@ final class CraftDecodedImages: @unchecked Sendable {
     static let shared = CraftDecodedImages()
     private let images = NSCache<NSString, UIImage>()
     init() { images.totalCostLimit = 64 * 1024 * 1024; images.countLimit = 100 }
+    func clear() { images.removeAllObjects() }
     func image(_ key: String) -> UIImage? { images.object(forKey: key as NSString) }
     func insert(_ image: UIImage, key: String) {
         images.setObject(image, forKey: key as NSString, cost: Int(image.size.width * image.size.height * image.scale * image.scale * 4))
@@ -20,6 +21,8 @@ actor CraftImageCache {
     private let folder: URL
     private let loader: Loader
     private var pending: [String: Task<Data?, Never>] = [:]
+    private var generation = 0
+    private var erasing = false
     init(folder: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("CraftImagePreviews-v1"), loader: @escaping Loader = { try await CraftImageCache.download($0) }) {
         self.folder = folder; self.loader = loader
     }
@@ -29,9 +32,23 @@ actor CraftImageCache {
         guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else { throw URLError(.badServerResponse) }
         return data
     }
+    func erase() async {
+        erasing = true; generation += 1
+        let tasks = Array(pending.values)
+        tasks.forEach { $0.cancel() }
+        for task in tasks { _ = await task.value }
+        pending.removeAll()
+        try? FileManager.default.removeItem(at: folder)
+        erasing = false
+    }
     func data(for url: URL) async -> Data? {
+        guard !erasing else { return nil }
+        let version = generation
         let key = SHA256.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
-        if let task = pending[key] { return await task.value }
+        if let task = pending[key] {
+            let result = await task.value
+            return version == generation ? result : nil
+        }
         let folder = folder, loader = loader
         // Detached from the view task: switching a tab must not discard a download.
         let task = Task.detached(priority: .utility) { () -> Data? in
@@ -47,6 +64,7 @@ actor CraftImageCache {
                     kCGImageSourceCreateThumbnailWithTransform: true,
                     kCGImageSourceThumbnailMaxPixelSize: 1024
                   ] as CFDictionary), let data = UIImage(cgImage: preview).pngData() else { return nil }
+            guard !Task.isCancelled else { return nil }
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try? data.write(to: file, options: .atomic)
             Self.trim(folder)
@@ -54,6 +72,7 @@ actor CraftImageCache {
         }
         pending[key] = task
         let result = await task.value
+        guard version == generation else { return nil }
         pending[key] = nil
         return result
     }

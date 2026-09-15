@@ -20,6 +20,7 @@ import AuthenticationServices
     @Published private(set) var email = ""
     @Published var error: String?
     @Published var busy = false
+    @Published var deletionRequested = false
     private var authSession: ASWebAuthenticationSession?
     private var idToken: String?
     private var expires = Date.distantPast
@@ -134,6 +135,21 @@ import AuthenticationServices
         guard !busy else{return};busy=true;error=nil;defer{busy=false}
         do { _=try await send("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=\(apiKey)",body:JSONSerialization.data(withJSONObject:["requestType":"PASSWORD_RESET","email":email]));error="If this email has an account, password-reset instructions will be sent." }catch{self.error=error.localizedDescription}
     }
+    func requestAccountDeletion() async throws -> String {
+        guard let requestUID = uid else { throw CraftError(message: "Please sign in again.", statusCode: 401) }
+        let bearer = try await token()
+        guard uid == requestUID else { throw CancellationError() }
+        var request = URLRequest(url: URL(string: "https://3d-craft.web.app/api/mobile/account/delete")!)
+        request.httpMethod = "POST"; request.timeoutInterval = 30
+        request.setValue("Bearer " + bearer, forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["confirm": true])
+        let (_, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 202 else { throw CraftError(message: "Account deletion could not be confirmed.", statusCode: status) }
+        return requestUID
+    }
+
     func signOut(){
         authSession?.cancel(); authSession=nil
         uid=nil;email="";idToken=nil;refresh=nil;expires = .distantPast

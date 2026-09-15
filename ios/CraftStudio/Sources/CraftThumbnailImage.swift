@@ -63,15 +63,31 @@ actor CraftThumbnailCache {
     static let shared = CraftThumbnailCache()
     private var memory: [String: Data] = [:]
     private var pending: [String: Task<Data?, Never>] = [:]
+    private var generation = 0
+    private var erasing = false
     private let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("CraftThumbnailCutouts-v1", isDirectory: true)
 
+    func erase() async {
+        erasing = true; generation += 1
+        let tasks = Array(pending.values)
+        tasks.forEach { $0.cancel() }
+        for task in tasks { _ = await task.value }
+        pending.removeAll(); memory.removeAll()
+        try? FileManager.default.removeItem(at: folder)
+        erasing = false
+    }
     func imageData(for url: URL) async -> Data? {
+        guard !erasing else { return nil }
+        let version = generation
         let key = SHA256.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
         if let data = memory[key] { return data }
         let file = folder.appendingPathComponent(key).appendingPathExtension("png")
         if let data = try? Data(contentsOf: file) { remember(data, key: key); return data }
-        if let task = pending[key] { return await task.value }
+        if let task = pending[key] {
+            let result = await task.value
+            return version == generation ? result : nil
+        }
         let folder = folder
         let task = Task.detached(priority: .utility) { () -> Data? in
         do {
@@ -83,12 +99,14 @@ actor CraftThumbnailCache {
                 data = received
             }
             if let cutout = try? CraftForegroundProcessor.foregroundPNG(from: data) {
-                try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                guard !Task.isCancelled else { return nil }
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 try? cutout.write(to: file, options: .atomic)
                 return cutout
             }
             // Some images/devices do not yield a reliable foreground mask.
             // Keep their source intact rather than erase subject details.
+            guard !Task.isCancelled else { return nil }
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try? data.write(to: file, options: .atomic)
             return data
@@ -96,6 +114,7 @@ actor CraftThumbnailCache {
         }
         pending[key] = task
         let data = await task.value
+        guard version == generation else { return nil }
         pending[key] = nil
         if let data { remember(data, key: key) }
         return data

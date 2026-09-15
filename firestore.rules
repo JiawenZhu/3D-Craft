@@ -2,7 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
-      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && !exists(/databases/$(database)/documents/accountDeletions/$(request.auth.uid));
     }
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;

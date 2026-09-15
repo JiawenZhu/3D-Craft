@@ -5,13 +5,15 @@ service firebase.storage {
     match /users/{uid}/{category}/{file} {
       allow read: if request.auth != null && request.auth.uid == uid
         && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && !firestore.exists(/databases/(default)/documents/accountDeletions/$(request.auth.uid))
         && category in ['files', 'images', 'previews'];
       allow write: if false;
     }
     match /users/{uid}/models/{file} {
       function owner() {
         return request.auth != null && request.auth.uid == uid
-          && request.auth.token.firebase.sign_in_provider != 'anonymous';
+          && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && !firestore.exists(/databases/(default)/documents/accountDeletions/$(request.auth.uid));
       }
       allow read: if owner();
       allow create: if owner() && file.matches('[a-f0-9]{64}[.]glb')

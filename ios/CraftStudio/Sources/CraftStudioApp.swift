@@ -45,6 +45,11 @@ import StoreKitTest
             else { CraftRoot().id(account.uid) }
             #endif
         }.environmentObject(store).environmentObject(billing).preferredColorScheme(.light)
+         .alert(store.t("Account deletion requested", "账户删除请求已受理"), isPresented: $account.deletionRequested) {
+             Button(store.t("OK", "好"), role: .cancel) {}
+         } message: {
+             Text(store.t("You are signed out. Your account and cloud content are being permanently removed. Deletion continues even if you close the app.", "你已退出登录。账户和云端内容正在永久删除，即使关闭应用也会继续处理。"))
+         }
          .onChange(of: account.uid) { _, newUid in
              Task {
                  await store.accountChanged()

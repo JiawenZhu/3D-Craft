@@ -285,6 +285,23 @@ struct PendingGeneration: Codable, Equatable {
         return project.concepts.first{$0.id==id}
     }
     func saveDraftImage(_ image:UIImage?) {if image != nil && draftPrompt == Self.legacyDemoPrompt {draftPrompt=""};draftImage=image;if let data=image?.jpegData(compressionQuality:0.95){try?data.write(to:Self.draftURL,options:.atomic)}else{try?FileManager.default.removeItem(at:Self.draftURL)}}
+    func eraseLocalAccountData() async {
+        polling?.cancel(); polling = nil
+        try? FileManager.default.removeItem(at: Self.libraryCacheURL)
+        try? persistPending(nil)
+        draftPrompt = ""; saveDraftImage(nil)
+        UserDefaults.standard.removeObject(forKey: "craftActiveConversation:" + apiBase)
+        await CraftImageCache.shared.erase()
+        await CraftThumbnailCache.shared.erase()
+        CraftDecodedImages.shared.clear()
+        URLCache.shared.removeAllCachedResponses()
+        let temporary = FileManager.default.temporaryDirectory
+        for file in (try? FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)) ?? [] {
+            if file.pathExtension == "glb" || file.lastPathComponent.hasPrefix("3D-Craft-Game-") {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
+    }
     func accountChanged() async {
         polling?.cancel();polling=nil;connected=false;connectionNotice=nil
         completedModelCards=[];completionTracker=ModelCompletionTracker()

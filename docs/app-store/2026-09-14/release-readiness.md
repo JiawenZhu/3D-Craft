@@ -33,4 +33,4 @@ Creating these files does not upload a binary, attach review information, or sub
 
 Apple requires operational backend services and full reviewer access: https://developer.apple.com/app-store/review/guidelines/ (Before You Submit).
 
-Account deletion verification: the native Profile offers sign-out only; the website deletion page requires an email to support. Neither implements the required in-app account deletion flow. Reference: https://developer.apple.com/support/offering-account-deletion-in-your-app/. Live generationReady remained false after the cloud build was attached.
+Account deletion update: the native Profile now has a bilingual deletion confirmation and fresh-sign-in check. The durable Firebase/Cloud Tasks worker is deployed, and a disposable-account live test verified private file/record removal, authentication deletion, vote cleanup, RevenueCat removal, and rejection of stale credentials. See ../../account-deletion/acceptance.md. Physical-phone UI acceptance and inclusion in a new App Store build remain. Live generationReady remains false.

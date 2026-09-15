@@ -60,5 +60,10 @@ struct CraftProfileRecord: Codable, Equatable {
         record = updated
     }
 
+    func erase() {
+        try? FileManager.default.removeItem(at: fileURL)
+        record = CraftProfileRecord()
+    }
+
     enum ProfileError: Error { case invalidName, invalidImage }
 }

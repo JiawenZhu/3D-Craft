@@ -596,6 +596,7 @@ struct ProfileView: View {
     @State private var editingProfile = false
     @State private var aiAccountOpen = false
     @State private var showCustomerCenter = false
+    @State private var deletingAccount = false
     @State private var scrollY: CGFloat = 0
     @State private var rowCount = 0
 
@@ -630,6 +631,7 @@ struct ProfileView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $editingProfile) { ProfileEditorView() }
         .sheet(isPresented: $aiAccountOpen) { AIAccountView() }
+        .sheet(isPresented: $deletingAccount) { AccountDeletionView() }
         .presentCustomerCenter(isPresented: $showCustomerCenter)
     }
 
@@ -690,6 +692,10 @@ struct ProfileView: View {
             .foregroundStyle(appearance.ink)
             .buttonStyle(CraftPressStyle())
             .accessibilityIdentifier("profile.signOut")
+            Button(role: .destructive) { deletingAccount = true } label: {
+                Label(store.t("Delete account", "删除账户"), systemImage: "person.crop.circle.badge.minus")
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }.accessibilityIdentifier("profile.deleteAccount")
         }
         .padding(18)
         .craftSurface(.raised, cornerRadius: 20)

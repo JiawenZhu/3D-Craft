@@ -5,12 +5,14 @@ An API returning library data is not evidence of generation readiness.
 """
 from functools import lru_cache
 from urllib.parse import quote
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from .identity import require_claims
 from .firebase_studio import FirebaseStudio, BUCKET
 from .firebase_billing import CloudBilling
 from pydantic import BaseModel, Field
+from typing import Literal
+from .account_deletion import ensure_active, request_deletion, erase_account, verify_worker
 
 app = FastAPI(title='3D Craft Cloud API')
 app.add_middleware(CORSMiddleware, allow_origins=['https://3d-craft.web.app'], allow_methods=['GET','POST'], allow_headers=['Authorization','Content-Type'])
@@ -19,7 +21,9 @@ app.add_middleware(CORSMiddleware, allow_origins=['https://3d-craft.web.app'], a
 def studio(): return FirebaseStudio()
 
 def owner(claims=Depends(require_claims)):
-    return 'firebase:' + (claims.get('uid') or claims['sub'])
+    uid = claims.get('uid') or claims['sub']
+    ensure_active(studio().db, uid)
+    return 'firebase:' + uid
 
 
 def public_shape(data, account):
@@ -106,6 +110,21 @@ def sync_purchases(account=Depends(owner)):
 def bootstrap(account=Depends(owner)):
     return {'mode':'cloud','wallet':wallet(account),'products':[], 'engines':[], 'engineCatalog':[],
             'generationReady':False}
+
+
+class DeletionConfirmation(BaseModel):
+    confirm: Literal[True]
+
+
+@app.post('/api/mobile/account/delete', status_code=202)
+def delete_account(body: DeletionConfirmation, claims=Depends(require_claims)):
+    return request_deletion(studio().db, claims)
+
+
+@app.post('/internal/account-deletions/{uid}')
+def account_deletion_worker(uid: str, authorization: str = Header(default='')):
+    verify_worker(authorization)
+    return erase_account(studio(), uid)
 
 
 @app.api_route('/api/{path:path}',methods=['GET','POST','DELETE','PATCH'])

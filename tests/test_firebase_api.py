@@ -16,7 +16,7 @@ class FirebaseAPITests(unittest.TestCase):
         api.app.dependency_overrides[require_claims]=lambda:{'uid':'alice'}
         cloud=Mock()
         cloud.records.return_value=[{'id':'model:one','name':'Cat','kind':'3D object','modelStoragePath':'users/alice/models/abc.glb'}]
-        with patch.object(api,'studio',return_value=cloud):
+        with patch.object(api,'studio',return_value=cloud), patch.object(api,'ensure_active'):
             result=self.client.get('/api/mobile/assets')
         self.assertEqual(result.status_code,200)
         cloud.records.assert_called_once_with('firebase:alice','mobileCreations')
@@ -28,6 +28,7 @@ class FirebaseAPITests(unittest.TestCase):
     def test_no_generation_or_payment_readiness_is_faked(self):
         api.app.dependency_overrides[require_claims]=lambda:{'uid':'alice'}
         self.assertFalse(self.client.get('/api/health').json()['generationReady'])
-        self.assertEqual(self.client.post('/api/mobile/development/purchase').status_code,503)
+        with patch.object(api,'ensure_active'), patch.object(api,'studio'):
+            self.assertEqual(self.client.post('/api/mobile/development/purchase').status_code,503)
 
 if __name__=='__main__':unittest.main()

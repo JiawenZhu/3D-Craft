@@ -11,6 +11,7 @@
 		0CC4DC9471945AE1924840CA /* arena.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7B6A40211882BF313693D52B /* arena.jpg */; };
 		120E9F251F004147D1B11466 /* GenerationJourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */; };
 		124457F17E696F9DED22E237 /* GalleryReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */; };
+		18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */; };
 		1FD2F2929867109959E9068E /* ConceptImageInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */; };
 		2092DA77027673DE016DE873 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E2D5FCD326990A4175C458A /* Assets.xcassets */; };
 		3357F735EE8B667FB60CB78F /* ranger-bow.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3456CACBFE3D92C8E4A20BCB /* ranger-bow.jpg */; };
@@ -176,6 +177,7 @@
 		53E4F1D51244B51676645E2F /* CreationPlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationPlayTests.swift; sourceTree = "<group>"; };
 		57F91E9678362D9DD1D7FA70 /* forest-shield.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "forest-shield.jpg"; sourceTree = "<group>"; };
 		58D453DA123199E614C8A59D /* dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dragon.jpg; sourceTree = "<group>"; };
+		5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionView.swift; sourceTree = "<group>"; };
 		5BBE72B7C1F2CFCA84420590 /* AppStoreCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreCaptureTests.swift; sourceTree = "<group>"; };
 		5E2D5FCD326990A4175C458A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAccountView.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 		A70F225619BDAB6E93487F66 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */,
 				60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */,
 				9EBE7CB90190E1DD404E65E6 /* BillingManager.swift */,
 				F3F012E841E77D374C031468 /* CommunityCloudService.swift */,
@@ -584,6 +587,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				968BC3C36F780DF1D6AC9622 /* AIAccountView.swift in Sources */,
+				18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */,
 				7F851A5C8FFF4DA59E809EA5 /* BillingManager.swift in Sources */,
 				C4083D91782C20D70B5ABCD3 /* CommunityCloudService.swift in Sources */,
 				58F0B6DD4024F26808303A58 /* CommunityGamesView.swift in Sources */,

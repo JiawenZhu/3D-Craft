@@ -78,6 +78,8 @@ class CloudBilling:
         ledger_ref = wallet_ref.collection('entries').document(key + (':refund' if purchase['refund'] else ':grant'))
         @firestore.transactional
         def deliver(tx):
+            if self.db.collection('accountDeletions').document(uid).get(transaction=tx).exists:
+                raise HTTPException(403, 'This account is being deleted.')
             receipt = receipt_ref.get(transaction=tx)
             snapshot = wallet_ref.get(transaction=tx)
             prior = receipt.to_dict() if receipt.exists else None
@@ -122,7 +124,12 @@ class CloudBilling:
             purchase, result = results[-1]
             if result['refunded']: raise HTTPException(409, 'This purchase was refunded; Tokens cannot be added.')
             environment = purchase['environment']
-            self.private(uid, 'billingContext').set({'environment': environment})
+            @firestore.transactional
+            def set_context(tx):
+                if self.db.collection('accountDeletions').document(uid).get(transaction=tx).exists:
+                    raise HTTPException(403, 'This account is being deleted.')
+                tx.set(self.private(uid, 'billingContext'), {'environment': environment})
+            set_context(self.db.transaction())
             wallet = self.wallet(uid, environment)
             wallet.update(purchaseCredit=max(0, result['delta']), purchaseTokens=result['tokens'],
                           purchaseReceiptID=result['receiptID'])

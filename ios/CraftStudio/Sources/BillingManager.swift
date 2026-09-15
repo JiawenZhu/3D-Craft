@@ -121,6 +121,12 @@ final class BillingManager: ObservableObject {
     private var recoveryTask: Task<Void, Never>?
     private var customerInfoTask: Task<Void, Never>?
 
+    func forgetDeletedAccount(_ uid: String) {
+        if let data = try? JSONEncoder().encode(pendingCredits.filter { $0.userID != uid }) {
+            UserDefaults.standard.set(data, forKey: pendingCreditKey)
+        }
+    }
+
     init() {
         if !Purchases.isConfigured {
             Purchases.logLevel = .debug

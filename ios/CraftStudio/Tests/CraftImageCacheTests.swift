@@ -7,6 +7,25 @@ private actor ImageLoads {
     func hit() { count += 1 }
 }
 final class CraftImageCacheTests: XCTestCase {
+    func testDeletionCancelsPendingDownloadAndErasesDiskCache() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("previous account cache".utf8).write(to: folder.appendingPathComponent("old"))
+        let started = expectation(description: "Download started")
+        let cache = CraftImageCache(folder: folder) { _ in
+            started.fulfill()
+            try await Task.sleep(nanoseconds: 30_000_000_000)
+            XCTFail("Deletion must cancel the download")
+            return Data()
+        }
+        let download = Task { await cache.data(for: URL(string: "https://example.invalid/pending.png")!) }
+        await fulfillment(of: [started], timeout: 2)
+        await cache.erase()
+        let result = await download.value
+        XCTAssertNil(result)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
+    }
     func testCoalescesConcurrentLoadsAndSurvivesNewCacheOffline() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }

@@ -1,10 +1,19 @@
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from fastapi import HTTPException
-from server.firebase_billing import PACKS, transition, verified_packs
+from server.firebase_billing import PACKS, CloudBilling, transition, verified_packs
 
 class CloudPackTests(unittest.TestCase):
+    def test_deleting_account_cannot_be_recreated_by_receipt_retry(self):
+        db=Mock()
+        db.collection.return_value.document.return_value.get.return_value.exists=True
+        with patch('server.firebase_billing.firestore.transactional',side_effect=lambda fn:fn):
+            with self.assertRaises(HTTPException) as error:
+                CloudBilling(db).settle('alice',self.purchase())
+        self.assertEqual(error.exception.status_code,403)
+        db.transaction.return_value.set.assert_not_called()
+
     def purchase(self, **kwargs):
         return dict(product='craft.credits.small.v1', transaction='1001', environment='PRODUCTION', refund=False, **kwargs)
 
