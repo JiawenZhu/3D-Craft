@@ -40,3 +40,9 @@ App Store Connect displayed **7 Items Submitted**, **Waiting for Review**, and *
 Manual release remains selected. Apple approval and public App Store availability have **not** occurred. This receipt confirms submission, not completion of every physical-device billing lifecycle or gameplay acceptance test. Existing limits in the release evidence remain applicable. The follow-up Git commit contains only this release record, review screenshots and TestFlight notes; it does not change the app binary.
 
 [Open the submitted review](https://appstoreconnect.apple.com/apps/6811466883/distribution/reviewsubmissions/details/8e84ff37-5d1e-4e4e-9043-35ce6bc87d8a)
+
+## September 15 EULA metadata correction and resubmission
+
+Apple's automated 3.1.2 rejection at 04:43 America/Chicago identified a missing functional Terms of Use (EULA) link in the App Store product-page metadata. The app has no custom EULA configured. Added Apple's standard EULA URL and the existing privacy-policy URL to the English (U.S.) App Description, preserving all other description text. The saved description is in app-description-en-US.txt.
+
+Verified the standard EULA URL resolves to Apple's Licensed Application End User License Agreement, and App Store Connect saved the exact updated description. Selected Update Review and Resubmit to App Review. At **2026-09-15 19:04:35 UTC (14:04:35 America/Chicago)**, the same submission returned to **WAITING_FOR_REVIEW**; the review page listed all seven items as Waiting for Review, including **1.0 (16)**. No app code, pricing, subscription entitlement or binary changed. Apple approval remains pending.
