@@ -158,7 +158,8 @@ class CloudCommunity:
             return public_game(prior, uid)
         checked = self.check_link(uid, body.url)
         game = dict(id=ident, ownerId=uid, title=body.title, creator=body.creator,
-                    description=body.description, url=checked['url'], reachable=True,
+                    description=body.description, url=checked['url'], reachable=checked.get('status') == 'reachable',
+                    linkVerification=checked.get('status', 'unverified'),
                     createdAt=self.now(), updatedAt=self.now(), removed=False,
                     moderationStatus='pending', votes={c: 0 for c in CATEGORIES},
                     rightsConfirmed=True, played=True, termsVersion='2026-09-14',
@@ -282,7 +283,11 @@ class CloudCommunity:
             if current.get('ownerId') != uid or current.get('removed'):
                 raise HTTPException(404, 'Your submission was not found.')
             # A changed redirect target needs another review before publication.
-            changes = {'reachable': failure is None, 'updatedAt': self.now()}
+            browser_verified = (current.get('linkVerification') == 'browser_verified'
+                                and current.get('url') == checked['url'])
+            reachable = failure is None and (checked.get('status') == 'reachable' or browser_verified)
+            changes = {'reachable': reachable, 'updatedAt': self.now()}
+            if not browser_verified: changes['linkVerification'] = checked.get('status', 'unverified')
             if current.get('url') != checked['url']:
                 changes.update(url=checked['url'], moderationStatus='pending')
             tx.update(ref, changes)
@@ -334,7 +339,7 @@ class CloudCommunity:
         self.transact(save)
         return {'blocked': False}
 
-    def moderate(self, ident, decision, reason, actor):
+    def moderate(self, ident, decision, reason, actor, browser_verified=False):
         """Operator CLI only; no client-controlled administrator endpoint."""
         if decision not in ('approved', 'rejected') or not reason.strip() or not actor.strip():
             raise ValueError('A decision, review reason and operator identity are required.')
@@ -345,12 +350,15 @@ class CloudCommunity:
             data = ref.get(transaction=tx).to_dict() or {}
             if not data: raise ValueError('Game not found.')
             if decision == 'approved': self.active(data['ownerId'], tx, posting=True)
-            if decision == 'approved' and not (data.get('rightsConfirmed') and data.get('played') and data.get('reachable')):
+            if decision == 'approved' and not (data.get('rightsConfirmed') and data.get('played') and (data.get('reachable') or browser_verified)):
                 raise ValueError('Creator rights, play-test confirmation and reachability are required.')
-            tx.update(ref, {'moderationStatus': decision, 'reviewNote': reason,
-                            'moderatedAt': self.now(), 'updatedAt': self.now()})
+            changes = {'moderationStatus': decision, 'reviewNote': reason,
+                       'moderatedAt': self.now(), 'updatedAt': self.now()}
+            if decision == 'approved' and browser_verified:
+                changes.update(reachable=True, linkVerification='browser_verified')
+            tx.update(ref, changes)
             tx.create(audit, dict(gameId=ident, ownerId=data['ownerId'], decision=decision,
-                                 reason=reason, operator=actor, createdAt=self.now()))
+                                 reason=reason, operator=actor, browserVerified=browser_verified, createdAt=self.now()))
         self.transact(save)
 
     def resolve_report(self, ident, reason, actor):

@@ -9,6 +9,21 @@ from server import firebase_api as api
 
 
 class CommunityTests(unittest.TestCase):
+    def test_blocked_artifact_needs_explicit_operator_browser_verification(self):
+        db=Mock(); service=CloudCommunity(db); service.active=Mock()
+        data=dict(ownerId='author',rightsConfirmed=True,played=True,reachable=False,
+                  moderationStatus='pending',linkVerification='browser_review_required')
+        ref=Mock();ref.get.return_value.to_dict.return_value=data
+        service.game=Mock(return_value=ref)
+        with patch('server.firebase_community.firestore.transactional',side_effect=lambda f:f):
+            with self.assertRaises(ValueError):service.moderate('game','approved','Reviewed','operator')
+            db.transaction.return_value.update.assert_not_called()
+            service.moderate('game','approved','Opened and played public artifact','operator',browser_verified=True)
+        changes=db.transaction.return_value.update.call_args.args[1]
+        self.assertTrue(changes['reachable'])
+        self.assertEqual(changes['linkVerification'],'browser_verified')
+        self.assertTrue(db.transaction.return_value.create.call_args.args[1]['browserVerified'])
+
     def test_read_contention_retries_but_real_failures_remain_errors(self):
         service=CloudCommunity(Mock())
         operation=Mock(side_effect=[Aborted('conflict'), {'saved':True}])
@@ -26,7 +41,7 @@ class CommunityTests(unittest.TestCase):
         Submission(**body)
         for change in ({'played':False}, {'rightsConfirmed':False}, {'played':'true'},
                        {'title':'  '}, {'ownerId':'victim'}, {'moderationStatus':'approved'},
-                       {'clientId':'../bad'}):
+                       {'clientId':'../bad'}, {'browser_verified':True}):
             with self.assertRaises(ValidationError): Submission(**(body | change))
         for reason in ('', ' ', 'x'*501):
             with self.assertRaises(ValidationError): Report(reason=reason)

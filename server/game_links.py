@@ -6,6 +6,7 @@ import http.client
 import ipaddress
 import socket
 import ssl
+import re
 from urllib.parse import urlsplit, urlunsplit, urljoin
 
 class LinkError(ValueError):
@@ -73,7 +74,7 @@ def verify_game_url(value):
     for _ in range(4):
         parts = urlsplit(url)
         # A shared conversation or builder workspace is not a published game.
-        artifact = parts.hostname in ('claude.ai','www.claude.ai') and parts.path.startswith(('/code/artifact/','/public/artifacts/'))
+        artifact = parts.hostname in ('claude.ai','www.claude.ai') and bool(re.fullmatch(r'/(?:artifact|code/artifact|public/artifacts)/[A-Za-z0-9_-]+/?', parts.path))
         if parts.hostname in ('claude.ai','www.claude.ai','chatgpt.com','www.chatgpt.com') and not artifact:
             raise LinkError('This is an agent/share page. Use the published playable game link instead.')
         status, headers, html = fetch_page(url)
@@ -82,6 +83,10 @@ def verify_game_url(value):
                 raise LinkError('This game link has an incomplete redirect.')
             url = normalize_url(urljoin(url, headers['location']))
             continue
+        if status == 403 and artifact:
+            # Claude may block data-center checks even for public artifacts.
+            # Admit only to the private review queue, never claim reachability.
+            return {'url': url, 'status': 'browser_review_required'}
         if status != 200:
             raise LinkError('The game page is unavailable or needs sign-in (HTTP %s). Use a public playable link.' % status)
         if 'text/html' not in headers.get('content-type','').lower():

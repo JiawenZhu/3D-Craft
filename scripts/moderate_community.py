@@ -30,6 +30,7 @@ def main():
     decide = sub.add_parser('decide')
     decide.add_argument('id'); decide.add_argument('decision', choices=['approved', 'rejected'])
     decide.add_argument('--reason', required=True)
+    decide.add_argument('--browser-verified', action='store_true', help='Confirm the public game was opened and played in a browser; required when automated access is blocked.')
     resolve = sub.add_parser('resolve'); resolve.add_argument('id'); resolve.add_argument('--reason', required=True)
     restrict = sub.add_parser('posting'); restrict.add_argument('uid')
     restrict.add_argument('action', choices=['block', 'allow']); restrict.add_argument('--reason', required=True)
@@ -53,7 +54,7 @@ def main():
         reports = [dict(id=s.id, **s.to_dict()) for s in service.db.collection('communityReports')
                    .where(filter=FieldFilter('status', '==', 'open')).stream()]
         print(json.dumps(dict(pending=pending, reports=reports), ensure_ascii=False, indent=2))
-    elif args.command == 'decide': service.moderate(args.id, args.decision, args.reason, actor)
+    elif args.command == 'decide': service.moderate(args.id, args.decision, args.reason, actor, browser_verified=args.browser_verified)
     elif args.command == 'resolve': service.resolve_report(args.id, args.reason, actor)
     elif args.command == 'posting': service.restrict_posting(args.uid, args.action == 'block', args.reason, actor)
     if args.command != 'queue': print('Saved moderation action to Firebase.')

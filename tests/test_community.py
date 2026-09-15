@@ -110,4 +110,16 @@ class GameLinkTests(unittest.TestCase):
             fetch.assert_not_called()
         with patch.object(game_links,'fetch_page',return_value=(200,{'content-type':'text/html'},'<iframe title="game"></iframe>')):
             self.assertEqual(game_links.verify_game_url('https://claude.ai/code/artifact/example')['status'],'reachable')
+            self.assertEqual(game_links.verify_game_url('https://claude.ai/artifact/PvCrAGzNSy4xSVVTTwPspj')['status'],'reachable')
+    def test_artifact_links_still_require_public_html(self):
+        for page in [(404,{'content-type':'text/html'},''),
+                     (200,{'content-type':'text/html'},'<title>Sign in</title>'),
+                     (302,{'location':'https://127.0.0.1/private'},'')]:
+            with patch.object(game_links,'fetch_page',return_value=page),self.assertRaises(game_links.LinkError):
+                game_links.verify_game_url('https://claude.ai/artifact/example')
+    def test_blocked_claude_artifact_requires_browser_review(self):
+        with patch.object(game_links,'fetch_page',return_value=(403,{'content-type':'text/html'},'')):
+            self.assertEqual(game_links.verify_game_url('https://claude.ai/artifact/example')['status'], 'browser_review_required')
+            with self.assertRaises(game_links.LinkError): game_links.verify_game_url('https://game.example/')
+            with self.assertRaises(game_links.LinkError): game_links.verify_game_url('https://claude.ai/artifact/example/edit')
 if __name__=='__main__':unittest.main()
