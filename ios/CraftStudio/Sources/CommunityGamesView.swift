@@ -17,13 +17,14 @@ enum CommunityCategory: String, CaseIterable, Identifiable {
     }
 }
 struct CommunityGame: Identifiable {
-    let id: String, title: String, creator: String, description: String, link: String
+    let id: String, title: String, creator: String, description: String, link: String, coverLink: String
     var votes: [String:Int], myVotes: [String]
     let isMine: Bool, reachable: Bool
     let moderationStatus: String, reviewNote: String
     init(_ d: [String:Any]) {
         id=d["id"] as? String ?? ""; title=d["title"] as? String ?? ""; creator=d["creator"] as? String ?? ""
         description=d["description"] as? String ?? "";link=d["url"] as? String ?? ""
+        coverLink=d["coverUrl"] as? String ?? ""
         votes=d["votes"] as? [String:Int] ?? [:];myVotes=d["myVotes"] as? [String] ?? []
         isMine=d["isMine"] as? Bool ?? false;reachable=d["reachable"] as? Bool ?? false
         moderationStatus=d["moderationStatus"] as? String ?? "pending"
@@ -145,7 +146,7 @@ struct CommunityGamesView: View {
     private func gameCard(_ game: CommunityGame, rank: Int) -> some View {
         VStack(alignment:.leading,spacing:14) {
             Button { play(game) } label: {
-                CommunityGameArtwork(symbol: category.symbol)
+                gameArtwork(game, symbol: category.symbol)
                     .overlay(alignment: .bottomTrailing) {
                         Label(store.t("Jump in", "开始玩"), systemImage: "play.fill")
                             .font(.caption.bold()).padding(10).background(.regularMaterial,in:Capsule()).padding(12)
@@ -231,7 +232,7 @@ struct CommunityGamesView: View {
                 ForEach(Array(games.prefix(5))) { game in
                     Button { play(game) } label: {
                         VStack(alignment: .leading, spacing: 10) {
-                            CommunityGameArtwork(symbol: "gamecontroller.fill")
+                            gameArtwork(game, symbol: "gamecontroller.fill")
                             Text(game.title).font(.headline).lineLimit(2).fixedSize(horizontal: false, vertical: true).frame(minHeight: 44, alignment: .topLeading)
                             Label(store.t("Play now", "马上开玩"), systemImage: "play.circle.fill").font(.subheadline.bold())
                         }.padding(12).frame(width: 220).foregroundStyle(appearance.ink)
@@ -249,6 +250,20 @@ struct CommunityGamesView: View {
             }
             browser=CommunityBrowser(url:url)
         }
+    }
+    @ViewBuilder private func gameArtwork(_ game: CommunityGame, symbol: String) -> some View {
+        if let url = URL(string: game.coverLink), url.scheme == "https", url.host == "3d-craft.web.app" {
+            GeometryReader { geometry in
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                        .accessibilityLabel(game.title + store.t(" cover", " 封面"))
+                        .accessibilityIdentifier("community.cover." + game.id)
+                } placeholder: {
+                    CommunityGameArtwork(symbol: symbol)
+                }.frame(width: geometry.size.width, height: 146)
+                    .clipped().clipShape(RoundedRectangle(cornerRadius: 20))
+            }.frame(height: 146)
+        } else { CommunityGameArtwork(symbol: symbol) }
     }
     private func vote(_ game: CommunityGame) {
         guard let uid=account.uid else { signIn=true; return }

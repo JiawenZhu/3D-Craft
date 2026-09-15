@@ -27,7 +27,10 @@ export function GameHub() {
   const [locale,setLocale] = useState<GameLocale>(()=>{try{return localStorage.getItem('forma-game-language')==='zh'?'zh':'en';}catch{return 'en';}});
   const t=translator(locale);
   const games=getGames(t);
-  const [selectedId,setSelectedId]=useState<string|null>(null);
+  const [selectedId,setSelectedId]=useState<string|null>(() => {
+    const requested = new URLSearchParams(window.location.search).get('game');
+    return games.some(game => game.id === requested) ? requested : null;
+  });
   const selected=games.find(g=>g.id===selectedId)??null;
   const setSelected=(game:Game|null)=>setSelectedId(game?.id??null);
   const changeLocale=(value:GameLocale)=>{setLocale(value);try{localStorage.setItem('forma-game-language',value);}catch{}};

@@ -44,6 +44,7 @@
 		69A33DC4846CBD94D0BF1C1A /* PlannerModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F568965FE64A62D26C440D18 /* PlannerModelPicker.swift */; };
 		6B19253E51FB75877D756DF5 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 97623F9CABDD83404EB1E77B /* RevenueCatUI */; };
 		6B2C2324A63E584FF356CB5F /* CraftThumbnailImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4564A1E4E8F411BE653C7489 /* CraftThumbnailImage.swift */; };
+		6BE33014B49A5C559E4EE629 /* CloudWelcomeReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A29B5A8963EF959D6061C22 /* CloudWelcomeReviewTests.swift */; };
 		6DC284DF4EB6F6F9B8F3124B /* ProfileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF85F6CED6AC4C9C083D972A /* ProfileEditorView.swift */; };
 		7000A545F17C062EEA05445F /* emerald_dragon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E0A43A91B0DC2F1E99BAA60C /* emerald_dragon.jpg */; };
 		70DDA33ABB42DD0D24FD36C8 /* DisplayStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F2083B39667BB25F630BE5 /* DisplayStageTests.swift */; };
@@ -204,6 +205,7 @@
 		876AFF2BF55E3DD2E5EAF85F /* woodland-cottage.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "woodland-cottage.jpg"; sourceTree = "<group>"; };
 		87CC75012099F86DA948A17E /* CraftProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftProfile.swift; sourceTree = "<group>"; };
 		8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSelectionTests.swift; sourceTree = "<group>"; };
+		8A29B5A8963EF959D6061C22 /* CloudWelcomeReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudWelcomeReviewTests.swift; sourceTree = "<group>"; };
 		8F1CF6C1EB50E3CE5FD913FB /* CreatorPlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPlansView.swift; sourceTree = "<group>"; };
 		8F9429FEEB4D144CFDDC1830 /* GameHandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffView.swift; sourceTree = "<group>"; };
 		9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftWebAuthAttempt.swift; sourceTree = "<group>"; };
@@ -430,6 +432,7 @@
 				0C64A5D4FBB83CD9A9121E2E /* AIAccountReviewTests.swift */,
 				3AD1C00CE1138C389842CA8B /* AppearanceTests.swift */,
 				5BBE72B7C1F2CFCA84420590 /* AppStoreCaptureTests.swift */,
+				8A29B5A8963EF959D6061C22 /* CloudWelcomeReviewTests.swift */,
 				09A8A22DBDC00768AD10690B /* ConversationReviewTests.swift */,
 				73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */,
 				BC572FC854F3A0127F692CA7 /* GameHandoffReviewTests.swift */,
@@ -683,6 +686,7 @@
 				9D340D8ECA0F9CF0D3AAEBA4 /* AIAccountReviewTests.swift in Sources */,
 				60CE774712AD4E228C18A37D /* AppStoreCaptureTests.swift in Sources */,
 				C7140D1084275170832FFB77 /* AppearanceTests.swift in Sources */,
+				6BE33014B49A5C559E4EE629 /* CloudWelcomeReviewTests.swift in Sources */,
 				DA29BF42D1673ECE69704E26 /* ConversationReviewTests.swift in Sources */,
 				124457F17E696F9DED22E237 /* GalleryReviewTests.swift in Sources */,
 				8E1C5A13A086C2154693BE3B /* GameHandoffReviewTests.swift in Sources */,

@@ -220,59 +220,130 @@ import AuthenticationServices
 
 struct CraftSignInView: View {
     @ObservedObject private var account = CraftAccount.shared
+    @EnvironmentObject private var store: CraftStore
+    @Environment(\.dismiss) private var dismiss
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .emerald
-    @State private var email=""
-    @State private var password=""
-    @State private var register=false
+    @State private var email = ""
+    @State private var password = ""
+    @State private var register = false
+    @State private var revealPassword = false
+    @FocusState private var focused: Field?
+    private enum Field { case email, password }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment:.leading,spacing:20){
-                Image(systemName:"cube.fill").font(.system(size:48)).foregroundStyle(appearance.ink)
-                Text("Welcome to 3D Craft").font(.largeTitle.bold())
-                Text("Sign in with the same account you use on the website to sync your concepts and 3D objects in real time.").foregroundStyle(.secondary)
-                
-                Button {
-                    Task { await account.signInWithGoogle() }
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(Color.blue)
-                        Text("Continue with Google")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.primary)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    HStack(spacing: 16) {
+                        Image("PaywallExplorer").resizable().scaledToFit()
+                            .frame(width: 88, height: 108).clipShape(RoundedRectangle(cornerRadius: 18)).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(store.t("YOUR NEXT IDEA STARTS HERE", "从一个想法开始"))
+                                .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundStyle(appearance.ink)
+                            Text(store.t("Make it yours.", "创造属于你的世界。"))
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(store.t("Your creations. All in one place.", "所有创作，在这里相聚。"))
+                                .font(.subheadline).foregroundStyle(.secondary)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(spacing: 12) {
+                        Button { Task { await account.signInWithApple() } } label: {
+                            Label(store.t("Sign in with Apple", "通过 Apple 登录"), systemImage: "apple.logo")
+                                .font(.system(size: 17, weight: .semibold))
+                                .frame(maxWidth: .infinity, minHeight: 52)
+                                .foregroundStyle(.white).background(.black, in: RoundedRectangle(cornerRadius: 16))
+                        }.disabled(account.busy)
+                        Button { Task { await account.signInWithGoogle() } } label: {
+                            Label(store.t("Continue with Google", "通过 Google 继续"), systemImage: "globe")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(Color.primary).frame(maxWidth: .infinity, minHeight: 52)
+                                .background(CraftTheme.card, in: RoundedRectangle(cornerRadius: 16))
+                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(appearance.ink.opacity(0.15)))
+                        }.disabled(account.busy)
+                    }.buttonStyle(.plain)
+                    HStack(spacing: 14) {
+                        Rectangle().frame(height: 1).foregroundStyle(appearance.ink.opacity(0.12))
+                        Text(store.t("or use email", "或使用邮箱")).font(.caption).foregroundStyle(.secondary)
+                        Rectangle().frame(height: 1).foregroundStyle(appearance.ink.opacity(0.12))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+                    VStack(alignment: .leading, spacing: 16) {
+                        Picker(store.t("Account", "账号"), selection: $register) {
+                            Text(store.t("Sign in", "登录")).tag(false)
+                            Text(store.t("Create account", "创建账号")).tag(true)
+                        }.pickerStyle(.segmented)
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text(store.t("Email address", "邮箱地址")).font(.caption.weight(.semibold)).foregroundStyle(appearance.ink)
+                            HStack(spacing: 12) {
+                                Image(systemName: "envelope").foregroundStyle(.secondary)
+                                TextField("you@example.com", text: $email)
+                                    .keyboardType(.emailAddress).textContentType(.emailAddress)
+                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .focused($focused, equals: .email).submitLabel(.next)
+                                    .onSubmit { focused = .password }
+                                    .accessibilityLabel(store.t("Email address", "邮箱地址"))
+                            }.padding(14).background(appearance.wash, in: RoundedRectangle(cornerRadius: 14))
+                        }
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack {
+                                Text(store.t("Password", "密码")).font(.caption.weight(.semibold)).foregroundStyle(appearance.ink)
+                                Spacer()
+                                if !register {
+                                    Button(store.t("Forgot?", "忘记密码？")) { Task { await account.resetPassword(email: email) } }
+                                        .font(.caption).disabled(email.isEmpty || account.busy)
+                                }
+                            }
+                            HStack(spacing: 12) {
+                                Image(systemName: "lock").foregroundStyle(.secondary)
+                                Group {
+                                    if revealPassword { TextField(store.t("Password", "密码"), text: $password) }
+                                    else { SecureField(store.t("Password", "密码"), text: $password) }
+                                }.textContentType(register ? .newPassword : .password)
+                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .focused($focused, equals: .password).submitLabel(.go).onSubmit(submit)
+                                Button { revealPassword.toggle() } label: {
+                                    Image(systemName: revealPassword ? "eye.slash" : "eye").frame(width: 30, height: 30)
+                                }.accessibilityLabel(revealPassword ? store.t("Hide password", "隐藏密码") : store.t("Show password", "显示密码"))
+                            }.padding(14).background(appearance.wash, in: RoundedRectangle(cornerRadius: 14))
+                            if register { Text(store.t("At least 6 characters", "至少 6 个字符")).font(.caption2).foregroundStyle(.secondary) }
+                        }
+                        if let error = account.error {
+                            Label(error, systemImage: "exclamationmark.circle").font(.callout).foregroundStyle(.red)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Button(action: submit) {
+                            HStack {
+                                if account.busy { ProgressView().tint(appearance.buttonInk) }
+                                Text(account.busy ? store.t("Connecting…", "正在连接……") : register ? store.t("Create account", "创建账号") : store.t("Sign in", "登录"))
+                                if !account.busy { Image(systemName: "arrow.right") }
+                            }
+                        }.buttonStyle(CraftPrimary()).disabled(account.busy || email.isEmpty || password.count < 6)
+                    }.padding(20).background(CraftTheme.card, in: RoundedRectangle(cornerRadius: 26))
+                    VStack(spacing: 12) {
+                        Label(store.t("Creations and Tokens sync with your account", "创作与 Tokens 随账号同步"), systemImage: "checkmark.shield")
+                            .font(.caption).foregroundStyle(.secondary)
+                        HStack(spacing: 24) {
+                            Link(store.t("Terms", "条款"), destination: URL(string: "https://3d-craft.web.app/terms")!)
+                            Link(store.t("Privacy", "隐私"), destination: URL(string: "https://3d-craft.web.app/privacy")!)
+                            Link(store.t("Support", "支持"), destination: URL(string: "https://3d-craft.web.app/contact")!)
+                        }.font(.caption)
+                    }.frame(maxWidth: .infinity)
+                }.padding(24).frame(maxWidth: 560).frame(maxWidth: .infinity)
+            }.scrollDismissesKeyboard(.interactively)
+                .background { StudioAtmosphere() }
+                .navigationTitle("3D Craft").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { dismiss() } label: { Image(systemName: "xmark").font(.subheadline.bold()) }
+                            .accessibilityLabel(store.t("Close", "关闭"))
+                    }
                 }
-                .disabled(account.busy)
-
-                Button { Task { await account.signInWithApple() } } label: {
-                    Label("Sign in with Apple", systemImage: "apple.logo")
-                        .font(.system(size: 17, weight: .semibold))
-                        .frame(maxWidth: .infinity, minHeight: 50)
-                        .foregroundStyle(.white).background(.black, in: RoundedRectangle(cornerRadius: 12))
-                }.disabled(account.busy)
-                HStack(spacing: 12) {
-                    Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.25))
-                    Text("or use email").font(.footnote).foregroundColor(.secondary)
-                    Rectangle().frame(height: 1).foregroundColor(.secondary.opacity(0.25))
-                }.padding(.vertical, 4)
-
-                Picker("Account",selection:$register){Text("Sign in").tag(false);Text("Create account").tag(true)}.pickerStyle(.segmented)
-                TextField("Email",text:$email).keyboardType(.emailAddress).textContentType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
-                SecureField("Password",text:$password).textContentType(register ? .newPassword : .password)
-                Button(account.busy ? "Connecting…" : register ? "Create account" : "Sign in"){
-                    Task{await account.signIn(email:email,password:password,register:register);password=""}
-                }.buttonStyle(CraftPrimary()).disabled(account.busy || email.isEmpty || password.count<6)
-                Button("Forgot password?"){Task{await account.resetPassword(email:email)}}.disabled(email.isEmpty || account.busy)
-                if let error=account.error{Text(error).font(.callout).foregroundStyle(.red)}
-                Text("Review the Token cost before generating. Your creations and balance sync with your 3D Craft account.").font(.footnote).foregroundStyle(.secondary)
-                HStack{Link("Terms",destination:URL(string:"https://3d-craft.web.app/terms")!);Link("Privacy",destination:URL(string:"https://3d-craft.web.app/privacy")!);Link("Support",destination:URL(string:"https://3d-craft.web.app/contact")!)}.font(.footnote)
-            }.textFieldStyle(.roundedBorder).padding(30).padding(.top,50)
-        }.background{StudioAtmosphere()}.tint(appearance.ink)
+        }.tint(appearance.ink)
+    }
+    private func submit() {
+        guard !account.busy, !email.isEmpty, password.count >= 6 else { return }
+        focused = nil
+        Task { await account.signIn(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password, register: register); password = "" }
     }
 }

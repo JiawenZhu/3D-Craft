@@ -116,18 +116,6 @@ struct CraftRoot: View {
             VStack(spacing: 0) {
                 CreationReadyCard()
                 connectionNotice
-                if let message = billing.walletSyncMessage {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.triangle.2.circlepath").accessibilityHidden(true)
-                        Text(message).font(.caption).fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                        Button(store.t("Retry", "重试")) {
-                            Task { try? await billing.reconcileWallet(store: store, force: true) }
-                        }.font(.caption.weight(.semibold))
-                            .frame(minWidth: 44, minHeight: 44)
-                            .disabled(billing.syncingWallet)
-                    }.padding(.horizontal, 16).background(CraftTheme.card)
-                }
             }
         }
         .animation(CraftMotion.gated(.glide, reduceMotion), value: store.completedModelCards.first?.id)
@@ -561,4 +549,3 @@ struct CameraPicker: UIViewControllerRepresentable {
 }
 
 struct ReviewPhoto: Identifiable { let id = UUID(); let image: UIImage }
-

@@ -65,6 +65,9 @@ final class BillingManager: ObservableObject {
     /// Reconcile only the signed-in account. Never opens an Apple purchase sheet.
     func reconcileWallet(store: CraftStore, force: Bool = false) async throws {
         guard let uid = CraftAccount.shared.uid else { throw CraftError(message: "Sign in to sync purchases.") }
+        if uid != lastWalletUser || !pendingCredits.contains(where: { $0.userID == uid }) {
+            walletSyncMessage = nil
+        }
         guard store.connected else {
             if force { throw CraftError(message: store.t("Check your internet connection to sync purchased Tokens.", "请检查网络连接以同步购买的 Tokens。")) }
             return
@@ -96,7 +99,9 @@ final class BillingManager: ObservableObject {
             walletSyncMessage = nil
         } catch {
             if CraftAccount.shared.uid == uid, pendingCredits.contains(where: { $0.userID == uid }) {
-                walletSyncMessage = store.t("Tokens awaiting sync. No need to buy again.", "Tokens 等待同步，无需再次购买。")
+                walletSyncMessage = store.t("Your purchase is saved. We’ll update your balance when verification finishes.", "购买记录已保存，验证完成后将更新余额。")
+            } else if CraftAccount.shared.uid == uid {
+                walletSyncMessage = nil
             }
             throw error
         }
@@ -235,6 +240,7 @@ final class BillingManager: ObservableObject {
     }
 
     func logInRevenueCat(userId: String) async {
+        if userId != lastWalletUser { walletSyncMessage = nil }
         do {
             let (info, _) = try await Purchases.shared.logIn(userId)
             handleCustomerInfo(info)

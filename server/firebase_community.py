@@ -78,6 +78,7 @@ def visible(game, uid=None, blocked=(), hidden=()):
 
 def public_game(game, uid=None, categories=()):
     return {**{k: game.get(k, '') for k in ('id', 'title', 'creator', 'description', 'url')},
+            'coverUrl': game.get('coverUrl', ''),
             'votes': {c: max(0, int(game.get('votes', {}).get(c, 0))) for c in CATEGORIES},
             'myVotes': sorted(c for c in categories if c in CATEGORIES),
             'isMine': bool(uid and game.get('ownerId') == uid),

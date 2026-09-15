@@ -166,8 +166,22 @@ class CloudBilling:
             is_plan = purchase['product'] in PLANS
             compatible = expected and (expected[0] == purchase['product'] or (expected[0] in PLANS and is_plan))
             matches = compatible and expected[1] == purchase['transaction']
+            # A pack claim must not reconcile unrelated subscription history.
+            # RevenueCat history can include receipts from a previous app account.
+            if expected and expected[0] in PACKS and not matches: continue
             if expected and not is_plan and not matches: continue
-            result = self.settle_plan(uid, purchase) if is_plan else self.settle(uid, purchase)
+            def owned_elsewhere():
+                key = hashlib.sha256(('APP_STORE:' + purchase['environment'] + ':' + purchase['transaction']).encode()).hexdigest()
+                snapshot = self.db.collection('billingReceipts').document(key).get()
+                return snapshot.exists and snapshot.to_dict().get('ownerId') != uid
+            if not matches and owned_elsewhere(): continue
+            try:
+                result = self.settle_plan(uid, purchase) if is_plan else self.settle(uid, purchase)
+            except HTTPException as error:
+                # The atomic settlement guard still decides ownership. Handle a
+                # concurrent owner assignment only for unrelated history.
+                if error.status_code == 409 and not matches and owned_elsewhere(): continue
+                raise
             if matches: matched = purchase, result
         if expected:
             if matched is None:
@@ -180,7 +194,11 @@ class CloudBilling:
                     prior = snap.to_dict() if snap.exists else None
                     compatible = prior and (prior['product']==expected[0] or prior['product'] in PLANS and expected[0] in PLANS)
                     if compatible and prior['ownerId']==uid and prior.get('granted') and not prior.get('refunded'):
-                        matched = prior, dict(delta=0, tokens=0, refunded=False, receiptID=environment+':'+expected[1])
+                        # Report an already verified pack for a pending success
+                        # animation without granting it again. Old plan periods
+                        # must not appear as a new allowance.
+                        tokens = prior.get('tokens', 0) if prior['product'] in PACKS else 0
+                        matched = prior, dict(delta=0, tokens=tokens, refunded=False, receiptID=environment+':'+expected[1])
                         break
             if matched is None:
                 raise HTTPException(409, 'RevenueCat has not confirmed this purchase for your account yet. Retry shortly; do not buy again.')

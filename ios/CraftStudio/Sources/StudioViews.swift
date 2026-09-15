@@ -781,6 +781,7 @@ struct ProfileView: View {
 // MARK: - Wallet
 
 struct WalletView: View {
+    @EnvironmentObject private var billing: BillingManager
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @EnvironmentObject var store: CraftStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -826,6 +827,20 @@ struct WalletView: View {
                 .background(appearance.wash, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 .craftEntrance(0, style: .popIn)
                 .id("wallet.balance")
+
+                if let message = billing.walletSyncMessage {
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(appearance.ink)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(store.t("Purchase sync", "购买同步")).font(.subheadline.bold())
+                            Text(message).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                        Button(store.t("Retry", "重试")) {
+                            Task { try? await billing.reconcileWallet(store: store, force: true) }
+                        }.disabled(billing.syncingWallet).frame(minHeight: 44)
+                    }.padding(16).background(CraftTheme.card, in: RoundedRectangle(cornerRadius: 20))
+                }
 
                 if let packs = store.wallet.packAvailable {
                     amountRow(store.t("Token packs · Never expire", "代币包 · 永不过期"), packs, index: 1)
