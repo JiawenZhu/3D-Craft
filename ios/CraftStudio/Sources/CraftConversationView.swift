@@ -197,7 +197,7 @@ struct CraftConversationView: View {
                 }.accessibilityIdentifier("chat.reply." + turn.id)
                 if project?.turns.last?.id == turn.id, !thinking { nextStep(turn) }
             } else if turn.isActive {
-                HStack(spacing: 10) { ProgressView(); Text(store.t("Thinking about your idea…", "正在思考你的灵感……")).font(.subheadline).foregroundStyle(.secondary) }
+                HStack(spacing: 10) { CraftMascotLoop(phase: .thinking, size: 36); Text(store.t("Thinking about your idea…", "正在思考你的灵感……")).font(.subheadline).foregroundStyle(.secondary) }
             } else if let error = turn.error {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(store.t(error, "消息已保存，但暂时无法回复。请检查规划模型后重试。")).font(.caption).foregroundStyle(.secondary)
@@ -292,7 +292,11 @@ struct CraftConversationView: View {
                 } label: { Image(systemName: "plus").font(.title3).frame(width: 42, height: 44) }.disabled(uploading || thinking).accessibilityLabel(store.t("Attach reference", "添加参考图"))
                 TextField(store.t("Tell me what you imagine…", "说说你的想法……"), text: $message, axis: .vertical).lineLimit(1...5).focused($focused).padding(.vertical, 12).accessibilityIdentifier("chat.message")
                 Button { send(message) } label: {
-                    Group { if thinking || uploading { ProgressView() } else { Image(systemName: "arrow.up").font(.title3.bold()) } }
+                    Group {
+                        if thinking { CraftMascotLoop(phase: .thinking, size: 28) }
+                        else if uploading { ProgressView() }
+                        else { Image(systemName: "arrow.up").font(.title3.bold()) }
+                    }
                         .frame(width: 44, height: 44).background(appearance.fill, in: Circle())
                 }.disabled((message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && pendingReference == nil) || thinking || uploading || store.busy || working || (pendingReference == nil && store.chatMaximumTokens == nil))
                     .accessibilityLabel(store.t("Send message", "发送消息")).accessibilityIdentifier("chat.send")

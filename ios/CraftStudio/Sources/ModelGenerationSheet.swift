@@ -325,7 +325,7 @@ struct ModelGenerationSheet: View {
                     }
                 } label: {
                     HStack {
-                        if improvingPrompt { ProgressView() }
+                        if improvingPrompt { CraftMascotLoop(phase: .thinking, size: 28) }
                         Label(improvingPrompt ? t("Improving prompt…", "正在优化描述……") : t("Improve with AI", "用 AI 优化描述"), systemImage: "sparkles")
                     }
                 }.disabled(improvingPrompt || promptMaxTokens == nil || !imageReady || modelPrompt.unicodeScalars.count > 4000)

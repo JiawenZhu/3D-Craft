@@ -110,27 +110,15 @@ struct GenerationJourneyView: View {
     private var activityPreview: some View {
         VStack(spacing: 12) {
             ZStack {
-                Circle().fill(appearance.washStrong).frame(width: 148, height: 148)
+                Circle().fill(appearance.washStrong).frame(width: 184, height: 184)
                     .craftBreathe(active: animates, from: 0.55, to: 1, period: 2.8)
-                if let url = selectedConceptURL ?? sourceURL {
-                    CraftCachedImage(url: url).frame(width: 118, height: 118)
-                        .clipShape(RoundedRectangle(cornerRadius: 22))
-                } else {
-                    Image(systemName: modelJob ? "cube.transparent.fill" : "paintbrush.pointed.fill")
-                        .font(.system(size: 45)).foregroundStyle(lilac)
-                }
-                Circle().trim(from: 0.05, to: 0.30)
-                    .stroke(appearance.ink.opacity(0.65), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                    .frame(width: 170, height: 170)
-                    .rotationEffect(.degrees(animates && arcSpin ? 360 : 0))
-                ForEach(0..<3) { index in
-                    Image(systemName: index == 1 ? "sparkle" : "circle.fill")
-                        .font(.system(size: index == 1 ? 17 : 6)).foregroundStyle(lilac)
-                        .offset(y: -84)
-                        .rotationEffect(.degrees(Double(index) * 120 + (animates && arcSpin ? 360 : 0)))
-                }
+                // The mascot is the activity indicator. A queued job only waits,
+                // so it thinks; a running job draws concepts or sculpts in 3D.
+                // The source images remain in the pipeline nodes below.
+                CraftMascotLoop(phase: job.status == "queued" ? .thinking : modelJob ? .model : .concept,
+                                size: 164, active: job.isActive)
             }
-            .frame(maxWidth: .infinity).frame(height: 184)
+            .frame(maxWidth: .infinity).frame(height: 196)
             .accessibilityHidden(true)
             Text(job.status == "queued" ? t("Your idea is in line. We’ll keep you updated.", "灵感已进入队列，我们会持续更新进度。")
                  : modelJob ? t("Finding shape in your idea…", "正在让灵感成为三维……")

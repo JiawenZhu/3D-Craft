@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D Craft · Mascot waiting animations (review)</title>
+<style>
+  :root { --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; }
+  body { margin: 0; background: #fff; color: #222; font-family: var(--font); }
+  main { max-width: 1180px; margin: auto; padding: 36px 24px 80px; }
+  .eyebrow { font-size: 11px; letter-spacing: 2px; color: #777; }
+  h1 { font-size: 34px; letter-spacing: -.5px; margin: 6px 0 8px; }
+  p { color: #555; line-height: 1.55; }
+  .controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin: 18px 0 8px;
+              padding: 12px 16px; border-radius: 14px; background: #f5f5f7; font-size: 14px; }
+  .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 18px; }
+  .theme { border-radius: 26px; padding: 22px; }
+  .lavender { --fill: rgb(216,161,241); --ink: rgb(104,67,123); background: rgba(216,161,241,.10); }
+  .emerald  { --fill: rgb(156,220,195); --ink: rgb(28,101,77);  background: rgba(156,220,195,.10); }
+  .theme h2 { margin: 0 0 4px; color: var(--ink); font-size: 20px; }
+  .theme .sub { margin: 0 0 16px; font-size: 13px; }
+  .phase { background: #fff; border-radius: 22px; padding: 16px; margin-bottom: 16px;
+           border: 1px solid rgba(0,0,0,.06); box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+  .phase h3 { margin: 0 0 2px; font-size: 14px; }
+  .phase .where { margin: 0 0 12px; font-size: 12px; color: #777; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px;
+           border-radius: 24px; background: color-mix(in srgb, var(--fill) 10%, white); }
+  .halo { width: 184px; height: 184px; border-radius: 50%; display: grid; place-items: center;
+          background: color-mix(in srgb, var(--fill) 24%, white); }
+  .mascot { position: relative; border-radius: 50%; overflow: hidden; background: #fff; flex: none; }
+  .mascot img, .mascot video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .mascot::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+                   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fill) 45%, transparent); }
+  .caption { color: var(--ink); font-size: 14px; font-weight: 500; text-align: center; }
+  .row { display: flex; align-items: center; gap: 10px; font-size: 15px; color: #666; padding: 8px 4px; }
+  .button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+            color: var(--ink); background: color-mix(in srgb, var(--fill) 14%, white); font-size: 15px; }
+  .sizes { display: flex; align-items: end; gap: 18px; margin-top: 12px; font-size: 11px; color: #888; }
+  .sizes div { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .meta { font-size: 12px; color: #777; }
+  table { border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  td, th { padding: 6px 10px; border-bottom: 1px solid #eee; text-align: left; }
+  .raw { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .raw video { width: 100%; border-radius: 12px; }
+  .raw figcaption { font-size: 11px; color: #777; padding-top: 4px; }
+  @media (max-width: 860px) { .themes { grid-template-columns: 1fr; } .raw { grid-template-columns: repeat(3, 1fr); } }
+</style>
+<main>
+  <div class="eyebrow">3D CRAFT · LOCAL REVIEW · NOT SHIPPED</div>
+  <h1>Mascot waiting animations</h1>
+  <p>Six looping clips: two mascots × three waiting phases. Soft lavender uses the original blue Cloud Dragon and emerald green uses the original Panda Chef. Each clip was generated from the app's own original concept art with <b>fal Seedance 2.5</b> (<code>bytedance/seedance-2.5/image-to-video</code>, 480p, 4 s, no audio). The original art was given as both the start and the end frame. The last 0.25 s of each clip is blended back into its first frame, so the loop point is hidden. This page plays the <b>same files the iOS app bundles</b> (<code>ios/CraftStudio/Resources/Mascot/</code>) with the same circular framing and sizes (in points = CSS px).</p>
+  <p class="meta">These are activity indicators only. The mockups show no percentages because the app shows only the progress the service reports, next to the card. Clips pause and show the still original art when Reduce Motion or Increase Contrast is on, when the app is backgrounded or in Low Power Mode, and when the job is no longer active.</p>
+
+  <div class="controls">
+    <label><input type="checkbox" id="reduce"> Simulate Reduce Motion (still art, no playback)</label>
+    <label><input type="checkbox" id="inactive"> Simulate job finished (indicator stops)</label>
+    <span class="meta">Playback also pauses while this tab is hidden, like the app's background gate.</span>
+  </div>
+
+  <div class="themes" id="themes"></div>
+
+  <h2 style="margin-top:40px">Bundled asset sizes</h2>
+  <table id="sizes"><tr><th>File</th><th>Dimensions</th><th>Bytes</th></tr></table>
+
+  <h2 style="margin-top:40px">Raw Seedance 2.5 output (640×640, before encoding)</h2>
+  <div class="raw" id="raw"></div>
+  <p class="meta">Generation record: <a href="seedance-log.json">seedance-log.json</a> · Notes: <a href="README.md">README.md</a></p>
+</main>
+<script>
+const ASSETS = "../../../ios/CraftStudio/Resources/Mascot/";
+const THEMES = [
+  { key: "lavender", name: "Soft lavender", mascot: "dragon", title: "Cloud Dragon" },
+  { key: "emerald", name: "Emerald green", mascot: "panda", title: "Panda Chef" },
+];
+
+function mascot(char, phase, size) {
+  const cropped = size < 80 && phase === "thinking";  // same rule as CraftMascotLoop
+  const clip = `mascot-${char}-${phase}${cropped ? "-small" : ""}.mp4`;
+  const poster = `mascot-${char}-poster${cropped ? "-small" : ""}.jpg`;
+  return `<span class="mascot" style="width:${size}px;height:${size}px">
+    <img src="${ASSETS}${poster}" alt="">
+    <video data-clip src="${ASSETS}${clip}" muted loop playsinline preload="auto"></video></span>`;
+}
+
+const themes = document.getElementById("themes");
+for (const t of THEMES) {
+  themes.insertAdjacentHTML("beforeend", `
+  <section class="theme ${t.key}">
+    <h2>${t.name} · ${t.title}</h2>
+    <p class="sub">Selected automatically from the user's appearance setting.</p>
+
+    <div class="phase">
+      <h3>1 · Thinking (small)</h3>
+      <p class="where">Replaces the chat “Thinking about your idea…” spinner (36 pt) and the “Improving prompt…” spinner (28 pt). The large version shows while a generation job is queued.</p>
+      <div class="row">${mascot(t.mascot, "thinking", 36)} Thinking about your idea…</div>
+      <div class="row"><span class="button">${mascot(t.mascot, "thinking", 28)} ✦ Improving prompt…</span></div>
+      <div class="sizes"><div>${mascot(t.mascot, "thinking", 28)}28</div><div>${mascot(t.mascot, "thinking", 36)}36</div>
+        <div>${mascot(t.mascot, "thinking", 60)}60</div><div>${mascot(t.mascot, "thinking", 164)}164 (queued)</div></div>
+    </div>
+
+    <div class="phase">
+      <h3>2 · Concept image generation (large)</h3>
+      <p class="where">Creation journey card while a concept job is running.</p>
+      <div class="stage"><div class="halo">${mascot(t.mascot, "concept", 164)}</div>
+        <div class="caption">A little imagination, coming to life…</div></div>
+    </div>
+
+    <div class="phase">
+      <h3>3 · 3D generation (large)</h3>
+      <p class="where">Creation journey card while a 3D model job is running.</p>
+      <div class="stage"><div class="halo">${mascot(t.mascot, "model", 164)}</div>
+        <div class="caption">Finding shape in your idea…</div></div>
+    </div>
+  </section>`);
+}
+
+const raw = document.getElementById("raw");
+for (const c of ["dragon", "panda"]) for (const p of ["thinking", "concept", "model"])
+  raw.insertAdjacentHTML("beforeend", `<figure style="margin:0"><video data-clip src="raw/${c}-${p}.mp4" muted loop playsinline preload="metadata"></video><figcaption>${c}-${p}</figcaption></figure>`);
+
+const reduce = document.getElementById("reduce"), inactive = document.getElementById("inactive");
+function apply() {
+  const play = !reduce.checked && !inactive.checked && document.visibilityState === "visible";
+  for (const v of document.querySelectorAll("video[data-clip]")) {
+    v.style.visibility = play ? "visible" : "hidden";
+    if (play) v.play().catch(() => {}); else { v.pause(); v.currentTime = 0; }
+  }
+}
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) reduce.checked = true;
+reduce.onchange = inactive.onchange = apply;
+document.addEventListener("visibilitychange", apply);
+apply();
+
+// Report the real byte sizes of the bundled files.
+const table = document.getElementById("sizes");
+const files = [];
+for (const c of ["dragon", "panda"]) {
+  for (const p of ["thinking", "concept", "model"]) files.push(`mascot-${c}-${p}.mp4`);
+  files.push(`mascot-${c}-thinking-small.mp4`, `mascot-${c}-poster.jpg`, `mascot-${c}-poster-small.jpg`);
+}
+let total = 0;
+Promise.all(files.map(f => fetch(ASSETS + f).then(r => r.blob()).then(b => [f, b.size]).catch(() => [f, null])))
+  .then(rows => {
+    for (const [f, size] of rows) {
+      total += size || 0;
+      const dims = f.includes("small") ? "144×144" : "480×480";
+      table.insertAdjacentHTML("beforeend", `<tr><td>${f}</td><td>${dims}</td><td>${size == null ? "unavailable over file://" : size.toLocaleString()}</td></tr>`);
+    }
+    table.insertAdjacentHTML("beforeend", `<tr><th>Total</th><th></th><th>${total ? total.toLocaleString() : "—"}</th></tr>`);
+  });
+</script>
+</html>

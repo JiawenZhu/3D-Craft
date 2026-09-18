@@ -12,11 +12,13 @@
 		0CC4DC9471945AE1924840CA /* arena.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7B6A40211882BF313693D52B /* arena.jpg */; };
 		120E9F251F004147D1B11466 /* GenerationJourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */; };
 		124457F17E696F9DED22E237 /* GalleryReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */; };
+		1740F97992FA93BB15A23E79 /* mascot-dragon-thinking-small.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 3023D22B351C23ED6F18E134 /* mascot-dragon-thinking-small.mp4 */; };
 		18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */; };
 		1FD2F2929867109959E9068E /* ConceptImageInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */; };
 		2092DA77027673DE016DE873 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E2D5FCD326990A4175C458A /* Assets.xcassets */; };
 		22964DEC7D640AF76B6DFEE9 /* WebAuthAttemptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */; };
 		275F3D70B64A6829D847DD79 /* CraftWebAuthAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */; };
+		2A4F7A3F45B2AA05FC286035 /* CraftMascotLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88AF98B87BAA034033636034 /* CraftMascotLoop.swift */; };
 		2CFD71AA12AC0895B71DF6B0 /* CraftAppleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */; };
 		3357F735EE8B667FB60CB78F /* ranger-bow.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3456CACBFE3D92C8E4A20BCB /* ranger-bow.jpg */; };
 		33A986EC2DC9F32A6A8139C7 /* GalleryHomeGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9699F526FA8BBBA36C3AB11D /* GalleryHomeGrid.swift */; };
@@ -27,16 +29,21 @@
 		407DE26A92359818BDB9B93A /* SourceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */; };
 		40B537736194B36FBE29F839 /* ReviewFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD19FEBCF8275E61E7E9F92 /* ReviewFlowTests.swift */; };
 		44AC5736545B169EEAB77706 /* AIAccountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2910CF4103D2633730BB4ED0 /* AIAccountTests.swift */; };
+		46C1EBB5590587B6DABDDE72 /* MascotLoopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0C9F7C15DEC98ABE303DBC /* MascotLoopTests.swift */; };
 		51691ABA7EBD059F0409CB58 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = D8B2169777A60D7C27E6357E /* RevenueCat */; };
+		531ABD8A60B673DF002405E2 /* mascot-panda-thinking-small.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 275EE028CC3478026A022FB2 /* mascot-panda-thinking-small.mp4 */; };
 		54B15CC21ABED66EC518842D /* lantern_cat_display.png in Resources */ = {isa = PBXBuildFile; fileRef = 6A76559D0F474BC1CDF2C44C /* lantern_cat_display.png */; };
 		55D3E1F31D6FDBF9B4A5B845 /* StageReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AD87381AF3BE312F99AE4AA /* StageReviewTests.swift */; };
 		570AB95B3A9D1DC93F02BB94 /* ancient-oak.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 802D72F1B3C500C3E3F7340C /* ancient-oak.jpg */; };
 		571F5DE66C101EB26B073AEB /* CreationPlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF18497858CF7714758D7445 /* CreationPlayViews.swift */; };
 		58472F249753907E938BDFAB /* coconut-island.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 84BC6651879220F93EF79194 /* coconut-island.jpg */; };
+		5869A5E1CE458548447BF68D /* mascot-panda-thinking.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = BC726CAFA56585FF564F07A5 /* mascot-panda-thinking.mp4 */; };
 		5873060F12B9B83AC22EB36B /* sunblade.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 6232406CEC7D688B41F88EF1 /* sunblade.jpg */; };
 		58F0B6DD4024F26808303A58 /* CommunityGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F17779305D71D2343833EB /* CommunityGamesView.swift */; };
 		5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */; };
 		5E47A18AAAD704EF263FD85C /* dragon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 58D453DA123199E614C8A59D /* dragon.jpg */; };
+		5ED967CD1FBE8F204E0D5339 /* mascot-dragon-poster.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 08703E6CC5539D87DDA7BF7B /* mascot-dragon-poster.jpg */; };
+		6089830EE5F194D8873880BC /* mascot-panda-model.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 7FBCE45D965C278A810CEDDE /* mascot-panda-model.mp4 */; };
 		60CE774712AD4E228C18A37D /* AppStoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BBE72B7C1F2CFCA84420590 /* AppStoreCaptureTests.swift */; };
 		62A4DD4C7EED90CA2D71EA97 /* CraftAIPrivacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */; };
 		6731C7437CFBD30D087AB703 /* CommercePlans.json in Resources */ = {isa = PBXBuildFile; fileRef = D60B9B5E0FEC2B0040593DB0 /* CommercePlans.json */; };
@@ -59,12 +66,14 @@
 		7EEEF9FFEE6EA9CEE60EF7B0 /* waterfall-diorama.jpg in Resources */ = {isa = PBXBuildFile; fileRef = CB8242C14A18639C3E73B660 /* waterfall-diorama.jpg */; };
 		7F851A5C8FFF4DA59E809EA5 /* BillingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EBE7CB90190E1DD404E65E6 /* BillingManager.swift */; };
 		81920E2F51D371D8BF9626F2 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 200880BC0DB5CC52719B6EEC /* Products.storekit */; };
+		82677D765F176BDCB8CD8E73 /* mascot-dragon-concept.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = A60C89DE39801848ECEE7DED /* mascot-dragon-concept.mp4 */; };
 		82EB849C9CFCAE6FB90FB648 /* GameViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FADDAECF18D9DFE21ED0C61 /* GameViews.swift */; };
 		831BC81D396FAEF2474C3A1A /* ConceptGenerationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34C49376DDAF1CFF69D4BFAE /* ConceptGenerationSheet.swift */; };
 		8531FB2D038C3578F7810366 /* public-gallery.json in Resources */ = {isa = PBXBuildFile; fileRef = 2335B8145EB431361A905B04 /* public-gallery.json */; };
 		863E9F0559B68C89121D2427 /* treasure-chest.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EE1CF0D01070C45C2CC49058 /* treasure-chest.jpg */; };
 		86AAB39A5E14517D15CA879C /* GLTFKit2 in Frameworks */ = {isa = PBXBuildFile; productRef = C32B39FD0C286BA8AF484146 /* GLTFKit2 */; };
 		8871FF0BF22B9DDB6CA98A4B /* CraftImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402752169C3F372A7B663AEA /* CraftImageCache.swift */; };
+		8B9224313A552B6E26490459 /* mascot-panda-poster.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2B9D5858FF7F3F3A7370AE25 /* mascot-panda-poster.jpg */; };
 		8D16078DA5005507D2D19CCB /* VisualPolishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE2D60CF3F5EB7289E93B92 /* VisualPolishTests.swift */; };
 		8E1C5A13A086C2154693BE3B /* GameHandoffReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC572FC854F3A0127F692CA7 /* GameHandoffReviewTests.swift */; };
 		8FB0A0D5EE2BA79BA139403E /* ConceptModelActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244C08CBAEF250121D0BB8FD /* ConceptModelActivityTests.swift */; };
@@ -72,6 +81,7 @@
 		968BC3C36F780DF1D6AC9622 /* AIAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */; };
 		97711B6D90DA7DF86A01D11C /* CreationPlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E4F1D51244B51676645E2F /* CreationPlayTests.swift */; };
 		97DA39F1432E79FC39680682 /* CraftAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */; };
+		9C7856C1314285E70300AA2B /* mascot-dragon-model.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 549AE0FE1C097E38BFA2DC2F /* mascot-dragon-model.mp4 */; };
 		9D340D8ECA0F9CF0D3AAEBA4 /* AIAccountReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C64A5D4FBB83CD9A9121E2E /* AIAccountReviewTests.swift */; };
 		9E3DC26C41439E725D41B1C4 /* CreatorComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A625AF1F1BA30507A5F737E0 /* CreatorComponents.swift */; };
 		9EABBA8DEF831BF282476CB1 /* SourceFlowReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A556B9A0B662FC4C5A2E62 /* SourceFlowReviewTests.swift */; };
@@ -80,9 +90,11 @@
 		A7887EE4F414587708CD4339 /* PhotoReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F25B3DD9C7295EE9809B9A /* PhotoReviewView.swift */; };
 		AC057B681025C02A6AE8C2CC /* CraftAIAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856CD944F244ADF9F3A007E4 /* CraftAIAccount.swift */; };
 		AE7EA706A9BBF886EDCEE434 /* LightingAdjustmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9275583410F75CB0425A81AB /* LightingAdjustmentView.swift */; };
+		B113CA0962357D4635CA77DB /* mascot-dragon-poster-small.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E3225FE6F6D39BB757B52A72 /* mascot-dragon-poster-small.jpg */; };
 		B11CA98E5809C0F53841F824 /* ModelPromptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35846562FCB17AE98B378FB7 /* ModelPromptUITests.swift */; };
 		B2361437A9C2743E5A3BC505 /* ThumbnailReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6F51D4999409AF529B728F /* ThumbnailReviewTests.swift */; };
 		B3BED01B3C52EB907B7CFB44 /* lantern_cat.glb in Resources */ = {isa = PBXBuildFile; fileRef = 5348A015416EA3279ED71220 /* lantern_cat.glb */; };
+		B43A6005B32C660567C37BC9 /* mascot-panda-concept.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = CB537D3C8D78BAFD8A486066 /* mascot-panda-concept.mp4 */; };
 		B6EFB8B7F21FF0B3050576C1 /* AIPrivacyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */; };
 		B6F475E2ACA87D6F48159550 /* ranger-outfit.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3C90536CB858B6B0A024A19 /* ranger-outfit.jpg */; };
 		BA5E5E1025EA00CAECB0CE8F /* StudioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D067109C9A1F6F4A5EF36FC /* StudioViews.swift */; };
@@ -109,6 +121,8 @@
 		DAA818DFE59C31EFFCA93495 /* CraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4508780AEF6C9C0FCF5E1A9 /* CraftStore.swift */; };
 		E1B9A54205CA1310A07D9A42 /* mint-racer.jpg in Resources */ = {isa = PBXBuildFile; fileRef = FFE4BEB46C876F8A73D0CD9D /* mint-racer.jpg */; };
 		E690E1BE84259583A0390ADF /* ModelViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C5EB0688379A758EEA81A63 /* ModelViewport.swift */; };
+		E86EB7EF999A33EB5775FAE5 /* mascot-dragon-thinking.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 7046F48F036097AA06EE8CF9 /* mascot-dragon-thinking.mp4 */; };
+		EA9A80072B85977FA40093B1 /* mascot-panda-poster-small.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 50CBDED90397F683EC8B5125 /* mascot-panda-poster-small.jpg */; };
 		EB67BA907E8918CF6FE558D4 /* CraftAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010418F04AD92F50C47D6E62 /* CraftAccount.swift */; };
 		EC62E2445C42FCA464DC031E /* CraftModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACDC587B2CAA8C9A613D86 /* CraftModelTests.swift */; };
 		F03F04A96FD27009078C16A6 /* LibraryGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38B4F7896DEC76109A6EA90 /* LibraryGallery.swift */; };
@@ -141,6 +155,7 @@
 
 /* Begin PBXFileReference section */
 		010418F04AD92F50C47D6E62 /* CraftAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAccount.swift; sourceTree = "<group>"; };
+		08703E6CC5539D87DDA7BF7B /* mascot-dragon-poster.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-dragon-poster.jpg"; sourceTree = "<group>"; };
 		09A8A22DBDC00768AD10690B /* ConversationReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationReviewTests.swift; sourceTree = "<group>"; };
 		0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAppearance.swift; sourceTree = "<group>"; };
 		0C0C805992396383BE2170F2 /* moon-fox.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "moon-fox.jpg"; sourceTree = "<group>"; };
@@ -152,6 +167,7 @@
 		188F5B144B0CC7FB97645EE4 /* GameHandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffTests.swift; sourceTree = "<group>"; };
 		18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAppleSignIn.swift; sourceTree = "<group>"; };
 		1AD87381AF3BE312F99AE4AA /* StageReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageReviewTests.swift; sourceTree = "<group>"; };
+		1E0C9F7C15DEC98ABE303DBC /* MascotLoopTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotLoopTests.swift; sourceTree = "<group>"; };
 		200880BC0DB5CC52719B6EEC /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 		21873040BDD82C27E4FEFD57 /* panda-chef.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "panda-chef.jpg"; sourceTree = "<group>"; };
 		22B2333EFAD6E30E80A5B9A2 /* ThumbnailForegroundTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailForegroundTests.swift; sourceTree = "<group>"; };
@@ -161,9 +177,12 @@
 		244C08CBAEF250121D0BB8FD /* ConceptModelActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConceptModelActivityTests.swift; sourceTree = "<group>"; };
 		24ACDC587B2CAA8C9A613D86 /* CraftModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftModelTests.swift; sourceTree = "<group>"; };
 		24F77FA2D9BCA8FEED2FDB1E /* race.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = race.jpg; sourceTree = "<group>"; };
+		275EE028CC3478026A022FB2 /* mascot-panda-thinking-small.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-thinking-small.mp4"; sourceTree = "<group>"; };
 		2910CF4103D2633730BB4ED0 /* AIAccountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAccountTests.swift; sourceTree = "<group>"; };
+		2B9D5858FF7F3F3A7370AE25 /* mascot-panda-poster.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-panda-poster.jpg"; sourceTree = "<group>"; };
 		2D067109C9A1F6F4A5EF36FC /* StudioViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioViews.swift; sourceTree = "<group>"; };
 		2E152E686F04A46C6EC3870D /* survivor.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = survivor.jpg; sourceTree = "<group>"; };
+		3023D22B351C23ED6F18E134 /* mascot-dragon-thinking-small.mp4 */ = {isa = PBXFileReference; path = "mascot-dragon-thinking-small.mp4"; sourceTree = "<group>"; };
 		3456CACBFE3D92C8E4A20BCB /* ranger-bow.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "ranger-bow.jpg"; sourceTree = "<group>"; };
 		34C49376DDAF1CFF69D4BFAE /* ConceptGenerationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConceptGenerationSheet.swift; sourceTree = "<group>"; };
 		35846562FCB17AE98B378FB7 /* ModelPromptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPromptUITests.swift; sourceTree = "<group>"; };
@@ -182,8 +201,10 @@
 		4564A1E4E8F411BE653C7489 /* CraftThumbnailImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftThumbnailImage.swift; sourceTree = "<group>"; };
 		4AE2D60CF3F5EB7289E93B92 /* VisualPolishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualPolishTests.swift; sourceTree = "<group>"; };
 		4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		50CBDED90397F683EC8B5125 /* mascot-panda-poster-small.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-panda-poster-small.jpg"; sourceTree = "<group>"; };
 		5348A015416EA3279ED71220 /* lantern_cat.glb */ = {isa = PBXFileReference; path = lantern_cat.glb; sourceTree = "<group>"; };
 		53E4F1D51244B51676645E2F /* CreationPlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationPlayTests.swift; sourceTree = "<group>"; };
+		549AE0FE1C097E38BFA2DC2F /* mascot-dragon-model.mp4 */ = {isa = PBXFileReference; path = "mascot-dragon-model.mp4"; sourceTree = "<group>"; };
 		57F91E9678362D9DD1D7FA70 /* forest-shield.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "forest-shield.jpg"; sourceTree = "<group>"; };
 		58D453DA123199E614C8A59D /* dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dragon.jpg; sourceTree = "<group>"; };
 		5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionView.swift; sourceTree = "<group>"; };
@@ -195,15 +216,18 @@
 		68BE9224A1061FD95554C9E5 /* CraftModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftModels.swift; sourceTree = "<group>"; };
 		6A76559D0F474BC1CDF2C44C /* lantern_cat_display.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lantern_cat_display.png; sourceTree = "<group>"; };
 		6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPrivacyTests.swift; sourceTree = "<group>"; };
+		7046F48F036097AA06EE8CF9 /* mascot-dragon-thinking.mp4 */ = {isa = PBXFileReference; path = "mascot-dragon-thinking.mp4"; sourceTree = "<group>"; };
 		73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryReviewTests.swift; sourceTree = "<group>"; };
 		7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationJourneyView.swift; sourceTree = "<group>"; };
 		7B6A40211882BF313693D52B /* arena.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = arena.jpg; sourceTree = "<group>"; };
+		7FBCE45D965C278A810CEDDE /* mascot-panda-model.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-model.mp4"; sourceTree = "<group>"; };
 		802D72F1B3C500C3E3F7340C /* ancient-oak.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "ancient-oak.jpg"; sourceTree = "<group>"; };
 		84BC6651879220F93EF79194 /* coconut-island.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "coconut-island.jpg"; sourceTree = "<group>"; };
 		854C56E8AA6DB32FD24F5BE7 /* ModelGenerationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelGenerationSheet.swift; sourceTree = "<group>"; };
 		856CD944F244ADF9F3A007E4 /* CraftAIAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAIAccount.swift; sourceTree = "<group>"; };
 		876AFF2BF55E3DD2E5EAF85F /* woodland-cottage.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "woodland-cottage.jpg"; sourceTree = "<group>"; };
 		87CC75012099F86DA948A17E /* CraftProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftProfile.swift; sourceTree = "<group>"; };
+		88AF98B87BAA034033636034 /* CraftMascotLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftMascotLoop.swift; sourceTree = "<group>"; };
 		8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSelectionTests.swift; sourceTree = "<group>"; };
 		8A29B5A8963EF959D6061C22 /* CloudWelcomeReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudWelcomeReviewTests.swift; sourceTree = "<group>"; };
 		8F1CF6C1EB50E3CE5FD913FB /* CreatorPlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPlansView.swift; sourceTree = "<group>"; };
@@ -218,12 +242,14 @@
 		A0B6CC98DC0EA42793EE7A8B /* bunny-knight.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "bunny-knight.jpg"; sourceTree = "<group>"; };
 		A2DEBAA0FC4724C16C815B3E /* ConceptModelActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConceptModelActivity.swift; sourceTree = "<group>"; };
 		A3F17779305D71D2343833EB /* CommunityGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityGamesView.swift; sourceTree = "<group>"; };
+		A60C89DE39801848ECEE7DED /* mascot-dragon-concept.mp4 */ = {isa = PBXFileReference; path = "mascot-dragon-concept.mp4"; sourceTree = "<group>"; };
 		A625AF1F1BA30507A5F737E0 /* CreatorComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorComponents.swift; sourceTree = "<group>"; };
 		A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftDisplayStage.swift; sourceTree = "<group>"; };
 		AAA9E1E33FBB582D1DAFC450 /* ImageModelSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageModelSelectionTests.swift; sourceTree = "<group>"; };
 		AF85F6CED6AC4C9C083D972A /* ProfileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditorView.swift; sourceTree = "<group>"; };
 		B32021A75DFE2FA6FF6CFB6E /* ImageModelReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageModelReviewTests.swift; sourceTree = "<group>"; };
 		BC572FC854F3A0127F692CA7 /* GameHandoffReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffReviewTests.swift; sourceTree = "<group>"; };
+		BC726CAFA56585FF564F07A5 /* mascot-panda-thinking.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-thinking.mp4"; sourceTree = "<group>"; };
 		BDD19FEBCF8275E61E7E9F92 /* ReviewFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewFlowTests.swift; sourceTree = "<group>"; };
 		BFE814F1741F2CF37C9C97C4 /* cloud-dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "cloud-dragon.jpg"; sourceTree = "<group>"; };
 		C04ED4A4D6C250F62B82E1E8 /* CraftStudio.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CraftStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -231,6 +257,7 @@
 		C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConceptImageInspector.swift; sourceTree = "<group>"; };
 		C4508780AEF6C9C0FCF5E1A9 /* CraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftStore.swift; sourceTree = "<group>"; };
 		C59BB720FB5D0B095ADBE903 /* StudioAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioAtmosphere.swift; sourceTree = "<group>"; };
+		CB537D3C8D78BAFD8A486066 /* mascot-panda-concept.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-concept.mp4"; sourceTree = "<group>"; };
 		CB8242C14A18639C3E73B660 /* waterfall-diorama.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "waterfall-diorama.jpg"; sourceTree = "<group>"; };
 		CC51C63E77D2E5DB1CA9FA23 /* starlight-robe.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "starlight-robe.jpg"; sourceTree = "<group>"; };
 		D38B4F7896DEC76109A6EA90 /* LibraryGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryGallery.swift; sourceTree = "<group>"; };
@@ -241,6 +268,7 @@
 		D9D131A9ECFFF72C557410C2 /* ruins.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ruins.jpg; sourceTree = "<group>"; };
 		DE6BB56C4A4E28B8E2B5A0B3 /* CreationCostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationCostView.swift; sourceTree = "<group>"; };
 		E0A43A91B0DC2F1E99BAA60C /* emerald_dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = emerald_dragon.jpg; sourceTree = "<group>"; };
+		E3225FE6F6D39BB757B52A72 /* mascot-dragon-poster-small.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-dragon-poster-small.jpg"; sourceTree = "<group>"; };
 		E77FE2941711E6EF4C42C4F5 /* sunforge-helmet.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "sunforge-helmet.jpg"; sourceTree = "<group>"; };
 		ED7178DBF331689C815C902D /* CraftConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftConversationView.swift; sourceTree = "<group>"; };
 		EE1CF0D01070C45C2CC49058 /* treasure-chest.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "treasure-chest.jpg"; sourceTree = "<group>"; };
@@ -294,6 +322,7 @@
 				200880BC0DB5CC52719B6EEC /* Products.storekit */,
 				15F4EF093E005031436C12BA /* sunshine_racer.jpg */,
 				2C84C1EA2D3F90E2CA21B8E2 /* GameCovers */,
+				7D45B86E251311AE00E03F15 /* Mascot */,
 				F6C48F37780E0E77B69C8E87 /* PublicGallery */,
 			);
 			name = Resources;
@@ -314,12 +343,32 @@
 				39F2083B39667BB25F630BE5 /* DisplayStageTests.swift */,
 				188F5B144B0CC7FB97645EE4 /* GameHandoffTests.swift */,
 				AAA9E1E33FBB582D1DAFC450 /* ImageModelSelectionTests.swift */,
+				1E0C9F7C15DEC98ABE303DBC /* MascotLoopTests.swift */,
 				8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */,
 				22B2333EFAD6E30E80A5B9A2 /* ThumbnailForegroundTests.swift */,
 				97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */,
 			);
 			name = Tests;
 			path = CraftStudio/Tests;
+			sourceTree = "<group>";
+		};
+		7D45B86E251311AE00E03F15 /* Mascot */ = {
+			isa = PBXGroup;
+			children = (
+				A60C89DE39801848ECEE7DED /* mascot-dragon-concept.mp4 */,
+				549AE0FE1C097E38BFA2DC2F /* mascot-dragon-model.mp4 */,
+				E3225FE6F6D39BB757B52A72 /* mascot-dragon-poster-small.jpg */,
+				08703E6CC5539D87DDA7BF7B /* mascot-dragon-poster.jpg */,
+				3023D22B351C23ED6F18E134 /* mascot-dragon-thinking-small.mp4 */,
+				7046F48F036097AA06EE8CF9 /* mascot-dragon-thinking.mp4 */,
+				CB537D3C8D78BAFD8A486066 /* mascot-panda-concept.mp4 */,
+				7FBCE45D965C278A810CEDDE /* mascot-panda-model.mp4 */,
+				50CBDED90397F683EC8B5125 /* mascot-panda-poster-small.jpg */,
+				2B9D5858FF7F3F3A7370AE25 /* mascot-panda-poster.jpg */,
+				275EE028CC3478026A022FB2 /* mascot-panda-thinking-small.mp4 */,
+				BC726CAFA56585FF564F07A5 /* mascot-panda-thinking.mp4 */,
+			);
+			path = Mascot;
 			sourceTree = "<group>";
 		};
 		A1E1CA1CB914D4BBC53D02BF /* Products */ = {
@@ -353,6 +402,7 @@
 				ED7178DBF331689C815C902D /* CraftConversationView.swift */,
 				A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */,
 				402752169C3F372A7B663AEA /* CraftImageCache.swift */,
+				88AF98B87BAA034033636034 /* CraftMascotLoop.swift */,
 				68BE9224A1061FD95554C9E5 /* CraftModels.swift */,
 				39966193754955EDF5F82865 /* CraftMotion.swift */,
 				87CC75012099F86DA948A17E /* CraftProfile.swift */,
@@ -579,6 +629,18 @@
 				B3BED01B3C52EB907B7CFB44 /* lantern_cat.glb in Resources */,
 				74476A39CE344E16B9895EFD /* lantern_cat.jpg in Resources */,
 				54B15CC21ABED66EC518842D /* lantern_cat_display.png in Resources */,
+				82677D765F176BDCB8CD8E73 /* mascot-dragon-concept.mp4 in Resources */,
+				9C7856C1314285E70300AA2B /* mascot-dragon-model.mp4 in Resources */,
+				B113CA0962357D4635CA77DB /* mascot-dragon-poster-small.jpg in Resources */,
+				5ED967CD1FBE8F204E0D5339 /* mascot-dragon-poster.jpg in Resources */,
+				1740F97992FA93BB15A23E79 /* mascot-dragon-thinking-small.mp4 in Resources */,
+				E86EB7EF999A33EB5775FAE5 /* mascot-dragon-thinking.mp4 in Resources */,
+				B43A6005B32C660567C37BC9 /* mascot-panda-concept.mp4 in Resources */,
+				6089830EE5F194D8873880BC /* mascot-panda-model.mp4 in Resources */,
+				EA9A80072B85977FA40093B1 /* mascot-panda-poster-small.jpg in Resources */,
+				8B9224313A552B6E26490459 /* mascot-panda-poster.jpg in Resources */,
+				531ABD8A60B673DF002405E2 /* mascot-panda-thinking-small.mp4 in Resources */,
+				5869A5E1CE458548447BF68D /* mascot-panda-thinking.mp4 in Resources */,
 				E1B9A54205CA1310A07D9A42 /* mint-racer.jpg in Resources */,
 				C61426612E2F27F880DEAC79 /* moon-fox.jpg in Resources */,
 				BCD4E643103E7C0B9F6649BC /* moss-robot.jpg in Resources */,
@@ -626,6 +688,7 @@
 				D71C0AFBF483FF00A097701E /* CraftConversationView.swift in Sources */,
 				5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */,
 				8871FF0BF22B9DDB6CA98A4B /* CraftImageCache.swift in Sources */,
+				2A4F7A3F45B2AA05FC286035 /* CraftMascotLoop.swift in Sources */,
 				059C070BAD6A2E9071390ADC /* CraftModels.swift in Sources */,
 				D203188908166191D14F6274 /* CraftMotion.swift in Sources */,
 				FA056507F28F342140C4BCFC /* CraftProfile.swift in Sources */,
@@ -673,6 +736,7 @@
 				70DDA33ABB42DD0D24FD36C8 /* DisplayStageTests.swift in Sources */,
 				7532A97E47D305BC5B15A4CB /* GameHandoffTests.swift in Sources */,
 				BDF9EBA1CE9A6818DAC22738 /* ImageModelSelectionTests.swift in Sources */,
+				46C1EBB5590587B6DABDDE72 /* MascotLoopTests.swift in Sources */,
 				407DE26A92359818BDB9B93A /* SourceSelectionTests.swift in Sources */,
 				C4B3FF548D695ACEDC1F3F88 /* ThumbnailForegroundTests.swift in Sources */,
 				22964DEC7D640AF76B6DFEE9 /* WebAuthAttemptTests.swift in Sources */,

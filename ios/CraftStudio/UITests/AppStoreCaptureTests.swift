@@ -47,8 +47,37 @@ final class AppStoreCaptureTests: XCTestCase {
         try capture(app, "07-lavender")
     }
 
-    @MainActor private func capture(_ app: XCUIApplication, _ name: String) throws {
-        let folder = URL(fileURLWithPath: "/tmp/craft-appstore-captures")
+    /// Replacement listing shots 03 and 05 with the existing Cloud Dragon example
+    /// selected. Same theme and flow as the originals; written to a separate
+    /// folder so the approved captures are never overwritten.
+    @MainActor func testCaptureDragonLightingAndGameBrief() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-craftChinese", "NO", "-craftAppearance", "emerald",
+                               "-craftAPI", "https://3d-craft.web.app", "-craftShowPriceDetails", "NO"]
+        app.launch()
+        let dragon = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@", "creation.asset.a-", "Cloud Dragon")).firstMatch
+        XCTAssertTrue(dragon.waitForExistence(timeout: 35))
+        Thread.sleep(forTimeInterval: 2)
+        dragon.tap()
+        XCTAssertTrue(app.buttons["asset.gameHandoff"].waitForExistence(timeout: 15))
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["Loading your 3D asset…"])
+        waitForExpectations(timeout: 30)
+        Thread.sleep(forTimeInterval: 3)
+        app.buttons["lighting.adjust"].tap()
+        XCTAssertTrue(app.staticTexts["Lighting studio"].waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 1)
+        try capture(app, "03-lighting", folder: "/tmp/craft-appstore-captures-dragon")
+        app.buttons["Done"].tap()
+        app.buttons["asset.gameHandoff"].tap()
+        XCTAssertTrue(app.textViews["handoff.prompt"].waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 1)
+        try capture(app, "05-game-brief", folder: "/tmp/craft-appstore-captures-dragon")
+    }
+
+    @MainActor private func capture(_ app: XCUIApplication, _ name: String,
+                                    folder path: String = "/tmp/craft-appstore-captures") throws {
+        let folder = URL(fileURLWithPath: path)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let screenshot = app.screenshot()
         try screenshot.pngRepresentation.write(to: folder.appendingPathComponent(name + ".png"))

@@ -1,0 +1,68 @@
+{
+  "dragon-thinking": {
+    "status": "completed",
+    "request_id": "01a0b64e-056f-7ca3-9f71-d63a815053dd",
+    "endpoint": "bytedance/seedance-2.5/image-to-video",
+    "prompt": "The small blue baby dragon is thinking: it blinks slowly twice, tilts its head gently to one side with a curious smile, a tiny soft glowing orb of light floats and bobs above its head, then it tilts back. Locked-off static camera, no zoom, no pan, no cut. Keep the exact same character design, colors, proportions and the plain pale background from the image. No text, no extra characters, no new props except the soft glowing light described. Gentle, friendly, slow cartoon motion. The character ends in exactly the same pose it started in so the clip loops seamlessly.",
+    "source": "source/cloud-dragon-960.jpg",
+    "resolution": "480p",
+    "duration_s": 4,
+    "seed": 549927049,
+    "bytes": 275907
+  },
+  "dragon-concept": {
+    "status": "completed",
+    "request_id": "01a0b652-69dc-7a53-8e3f-8872b19c94f1",
+    "endpoint": "bytedance/seedance-2.5/image-to-video",
+    "prompt": "The small blue baby dragon draws in the air like a friendly magician: one front claw sweeps in a smooth arc leaving a trail of glowing sparkling light strokes that sketch a simple shape, the glowing lines shimmer and fade away, then one front claw returns to rest. Locked-off static camera, no zoom, no pan, no cut. Keep the exact same character design, colors, proportions and the plain pale background from the image. No text, no extra characters, no new props except the soft glowing light described. Gentle, friendly, slow cartoon motion. The character ends in exactly the same pose it started in so the clip loops seamlessly.",
+    "source": "source/cloud-dragon-960.jpg",
+    "resolution": "480p",
+    "duration_s": 4,
+    "seed": 1778244891,
+    "bytes": 467622
+  },
+  "dragon-model": {
+    "status": "completed",
+    "request_id": "01a0b652-6b9e-7c31-864e-1e29c495a1f3",
+    "endpoint": "bytedance/seedance-2.5/image-to-video",
+    "prompt": "The small blue baby dragon sculpts in 3D: a small translucent glowing cube of light appears between its hands, slowly rotates and orbits while the hands shape it with gentle kneading gestures, then the cube softly dissolves into sparkles and the hands return to rest. Locked-off static camera, no zoom, no pan, no cut. Keep the exact same character design, colors, proportions and the plain pale background from the image. No text, no extra characters, no new props except the soft glowing light described. Gentle, friendly, slow cartoon motion. The character ends in exactly the same pose it started in so the clip loops seamlessly.",
+    "source": "source/cloud-dragon-960.jpg",
+    "resolution": "480p",
+    "duration_s": 4,
+    "seed": 173770589,
+    "bytes": 513562
+  },
+  "panda-thinking": {
+    "status": "completed",
+    "request_id": "01a0b652-6cb4-79c3-8f66-996aa77aa8a4",
+    "endpoint": "bytedance/seedance-2.5/image-to-video",
+    "prompt": "The panda chef is thinking: it blinks slowly twice, tilts its head gently to one side with a curious smile, a tiny soft glowing orb of light floats and bobs above its head, then it tilts back. Locked-off static camera, no zoom, no pan, no cut. Keep the exact same character design, colors, proportions and the plain pale background from the image. No text, no extra characters, no new props except the soft glowing light described. Gentle, friendly, slow cartoon motion. The character ends in exactly the same pose it started in so the clip loops seamlessly.",
+    "source": "source/panda-chef-960.jpg",
+    "resolution": "480p",
+    "duration_s": 4,
+    "seed": 1135437404,
+    "bytes": 196105
+  },
+  "panda-concept": {
+    "status": "completed",
+    "request_id": "01a0b652-6e14-7f32-b8b4-99af02a63a18",
+    "endpoint": "bytedance/seedance-2.5/image-to-video",
+    "prompt": "The panda chef draws in the air like a friendly magician: the wooden spoon, held like a wand, sweeps in a smooth arc leaving a trail of glowing sparkling light strokes that sketch a simple shape, the glowing lines shimmer and fade away, then the wooden spoon, held like a wand, returns to rest. Locked-off static camera, no zoom, no pan, no cut. Keep the exact same character design, colors, proportions and the plain pale background from the image. No text, no extra characters, no new props except the soft glowing light described. Gentle, friendly, slow cartoon motion. The character ends in exactly the same pose it started in so the clip loops seamlessly.",
+    "source": "source/panda-chef-960.jpg",
+    "resolution": "480p",
+    "duration_s": 4,
+    "seed": 1271354965,
+    "bytes": 452939
+  },
+  "panda-model": {
+    "status": "completed",
+    "request_id": "01a0b652-6f9e-70a2-b1af-a0482b09610d",
+    "endpoint": "bytedance/seedance-2.5/image-to-video",
+    "prompt": "The panda chef sculpts in 3D: a small translucent glowing cube of light appears between its hands, slowly rotates and orbits while the hands shape it with gentle kneading gestures, then the cube softly dissolves into sparkles and the hands return to rest. Locked-off static camera, no zoom, no pan, no cut. Keep the exact same character design, colors, proportions and the plain pale background from the image. No text, no extra characters, no new props except the soft glowing light described. Gentle, friendly, slow cartoon motion. The character ends in exactly the same pose it started in so the clip loops seamlessly.",
+    "source": "source/panda-chef-960.jpg",
+    "resolution": "480p",
+    "duration_s": 4,
+    "seed": 971449461,
+    "bytes": 398291
+  }
+}
