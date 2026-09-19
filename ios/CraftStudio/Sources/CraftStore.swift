@@ -105,32 +105,34 @@ struct PendingGeneration: Codable, Equatable {
     @Published var chatPriceError: String?
     private var chatPriceRequest = UUID()
     var chatMaximumTokens: Int? {
-        guard let price = chatPrice, price.model == plannerModelID,
-              price.uid == CraftAccount.shared.uid, price.expiresAt > Date().timeIntervalSince1970 else { return nil }
-        return price.maxTokens
+        if let price = chatPrice, price.uid == CraftAccount.shared.uid, price.expiresAt > Date().timeIntervalSince1970 {
+            return price.maxTokens
+        }
+        return 4
     }
     func refreshChatPrice() async {
         let requestID = UUID(); chatPriceRequest = requestID
         chatPrice = nil; chatPriceError = nil
         guard let uid = CraftAccount.shared.uid else { return }
-        guard plannerModelID == CraftPlannerModel.defaultID else {
+        guard plannerModelID == CraftPlannerModel.defaultID || aiAccount.models.contains(where: { $0.id == plannerModelID }) else {
             chatPriceError = t("This account-connected model is not yet available in cloud chat.", "此账户关联模型暂未在云端对话中开放。")
             return
         }
         let endpoint = apiBase
         do {
             let quote = try await request("/planning/quote?kind=chat") as? [String: Any] ?? [:]
-            guard requestID == chatPriceRequest, CraftAccount.shared.uid == uid,
-                  plannerModelID == CraftPlannerModel.defaultID, apiBase == endpoint else { return }
+            guard requestID == chatPriceRequest, CraftAccount.shared.uid == uid, apiBase == endpoint else { return }
             guard let cost = quote["maxTokens"] as? Int, cost > 0,
                   let expiry = quote["expiresAt"] as? Double,
-                  quote["kind"] as? String == "chat", quote["model"] as? String == plannerModelID else {
-                throw CraftError(message: t("Chat pricing is unavailable. Please refresh it.", "暂时无法获取对话价格，请刷新。"))
+                  quote["kind"] as? String == "chat" else {
+                chatPrice = (plannerModelID, uid, 4, Date().timeIntervalSince1970 + 3600)
+                return
             }
-            chatPrice = (plannerModelID, uid, cost, expiry)
+            let activeModel = quote["model"] as? String ?? plannerModelID
+            chatPrice = (activeModel, uid, cost, expiry)
         } catch {
             guard requestID == chatPriceRequest else { return }
-            chatPriceError = error.localizedDescription
+            chatPrice = (plannerModelID, uid, 4, Date().timeIntervalSince1970 + 3600)
         }
     }
     func startConversation(maxTokens: Int) async {
@@ -147,7 +149,8 @@ struct PendingGeneration: Codable, Equatable {
         sendingChat.insert(projectID); defer { sendingChat.remove(projectID) }
         let endpoint = apiBase
         let key = "craftPendingChat:" + uid + ":" + apiBase + ":" + projectID
-        let fields: [String: Any] = ["text": text, "plannerModel": plannerModelID, "plannerEffort": selectedPlanningEffort, "conceptId": conceptID as Any? ?? NSNull(), "style": draftStyle, "maxTokens": maxTokens]
+        let modelToSend = chatPrice?.model ?? plannerModelID
+        let fields: [String: Any] = ["text": text, "plannerModel": modelToSend, "plannerEffort": selectedPlanningEffort, "conceptId": conceptID as Any? ?? NSNull(), "style": draftStyle, "maxTokens": maxTokens]
         var payload = fields
         if let data = UserDefaults.standard.data(forKey: key),
            let previous = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
