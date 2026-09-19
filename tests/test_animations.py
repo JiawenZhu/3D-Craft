@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from fastapi import HTTPException
 
 from server import cloud_animation_provider as provider
@@ -8,7 +8,7 @@ from server import firebase_creations as creations
 from server.firebase_animations import AnimationRequest, CloudAnimations
 from server.firebase_studio import BUCKET
 from server.pricing import animation_quote, animation_usage as _usage
-from tests.test_api_creations import OWNER, UID, ProjectFixture, Studio, image
+from tests.fixtures import OWNER, UID, ProjectFixture, Studio, image
 
 
 def request(**kw):
@@ -16,11 +16,13 @@ def request(**kw):
 
 
 class QuoteTests(unittest.TestCase):
-    def test_square_480p_is_the_cheapest_shape(self):
+    def test_price_follows_the_pixel_budget_not_the_shape(self):
         square = animation_quote('480p', 4, '1:1')
         wide = animation_quote('480p', 4, '16:9')
         hd = animation_quote('720p', 4, '1:1')
         self.assertEqual(square['usageWithServiceFee']['credits'], 98)
+        # A resolution is a pixel budget, so shape does not change the price.
+        self.assertAlmostEqual(square['totalUsd'], wide['totalUsd'], places=2)
         self.assertLess(square['totalUsd'], hd['totalUsd'])
         self.assertEqual((square['width'], square['height'], square['seconds']), (640, 640, 4))
 

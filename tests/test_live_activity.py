@@ -3,7 +3,7 @@ from unittest.mock import patch
 from fastapi import HTTPException
 
 from server import live_activity
-from tests.test_api_creations import Studio, UID
+from tests.fixtures import Studio, UID
 
 KEY_ENV = {'APNS_PRIVATE_KEY': '-----BEGIN PRIVATE KEY-----\nnot-a-real-key\n-----END PRIVATE KEY-----',
            'APNS_KEY_ID': 'ABC1234567', 'APNS_TEAM_ID': 'C265XC3RH7'}

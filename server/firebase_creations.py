@@ -9,7 +9,6 @@ iOS app reads, so API work appears in the app exactly like app work.
 import hashlib
 import os
 import time
-from typing import Literal
 from fastapi import HTTPException
 from google.api_core.exceptions import NotFound
 from pydantic import BaseModel, ConfigDict, Field

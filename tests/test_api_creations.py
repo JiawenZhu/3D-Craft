@@ -2,77 +2,12 @@ import unittest
 from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from google.api_core.exceptions import NotFound
 
 from server import api_keys
 from server import firebase_api as api
 from server import firebase_creations as creations
-from server.firebase_studio import BUCKET
-from tests.test_api_keys import MockFirestore
 
-UID = 'user_alice'
-OWNER = 'firebase:' + UID
-
-
-class Batch:
-    def __init__(self): self.refs = []
-    def delete(self, ref): self.refs.append(ref)
-    def commit(self):
-        for ref in self.refs: ref.delete()
-
-
-class Studio:
-    """FirebaseStudio's record API over the in-memory Firestore used by the API-key tests."""
-    def __init__(self):
-        self.db = MockFirestore()
-        self.db.batch = Batch
-        self.blobs = {}
-        self.bucket = Mock()
-        self.bucket.blob.side_effect = self.blob
-
-    def blob(self, path):
-        blob = Mock()
-        def delete(timeout=None):
-            if path not in self.blobs: raise NotFound(path)
-            del self.blobs[path]
-        def download(timeout=None):
-            if path not in self.blobs: raise NotFound(path)
-            return self.blobs[path]
-        blob.delete.side_effect = delete
-        blob.download_as_bytes.side_effect = download
-        return blob
-
-    def records(self, owner, collection):
-        uid = owner.removeprefix('firebase:')
-        return [{**doc.to_dict(), 'id': doc.id}
-                for doc in self.db.collection('users').document(uid).collection(collection).stream()]
-
-    def put(self, collection, ident, **data):
-        self.db.collection('users').document(UID).collection(collection).document(ident).set({'ownerId': UID, **data})
-
-    def doc(self, collection, ident):
-        return self.db.collection('users').document(UID).collection(collection).document(ident).get().to_dict()
-
-
-def image(cid): return f'gs://{BUCKET}/users/{UID}/images/{cid}.jpg'
-
-
-class ProjectFixture:
-    """A finished app-style project: prompt, one concept job, one 3D job, one chat turn."""
-    def build(self, studio, pid='mp-1', cid='mc-1', mj='mj-1', job_status='done'):
-        studio.put('studioProjects', pid, name='Dragon', prompt='a dragon', createdAt=1)
-        studio.put('studioConcepts', cid, projectId=pid, imageUrl=image(cid), createdAt=2)
-        studio.put('studioJobs', 'cj-' + cid[3:], projectId=pid, kind='concepts', status='done', createdAt=2,
-                   concepts=[{'id': cid, 'imageUrl': image(cid)}])
-        studio.put('studioJobs', mj, projectId=pid, kind='model', status=job_status, createdAt=3)
-        studio.put('studioConversations', 'turn-1', projectId=pid, text='make it red', createdAt=2)
-        studio.put('mobileCreations', 'concept:' + cid, projectId=pid, kind='Concept image',
-                   previewStoragePath=f'users/{UID}/images/{cid}.jpg', createdAt=2)
-        studio.put('mobileCreations', 'model:' + mj, projectId=pid, kind='3D object', conceptIds=[cid],
-                   previewStoragePath=f'users/{UID}/images/{cid}.jpg',
-                   modelStoragePath=f'users/{UID}/models/{mj}.glb', createdAt=3)
-        studio.blobs[f'users/{UID}/images/{cid}.jpg'] = b'jpg'
-        studio.blobs[f'users/{UID}/models/{mj}.glb'] = b'glb'
+from tests.fixtures import OWNER, ProjectFixture, Studio, UID
 
 
 class DeleteTests(unittest.TestCase):
@@ -305,8 +240,9 @@ class RouteScopeTests(unittest.TestCase):
         headers = self.key(['*'])
         self.assertEqual(self.client.get('/api/v1/projects/mp-1', headers=headers).json()['name'], 'Dragon')
         self.assertEqual(self.client.patch('/api/v1/projects/mp-1', json={'name': 'Red'}, headers=headers).json()['name'], 'Red')
-        image = self.client.get('/api/v1/concepts/mc-1/image', headers=headers)
-        self.assertEqual((image.status_code, image.content, image.headers['content-type']), (200, b'jpg', 'image/jpeg'))
+        downloaded = self.client.get('/api/v1/concepts/mc-1/image', headers=headers)
+        self.assertEqual((downloaded.status_code, downloaded.content, downloaded.headers['content-type']),
+                         (200, b'jpg', 'image/jpeg'))
 
     def test_read_only_key_cannot_rename(self):
         res = self.client.patch('/api/v1/projects/mp-1', json={'name': 'x'}, headers=self.key(['assets:read']))

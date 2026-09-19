@@ -82,7 +82,11 @@ enum CraftAPIKeyRules {
     private var boundUID: String?
     private var watch: AnyCancellable?
 
-    init(account: CraftAccount = .shared) {
+    /// The default is resolved inside the initializer rather than as a default
+    /// argument: `CraftAccount.shared` is main-actor isolated, and a default
+    /// argument is evaluated at the call site, which Swift 6 rejects.
+    init(account: CraftAccount? = nil) {
+        let account = account ?? CraftAccount.shared
         boundUID = account.uid
         watch = account.$uid.dropFirst().sink { [weak self] uid in
             guard let self, uid != self.boundUID else { return }

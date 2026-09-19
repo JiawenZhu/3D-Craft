@@ -14,7 +14,14 @@ from urllib.parse import urlsplit
 import requests
 from fastapi import HTTPException
 
-from .cloud_model_provider import headers, status, submit, verify_callback  # noqa: F401 - shared queue plumbing
+# The fal queue, its signed callbacks and the API key are identical for 3D and
+# video, so this adapter re-exports that plumbing rather than restating it.
+# `firebase_animations` and the callback route reach them through this module.
+from .cloud_model_provider import headers, status, submit, verify_callback
+
+__all__ = ['ENDPOINT', 'RESOLUTIONS', 'DURATIONS', 'MAX_BYTES', 'arguments', 'describe',
+           'download_video', 'measure', 'validate_mp4', 'video_url',
+           'headers', 'status', 'submit', 'verify_callback']
 
 ENDPOINT = os.getenv('CRAFT_ANIMATION_ENDPOINT', 'bytedance/seedance-2.5/image-to-video')
 RESOLUTIONS = ('480p', '720p')
