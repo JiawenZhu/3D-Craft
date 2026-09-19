@@ -130,6 +130,8 @@ API keys are accepted **ONLY** on explicit `/api/v1/` routes. They cannot access
 | `DELETE` | `/api/v1/projects/{id}` | `assets:delete` | **Permanently** delete a project with all its images, jobs and 3D models. |
 | `DELETE` | `/api/v1/concepts/{id}` | `assets:delete` | **Permanently** delete one image. 3D models made from it keep working. |
 | `DELETE` | `/api/v1/assets/{id}` | `assets:delete` | **Permanently** delete one 3D object. Its source image is kept. |
+| `GET` | `/api/v1/animations/quote` | `assets:read` | Tokens for one looping character animation. |
+| `POST` | `/api/v1/concepts/{id}/animation` | `models:write` | **Animate a character**: a short silent MP4 loop from one of your images. |
 | `GET` | `/api/v1/openapi.json` | None | Full OpenAPI 3.1.0 schema with schemas. |
 
 Everything created through the API appears in the user's 3D Craft app exactly like work made there: the prompt, images and 3D result show in the project's conversation. `GET /api/v1/assets` lists newest first.
@@ -157,6 +159,20 @@ until curl -s "$API/api/v1/creations/$ID" -H "Authorization: Bearer $KEY" | tee 
 # 4. Download the model and its concept image
 curl -s "$API$(jq -r .asset.downloadUrl /tmp/c.json)" -H "Authorization: Bearer $KEY" -o dragon.glb
 curl -s "$API$(jq -r '.concepts[0].imageUrl' /tmp/c.json)" -H "Authorization: Bearer $KEY" -o dragon.jpg
+```
+
+### Animate a character into a looping clip
+```bash
+# Price first (square 480p 4s is the cheapest shape)
+curl -s "$API/api/v1/animations/quote" -H "Authorization: Bearer $KEY"
+
+# Animate an image you already own; poll /jobs/{id} until status is done
+curl -s -X POST "$API/api/v1/concepts/CONCEPT_ID/animation" -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"idempotencyKey":"agent-anim-0001","motion":"it waves and smiles","maxTokens":54}'
+
+# The finished loop downloads like any other creation
+curl -s "$API/api/v1/assets/ANIMATION_JOB_ID/download" -H "Authorization: Bearer $KEY" -o character.mp4
 ```
 
 ### Reprompt, rename and delete

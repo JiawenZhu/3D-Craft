@@ -207,7 +207,18 @@ class CloudModelJobs:
             tx.update(private,updates)
             if visible: tx.update(public,visible)
             return True
-        return advance(self.db.transaction())
+        moved = advance(self.db.transaction())
+        if moved and visible: self.notify_activity(uid, jid)
+        return moved
+
+    def notify_activity(self, uid, jid):
+        """Mirror the job's public state onto its Live Activity. Never raises."""
+        from . import live_activity
+        try:
+            job = self.projects.ref(uid, 'studioJobs', jid).get().to_dict()
+        except Exception:
+            return
+        if job: live_activity.notify(self.db, uid, {**job, 'id': jid})
 
     def request_received(self, uid, jid, request_id, callback_token=None, failed=False):
         _, private = self.refs(uid,jid)
@@ -276,7 +287,9 @@ class CloudModelJobs:
                     conceptIds=[v['id'] for v in data['views']],previewStoragePath=preview,
                     modelStoragePath=f'users/{uid}/models/{jid}.glb',createdAt=self.now()))
             return state
-        return finish(self.db.transaction())
+        state = finish(self.db.transaction())
+        self.notify_activity(uid, jid)
+        return state
 
     def run(self, uid, jid, queued_at=None):
         try: token,data = self.claim(uid,jid)

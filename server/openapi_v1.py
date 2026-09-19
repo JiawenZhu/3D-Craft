@@ -430,6 +430,7 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
     }
     spec["components"]["schemas"].update(CREATION_SCHEMAS)
     spec["paths"].update(CREATION_PATHS)
+    spec["paths"].update(ANIMATION_PATHS)
     return spec
 
 
@@ -504,6 +505,51 @@ CREATION_SCHEMAS: Dict[str, Any] = {
         "required": ["deleted", "id"],
         "properties": {"deleted": {"type": "boolean"}, "id": {"type": "string"},
                        "images": {"type": "integer"}, "models": {"type": "integer"}, "jobs": {"type": "integer"}},
+    },
+}
+
+ANIMATION_PATHS: Dict[str, Any] = {
+    "/api/v1/animations/quote": {
+        "get": {
+            "summary": "Quote a character animation",
+            "description": "Tokens for one looping Seedance clip. Square 480p is the cheapest; cost scales with pixels and seconds.",
+            "parameters": [
+                {"name": "resolution", "in": "query", "required": False, "schema": {"type": "string", "enum": ["480p", "720p"], "default": "480p"}},
+                {"name": "duration", "in": "query", "required": False, "schema": {"type": "string", "enum": ["4", "6"], "default": "4"}},
+                {"name": "aspect", "in": "query", "required": False, "schema": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1"}},
+            ],
+            "responses": {"200": {"description": "maxTokens, provider cost and whether the service is available"}},
+        }
+    },
+    "/api/v1/concepts/{concept_id}/animation": {
+        "post": {
+            "summary": "Animate a character image into a looping clip",
+            "description": (
+                "Turns one of the account's images into a short silent MP4 that ends on its first frame, so it "
+                "loops cleanly. Poll GET /api/v1/jobs/{id} until status is done, then download the clip from "
+                "GET /api/v1/assets/{id}/download. Requires models:write."
+            ),
+            "parameters": [_id("concept_id")],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": {
+                "type": "object",
+                "required": ["idempotencyKey", "maxTokens"],
+                "properties": {
+                    "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 120},
+                    "motion": {"type": "string", "maxLength": 600,
+                               "description": "What the character should do. Left out, it breathes and blinks gently."},
+                    "resolution": {"type": "string", "enum": ["480p", "720p"], "default": "480p"},
+                    "duration": {"type": "string", "enum": ["4", "6"], "default": "4"},
+                    "aspect": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1"},
+                    "maxTokens": {"type": "integer", "minimum": 1, "maximum": 1000,
+                                  "description": "Spending cap; take it from GET /api/v1/animations/quote."},
+                }}}}},
+            "responses": {
+                "200": {"description": "Animation job accepted", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/JobDetail"}}}},
+                "402": {"description": "Not enough Tokens"},
+                "409": {"description": "maxTokens below the quote, or the key was used for different work"},
+                "503": {"description": "Character animation is switched off"},
+            },
+        }
     },
 }
 

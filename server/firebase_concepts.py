@@ -211,7 +211,10 @@ class CloudConcepts:
             tx.create(wallet_ref.collection('entries').document(jid+':settled'),dict(id=jid+':settled',amount=max(0,returned),charged=charge,kind='generation_complete' if outputs else 'generation_refund',createdAt=self.now(),jobId=jid))
             tx.update(private,dict(phase=status,leaseUntil=0,charged=charge));tx.update(public,update)
             return {**job,**update}
-        return transact(self.db,finish)
+        result = transact(self.db,finish)
+        from . import live_activity
+        live_activity.notify(self.db, uid, {**result, 'id': jid})
+        return result
 
     def run(self,uid,jid,queued_at=None):
         public,private=self.refs(uid,jid)

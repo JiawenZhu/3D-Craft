@@ -38,6 +38,7 @@ struct ConceptProjectView: View {
     @State private var refineOpen = false
     @State private var browseTick = 0
     @State private var make3DTaps = 0
+    @State private var animateSource: CraftConcept?
 
     var project: CraftProject? { store.projects.first { $0.id == projectID } }
     var selected: CraftConcept? { project.flatMap { store.selectedConcept(in: $0) } }
@@ -233,6 +234,17 @@ struct ConceptProjectView: View {
                     // Also catch a fast completion returned by the first refresh.
                     watchedModelJobs.formUnion(jobs.filter { $0.kind == "model" && !previousJobs.contains($0.id) }.map(\.id))
                     revealFinishedModel()
+                }
+            }
+        }
+        .sheet(item: $animateSource) { source in
+            AnimationGenerationSheet(concept: source, chinese: store.isChinese) { motion, resolution, duration in
+                animateSource = nil
+                centeredConceptID = source.id
+                submittingConceptID = source.id
+                Task {
+                    await store.generateAnimation(source, motion: motion, resolution: resolution, duration: duration)
+                    submittingConceptID = nil
                 }
             }
         }
@@ -539,6 +551,14 @@ struct ConceptProjectView: View {
             .buttonStyle(CraftPrimary(armed: !store.busy && !active, busy: store.busy, verticalPadding: 14, cornerRadius: 16))
             .disabled(store.busy || active || submittingConceptID != nil)
             .accessibilityIdentifier("concept.make3D")
+            Button {
+                animateSource = concept
+            } label: {
+                Label(store.t("Animate this character", "让角色动起来"), systemImage: "wand.and.stars")
+            }
+            .buttonStyle(CraftSecondary())
+            .disabled(store.busy || submittingConceptID != nil)
+            .accessibilityIdentifier("concept.animate")
             Text(store.t("Choose a model to see its Token cost before generating.", "选择模型后确认对应的 Token 费用。"))
                 .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }

@@ -78,7 +78,8 @@ struct CraftMascotLoop: View {
 }
 
 /// A gapless muted loop on a single `AVPlayerLayer`.
-private struct CraftLoopingVideo: UIViewRepresentable {
+/// Shared with character animations, which play remote loops the same way.
+struct CraftLoopingVideo: UIViewRepresentable {
     let url: URL
     let playing: Bool
 

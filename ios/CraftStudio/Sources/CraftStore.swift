@@ -237,6 +237,17 @@ struct PendingGeneration: Codable, Equatable {
     }
     @Published var error:String?
     @Published var showPaywall=false
+    /// What a blocked creation needed, so the paywall can explain itself and
+    /// open on the page that actually helps.
+    @Published var shortfall: CraftShortfall?
+
+    /// Records the gap and opens the paywall. `what` names the creation in the
+    /// person's own terms ("this 3D model"), never a job id.
+    func askForTokens(needed: Int, what: String) {
+        let have = wallet.available + wallet.freeConceptTokens
+        shortfall = CraftShortfall(needed: needed, available: have, what: what)
+        showPaywall = true
+    }
     @Published var draftPrompt=UserDefaults.standard.string(forKey:"craftDraftPrompt") ?? "" {didSet{UserDefaults.standard.set(draftPrompt,forKey:"craftDraftPrompt")}}
     @Published var draftStyle=UserDefaults.standard.string(forKey:"craftDraftStyle") ?? "Stylized" {didSet{UserDefaults.standard.set(draftStyle,forKey:"craftDraftStyle")}}
     @Published private var selectionRevision=0
@@ -326,6 +337,20 @@ struct PendingGeneration: Codable, Equatable {
         catch { connectionNotice = t("Confirming your generation request…", "正在确认生成请求……") }
     }
 
+    /// Mirrors running jobs on the Lock Screen and Dynamic Island.
+    func syncLiveActivities() {
+        let centre = CraftLiveActivityCenter.shared
+        guard centre.available else { return }
+        centre.registerToken = { [weak self] jobId, token in
+            guard let self else { return }
+            _ = try? await self.request("/live-activity", method: "POST", body: ["jobId": jobId, "token": token])
+        }
+        let named = Dictionary(projects.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let theme = UserDefaults.standard.string(forKey: CraftAppearance.storageKey)
+        centre.sync(jobs: jobs, projectName: { named[$0] ?? "" },
+                    emerald: theme == CraftAppearance.emerald.rawValue, chinese: isChinese)
+    }
+
     func acceptJob(_ job: CraftJob) {
         if let index = jobs.firstIndex(where: { $0.id == job.id }) {
             // A delayed running response cannot overwrite a terminal snapshot.
@@ -365,6 +390,7 @@ struct PendingGeneration: Codable, Equatable {
         }
         if let value = try? await request("/wallet") as? [String: Any], CraftAccount.shared.uid == uid { applyWallet(value) }
         guard CraftAccount.shared.uid == uid else { return }
+        syncLiveActivities()
         connectionSucceeded()
     }
     private func prepareGeneration(path:String,projectID:String,payload:[String:Any],draftFingerprint:String?=nil) async throws ->Bool {
@@ -420,13 +446,14 @@ struct PendingGeneration: Codable, Equatable {
         }
     }
     func accountChanged() async {
+        CraftLiveActivityCenter.shared.endAll()
         polling?.cancel();polling=nil;connected=false;connectionNotice=nil
         completedModelCards=[];completionTracker=ModelCompletionTracker()
         projects=[];assets=[];jobs=[];wallet=WalletState();path=[];activeConversationID=nil
         purchaseToPresent=nil;walletCelebration=nil
         draftPrompt="";saveDraftImage(nil);try? persistPending(nil)
         aiAccount=CraftAIAccount();aiAccountLoaded=false
-        showPaywall=false;error=nil
+        showPaywall=false;shortfall=nil;error=nil
         if CraftAccount.shared.uid != nil { await connect() }
     }
     func connect() async {
@@ -514,7 +541,7 @@ struct PendingGeneration: Codable, Equatable {
             do{let id=try await submitPending();await refresh();return id}catch{handleGenerationError(error);return nil}
         }
         guard originalOnly || (imageModelIsReady() && (draftImage != nil || plannerIsReady())) else { return nil }
-        guard originalOnly || wallet.available+wallet.freeConceptTokens >= conceptTokenCost(count: count) else{showPaywall=true;return nil}
+        guard originalOnly || wallet.available+wallet.freeConceptTokens >= conceptTokenCost(count: count) else{askForTokens(needed: conceptTokenCost(count: count), what: count > 1 ? t("these images", "这些图片") : t("this image", "这张图片"));return nil}
         busy=true;defer{busy=false}
         let submittedFingerprint=draftFingerprint(count:count)
         let uploadKey=pendingUploadKey(scope:"project")
@@ -544,12 +571,12 @@ struct PendingGeneration: Codable, Equatable {
         guard !busy else{return false}
         guard (1...4).contains(count) else{error=t("Choose one to four images.","请选择一到四张图片。");return false}
         guard pendingGeneration != nil || (imageModelIsReady() && (preserveReference || plannerIsReady())) else { return false }
-        guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: count) else{showPaywall=true;return false}
+        guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: count) else{askForTokens(needed: conceptTokenCost(count: count), what: t("these images", "这些图片"));return false}
         busy=true;defer{busy=false}
         do{guard try await prepareGeneration(path:"/projects/\(projectID)/concepts",projectID:projectID,payload:imagePayload(["count":count,"prompt":prompt,"referenceId":referenceID as Any? ?? NSNull(),"style":draftStyle,"preserveReference":preserveReference])) else{return false};_=try await submitPending();startPolling();return true}catch{handleGenerationError(error);return false}
     }
     func refine(_ concept:CraftConcept,prompt:String) async {
-        guard !busy else{return};guard pendingGeneration != nil || (imageModelIsReady() && plannerIsReady()) else{return};guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: 1) else{showPaywall=true;return};busy=true;defer{busy=false}
+        guard !busy else{return};guard pendingGeneration != nil || (imageModelIsReady() && plannerIsReady()) else{return};guard pendingGeneration != nil || wallet.available+wallet.freeConceptTokens>=conceptTokenCost(count: 1) else{askForTokens(needed: conceptTokenCost(count: 1), what: t("this image", "这张图片"));return};busy=true;defer{busy=false}
         do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/refine",projectID:concept.projectId,payload:imagePayload(["prompt":prompt])) else{return};_=try await submitPending();startPolling()}catch{handleGenerationError(error)}
     }
     func imagePayload(_ fields: [String:Any]) -> [String:Any] {
@@ -864,11 +891,39 @@ struct PendingGeneration: Codable, Equatable {
                 error = t("Price pending for these settings. Choose a single view or another model.", "此设置的价格待确认，请选择单张视图或其他模型。")
                 return
             }
-            guard wallet.available >= cost else { showPaywall = true; return }
+            guard wallet.available >= cost else {
+                askForTokens(needed: cost, what: t("this 3D model", "这个 3D 模型")); return
+            }
         }
         busy=true; submittingModelID=concept.id; defer{busy=false; submittingModelID=nil}
         do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/model",projectID:concept.projectId,payload:Self.modelPayload(engine:engine,quality:quality,effort:effort,conceptIds:conceptIds,modelPrompt:modelPrompt)) else{return};_=try await submitPending();startPolling()}catch{handleGenerationError(error)}
     }
+    /// Token cost of one character animation, quoted by the server.
+    func animationCost(resolution: String = "480p", duration: String = "4") async -> Int? {
+        let path = "/animations/quote?resolution=\(resolution)&duration=\(duration)&aspect=1:1"
+        guard let quote = try? await request(path) as? [String: Any] else { return nil }
+        guard (quote["available"] as? Bool) != false else { return nil }
+        return quote["maxTokens"] as? Int
+    }
+
+    func generateAnimation(_ concept: CraftConcept, motion: String, resolution: String, duration: String) async {
+        guard !busy else { error = t("Please wait for the current request to finish, then try again.", "请等待当前请求完成后重试。"); return }
+        guard let cost = await animationCost(resolution: resolution, duration: duration) else {
+            error = t("Character animation is unavailable right now.", "角色动画暂时不可用。"); return
+        }
+        guard wallet.available >= cost else {
+            askForTokens(needed: cost, what: t("this animation", "这段动画")); return
+        }
+        busy = true; defer { busy = false }
+        var payload: [String: Any] = ["resolution": resolution, "duration": duration, "aspect": "1:1", "maxTokens": cost]
+        if !motion.isEmpty { payload["motion"] = motion }
+        do {
+            guard try await prepareGeneration(path: "/concepts/\(concept.id)/animation",
+                                              projectID: concept.projectId, payload: payload) else { return }
+            _ = try await submitPending(); startPolling()
+        } catch { handleGenerationError(error) }
+    }
+
     func replenishTestCredits() async {
         do {
             let result=try await request("/development/credits",method:"POST") as? [String:Any] ?? [:]

@@ -21,6 +21,8 @@ from .firebase_planning import CloudPlanning, PromptRequest, ChatRequest
 from . import cloud_planner_provider, cloud_concept_provider
 from .firebase_concepts import CloudConcepts, ConceptRequest
 from .firebase_creations import CloudCreations, CreationRequest, RenameRequest, continue_to_model
+from .firebase_animations import CloudAnimations, AnimationRequest
+from . import cloud_animation_provider
 from . import firebase_creations
 import time
 from .firebase_community import CloudCommunity, Submission, Vote, Report, GameLink, Category
@@ -56,6 +58,9 @@ ROUTE_SCOPES = [
     (re.compile(r"^/api/v1/projects/[^/]+$"), {"GET": "assets:read", "PATCH": "concepts:write", "DELETE": "assets:delete"}),
     (re.compile(r"^/api/v1/concepts/[^/]+/image$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/concepts/[^/]+$"), {"DELETE": "assets:delete"}),
+    # Animated characters
+    (re.compile(r"^/api/v1/animations/quote$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/concepts/[^/]+/animation$"), {"POST": "models:write", "GET": "assets:read"}),
     # One-step prompt-to-3D
     (re.compile(r"^/api/v1/creations/quote$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/creations$"), {"POST": "models:write"}),
@@ -191,6 +196,36 @@ def mobile_generate_model(concept_id: str, body: ModelRequest, account=Depends(o
 def v1_generate_model(concept_id: str, body: ModelRequest, account=Depends(v1_owner)):
     if not model_ready(): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
     return public_shape(v1_charge(account, lambda: CloudModelJobs(studio()).create(account,concept_id,body,environment=v1_environment(account))),account)
+
+
+def animations_ready():
+    return os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') == '1' and bool(os.getenv('FAL_KEY'))
+
+
+@app.get('/api/mobile/animations/quote')
+def mobile_animation_quote(resolution: Literal['480p','720p']='480p', duration: Literal['4','6']='4',
+                           aspect: Literal['1:1','16:9','9:16']='1:1', account=Depends(owner)):
+    quote = pricing.animation_quote(resolution, int(duration), aspect)
+    return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animations_ready()}
+
+
+@app.get('/api/v1/animations/quote')
+def v1_animation_quote(resolution: Literal['480p','720p']='480p', duration: Literal['4','6']='4',
+                       aspect: Literal['1:1','16:9','9:16']='1:1', account=Depends(v1_owner)):
+    quote = pricing.animation_quote(resolution, int(duration), aspect)
+    return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animations_ready()}
+
+
+@app.post('/api/mobile/concepts/{concept_id}/animation')
+def mobile_animate_concept(concept_id: str, body: AnimationRequest, account=Depends(owner)):
+    if not animations_ready(): raise HTTPException(503,'Character animation is temporarily unavailable. No Tokens were charged.')
+    return public_shape(CloudAnimations(studio()).create(account,concept_id,body),account)
+
+
+@app.post('/api/v1/concepts/{concept_id}/animation')
+def v1_animate_concept(concept_id: str, body: AnimationRequest, account=Depends(v1_owner)):
+    if not animations_ready(): raise HTTPException(503,'Character animation is temporarily unavailable. No Tokens were charged.')
+    return public_shape(v1_charge(account, lambda: CloudAnimations(studio()).create(account,concept_id,body,environment=v1_environment(account))),account)
 
 
 def planning_ready():
@@ -464,13 +499,18 @@ def mobile_assets(account=Depends(owner)):
     uid = account.removeprefix('firebase:')
     result = []
     for item in studio().records(account,'mobileCreations'):
-        if item.get('kind') != '3D object': continue
+        kind = item.get('kind')
+        if kind not in ('3D object','Animated character'): continue
+        animated = kind == 'Animated character'
         def media(field):
             path = item.get(field,'')
             return public_shape('gs://'+BUCKET+'/'+path,account) if path.startswith(f'users/{uid}/') else None
-        result.append({'id':item['id'].removeprefix('model:'),'name':item.get('name','Untitled creation'),
-                       'modelUrl':media('modelStoragePath'),'thumbUrl':media('previewStoragePath') or item.get('preview'),
-                       'isExample':False})
+        # `kind` stays the app's own shape category; the record type is separate.
+        entry = {'id':item['id'].removeprefix('animation:' if animated else 'model:'),
+                 'name':item.get('name','Untitled creation'),'creationKind':kind,
+                 'modelUrl':media('modelStoragePath'),'animationUrl':media('animationStoragePath'),
+                 'thumbUrl':media('previewStoragePath') or item.get('preview'),'isExample':False}
+        result.append(entry)
     return {'owned':result,'examples':[]}
 
 
@@ -479,12 +519,15 @@ def v1_assets(account=Depends(v1_owner)):
     uid = account.removeprefix('firebase:')
     result = []
     for item in studio().records(account,'mobileCreations'):
-        if item.get('kind') != '3D object': continue
-        clean_id = item['id'].removeprefix('model:')
+        kind = item.get('kind')
+        if kind not in ('3D object','Animated character'): continue
+        animated = kind == 'Animated character'
+        clean_id = item['id'].removeprefix('animation:' if animated else 'model:')
         def media(field):
             path = item.get(field,'')
             return public_shape('gs://'+BUCKET+'/'+path,account) if path.startswith(f'users/{uid}/') else None
-        result.append({'id':clean_id,'name':item.get('name','Untitled creation'),
+        result.append({'id':clean_id,'name':item.get('name','Untitled creation'),'creationKind':kind,
+                       'animationUrl':media('animationStoragePath'),
                        'projectId':item.get('projectId'),'conceptIds':item.get('conceptIds') or [],
                        'createdAt':firebase_creations.seconds(item.get('createdAt')),
                        'modelUrl':media('modelStoragePath'),'downloadUrl':f'/api/v1/assets/{clean_id}/download',
@@ -504,23 +547,24 @@ def v1_delete_asset(asset_id: str, account=Depends(v1_owner)):
 @app.get('/api/v1/assets/{asset_id}/download')
 def v1_download_asset(asset_id: str, kind: Literal['model','preview'] = 'model', account=Depends(v1_owner)):
     uid = account.removeprefix('firebase:')
-    clean_id = asset_id.removeprefix('model:')
-    doc_ref = studio().db.collection('users').document(uid).collection('mobileCreations').document('model:' + clean_id)
-    doc = doc_ref.get()
-    if not doc.exists:
-        doc_ref = studio().db.collection('users').document(uid).collection('mobileCreations').document(clean_id)
+    clean_id = asset_id.removeprefix('model:').removeprefix('animation:')
+    creations = studio().db.collection('users').document(uid).collection('mobileCreations')
+    for candidate in ('model:' + clean_id, 'animation:' + clean_id, clean_id):
+        doc_ref = creations.document(candidate)
         doc = doc_ref.get()
+        if doc.exists: break
     if not doc.exists:
         raise HTTPException(404, "Asset not found in your account.")
     item = doc.to_dict() or {}
     if item.get('ownerId') != uid:
         raise HTTPException(403, "Access denied to requested asset.")
-    field = 'previewStoragePath' if kind == 'preview' else 'modelStoragePath'
+    field = 'previewStoragePath' if kind == 'preview' else \
+        ('animationStoragePath' if item.get('kind') == 'Animated character' else 'modelStoragePath')
     path = item.get(field) or ''
     if not path or not path.startswith(f'users/{uid}/') or '..' in path:
         raise HTTPException(404, f"Asset {kind} file not found.")
     suffix = Path(path).suffix.lower()
-    if suffix not in ('.glb', '.gltf', '.bin', '.usdz', '.obj', '.mtl', '.png', '.jpg', '.jpeg', '.webp'):
+    if suffix not in ('.glb', '.gltf', '.bin', '.usdz', '.obj', '.mtl', '.png', '.jpg', '.jpeg', '.webp', '.mp4'):
         raise HTTPException(403, "File type not permitted for download.")
     try:
         blob = studio().bucket.blob(path)
@@ -531,6 +575,7 @@ def v1_download_asset(asset_id: str, kind: Literal['model','preview'] = 'model',
         raise HTTPException(503, "Failed to download asset file from storage.") from exc
     media_types = {
         '.glb': 'model/gltf-binary',
+        '.mp4': 'video/mp4',
         '.usdz': 'model/vnd.usdz+zip',
         '.png': 'image/png',
         '.jpg': 'image/jpeg',
@@ -552,6 +597,17 @@ def v1_download_asset(asset_id: str, kind: Literal['model','preview'] = 'model',
 @app.post('/api/mobile/cloud-library/sync')
 def sync(account=Depends(owner)):
     return {'synced':0,'storage':'firebase'}
+
+
+class LiveActivityBody(BaseModel):
+    jobId: str = Field(min_length=3, max_length=120)
+    token: str = Field(min_length=32, max_length=200)
+
+
+@app.post('/api/mobile/live-activity')
+def register_live_activity(body: LiveActivityBody, account=Depends(owner)):
+    from . import live_activity
+    return live_activity.register(studio().db, account.removeprefix('firebase:'), body.jobId, body.token)
 
 
 @app.get('/api/mobile/wallet')
@@ -653,6 +709,31 @@ def model_worker(uid: str, job_id: str, authorization: str = Header(default=''),
 def model_output_cleanup(uid: str, job_id: str, authorization: str = Header(default='')):
     verify_worker(authorization)
     return CloudModelJobs(studio()).cleanup(uid,job_id)
+
+
+@app.post('/internal/animation-jobs/{uid}/{job_id}')
+def animation_worker(uid: str, job_id: str, authorization: str = Header(default=''),
+                     x_craft_queued_at: int | None = Header(default=None)):
+    verify_worker(authorization)
+    return CloudAnimations(studio()).run(uid,job_id,x_craft_queued_at)
+
+
+@app.post('/api/animations/callback/{uid}/{job_id}/{token}')
+async def animation_callback(uid: str, job_id: str, token: str, request: Request):
+    raw=bytearray()
+    async for chunk in request.stream():
+        raw.extend(chunk)
+        if len(raw)>1024*1024: raise HTTPException(413,'Notification too large.')
+    rid=await run_in_threadpool(cloud_animation_provider.verify_callback,request.headers,bytes(raw))
+    try: payload=json.loads(raw)
+    except ValueError: raise HTTPException(422,'Invalid notification.') from None
+    if not isinstance(payload,dict) or payload.get('request_id')!=rid or payload.get('status') not in ('OK','ERROR'):
+        raise HTTPException(422,'Invalid notification.')
+    try:
+        await run_in_threadpool(CloudAnimations(studio()).request_received,uid,job_id,rid,token,payload['status']=='ERROR')
+    except HTTPException as exc:
+        if exc.status_code!=403: raise
+    return {'status':'received'}
 
 
 @app.post('/api/models/callback/{uid}/{job_id}/{token}')

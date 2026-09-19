@@ -282,10 +282,13 @@ class CloudCreations:
                 [ref(uid, 'studioConversations', t['id']) for t in turns] + [ref(uid, 'mobileCreations', m['id']) for m in creations] +
                 [ref(uid, 'studioProjects', project_id)])
         paths = ([self.storage_path(uid, c.get('imageUrl')) for c in concepts] + [self.storage_path(uid, project.get('imageUrl'))] +
-                 [self.storage_path(uid, m.get(field)) for m in creations for field in ('modelStoragePath', 'previewStoragePath')])
+                 [self.storage_path(uid, m.get(field)) for m in creations
+                  for field in ('modelStoragePath', 'previewStoragePath', 'animationStoragePath')])
         self.remove(refs, paths)
         return dict(deleted=True, id=project_id, images=len(concepts),
-                    models=sum(1 for m in creations if m.get('kind') == '3D object'), jobs=len(jobs))
+                    models=sum(1 for m in creations if m.get('kind') == '3D object'),
+                    animations=sum(1 for m in creations if m.get('kind') == 'Animated character'),
+                    jobs=len(jobs))
 
     def delete_concept(self, owner, concept_id):
         uid = uid_for(owner)
@@ -306,7 +309,7 @@ class CloudCreations:
         path = self.storage_path(uid, concept.get('imageUrl'))
         # A 3D model keeps using this file as its preview; keep the file then.
         shared = any(m.get('previewStoragePath') == path for m in self.studio.records(owner, 'mobileCreations')
-                     if m.get('kind') == '3D object')
+                     if m.get('kind') in ('3D object', 'Animated character'))
         self.remove([self.projects.ref(uid, 'studioConcepts', concept_id),
                      self.projects.ref(uid, 'mobileCreations', 'concept:' + concept_id)],
                     [] if shared else [path])
@@ -314,15 +317,25 @@ class CloudCreations:
 
     def delete_asset(self, owner, asset_id):
         uid = uid_for(owner)
-        clean = asset_id.removeprefix('model:')
-        item = self.owned(uid, 'mobileCreations', 'model:' + clean)
-        refs = [self.projects.ref(uid, 'mobileCreations', 'model:' + clean)]
+        clean = asset_id.removeprefix('model:').removeprefix('animation:')
+        record, item = None, None
+        for prefix in ('model:', 'animation:'):
+            snap = self.projects.ref(uid, 'mobileCreations', prefix + clean).get()
+            data = snap.to_dict() if snap.exists else None
+            if data and data.get('ownerId') == uid:
+                record, item = prefix + clean, data
+                break
+        if item is None:
+            raise HTTPException(404, '3D object not found in your account.')
+        refs = [self.projects.ref(uid, 'mobileCreations', record)]
         job = self.job(uid, clean)
         if job:
             self.ensure_idle([job])
             refs.append(self.projects.ref(uid, 'studioJobs', clean))
-        # Only the model file is owned by this asset; its preview is the concept image.
-        model_path = self.storage_path(uid, item.get('modelStoragePath'))
-        paths = [model_path] if model_path and model_path.startswith(f'users/{uid}/models/') else []
+        # Only this creation's own file is deleted; its preview is the concept
+        # image, which the project and any other creation still use.
+        own = self.storage_path(uid, item.get('animationStoragePath') or item.get('modelStoragePath'))
+        folder = 'animations' if item.get('kind') == 'Animated character' else 'models'
+        paths = [own] if own and own.startswith(f'users/{uid}/{folder}/') else []
         self.remove(refs, paths)
         return dict(deleted=True, id=clean)

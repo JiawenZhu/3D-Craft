@@ -46,6 +46,12 @@ def catalog(today=None):
             "按实际输入和输出（含思考）tokens 计费。优惠费率截至 2026 年 12 月 31 日。", GOOGLE_SOURCE,
             inputPerMillion=.75 if today < date(2027,1,1) else 1.5,
             outputPerMillion=3.75 if today < date(2027,1,1) else 7.5),
+        "seedance-2.5-i2v": row("Seedance 2.5 · Image to video", "video", None,
+            "Billed on output pixels: $0.0214 per 1,000 tokens at 480p/720p, where tokens = width x height x seconds x 24 / 1024. "
+            "A square 4 s 480p character loop is about $0.46; 16:9 at 720p for 4 s is about $1.85. Audio is off.",
+            "按输出像素计费：480p/720p 每 1,000 tokens $0.0214，tokens = 宽 x 高 x 秒 x 24 / 1024。"
+            "正方形 4 秒 480p 角色循环约 $0.46；16:9 720p 4 秒约 $1.85。不生成音频。",
+            fal + "bytedance/seedance-2.5/image-to-video", perThousandTokensUsd=.0214),
         "codex-gpt-image-2": row("GPT Image 2 · ChatGPT account", "account", 0,
             "0 app credits. Uses your own ChatGPT plan; its account limits apply. Only studio-provided generation is charged.",
             "0 App 积分。使用你自己的 ChatGPT 订阅额度，受账户限制；仅工作室提供的生成服务扣费。"),
@@ -80,6 +86,58 @@ def catalog(today=None):
                 usd = model.get(rate)
                 model[field] = usage_quote([{"id": "model", "providerUsd": str(usd) if usd is not None else None}])["credits"]
     return {"currency":"USD", "verifiedAt":VERIFIED_AT, "kind":"provider_cost_estimate", "models":models, "billingPolicy":policy()}
+
+
+# Seedance treats a resolution as a pixel budget, not a literal height: at
+# "480p" a 1:1 clip comes back 640x640, the same pixel count as 854x480. These
+# sizes were measured on delivered clips (the app's own mascot loops are
+# 640x640), because the charge follows real output pixels.
+HEADROOM = 1.03
+ANIMATION_SIZES = {("480p","1:1"):(640,640), ("480p","16:9"):(854,480), ("480p","9:16"):(480,854),
+                   ("720p","1:1"):(960,960), ("720p","16:9"):(1280,720), ("720p","9:16"):(720,1280)}
+
+
+def animation_usage(width, height, seconds):
+    """Cost of a clip that already exists, from fal's own token formula.
+
+    fal bills Seedance on output pixels: tokens = w x h x seconds x 24 / 1024,
+    at a published price per 1,000 tokens. Measuring the delivered file means a
+    person pays for what the provider actually produced. The Token scale is the
+    same one every other creation uses, anchored on Rodin at $0.40 = 46 Tokens.
+    """
+    model = catalog()["models"]["seedance-2.5-i2v"]
+    rate = model.get("perThousandTokensUsd")
+    if rate is None or not width or not height or seconds <= 0:
+        return {"providerTokens": None, "totalUsd": None,
+                "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": None}])}
+    provider_tokens = width * height * seconds * 24 / 1024
+    total = provider_tokens * rate / 1000
+    return {"providerTokens": round(provider_tokens), "width": width, "height": height,
+            "seconds": round(seconds, 3), "totalUsd": round(total, 6),
+            "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": f"{total:.6f}"}])}
+
+
+def animation_quote(resolution="480p", duration=4, aspect="1:1"):
+    """Provider cost and Tokens for one Seedance character loop."""
+    size = ANIMATION_SIZES.get((resolution, aspect))
+    seconds = int(duration)
+    model = catalog()["models"]["seedance-2.5-i2v"]
+    rate = model.get("perThousandTokensUsd")
+    if size is None or seconds < 1 or rate is None:
+        usage = usage_quote([{"id": "animation", "providerUsd": None}])
+        return {"currency":"USD", "kind":"provider_cost_estimate", "model":"seedance-2.5-i2v",
+                "resolution":resolution, "aspect":aspect, "seconds":seconds, "totalUsd":None,
+                "note":"Price pending verification", "verifiedAt":VERIFIED_AT, "usageWithServiceFee":usage}
+    width, height = size
+    # Delivered clips run a little past the requested length (4 s comes back as
+    # about 4.04 s), and the charge is capped at what was authorized, so the
+    # quote carries a small headroom instead of quietly absorbing the excess.
+    actual = animation_usage(width, height, seconds * HEADROOM)
+    return {"currency":"USD", "kind":"provider_cost_estimate", "model":"seedance-2.5-i2v",
+            "resolution":resolution, "aspect":aspect, "seconds":seconds, "width":width, "height":height,
+            "providerTokens":actual["providerTokens"], "totalUsd":actual["totalUsd"],
+            "note":model["note"], "verifiedAt":VERIFIED_AT,
+            "usageWithServiceFee":actual["usageWithServiceFee"]}
 
 
 def model_quote(engine, *, texture=True, count=1, views=1, high_pack=False, addons=(), effort="high"):

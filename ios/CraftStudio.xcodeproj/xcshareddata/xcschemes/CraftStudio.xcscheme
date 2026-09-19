@@ -49,6 +49,20 @@
                ReferencedContainer = "container:CraftStudio.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6AE0B5B7DF6BF70DC26A915F"
+               BuildableName = "CraftStudioWidgets.appex"
+               BlueprintName = "CraftStudioWidgets"
+               ReferencedContainer = "container:CraftStudio.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

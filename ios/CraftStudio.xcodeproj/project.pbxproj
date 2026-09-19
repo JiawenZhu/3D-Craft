@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		031A94D190FA111914ECF753 /* mascot-dragon-thinking-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 4F3FFBAD330EB13A8985984C /* mascot-dragon-thinking-4.png */; };
 		059C070BAD6A2E9071390ADC /* CraftModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BE9224A1061FD95554C9E5 /* CraftModels.swift */; };
 		06F57008528F1E5640928372 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */; };
 		0CC4DC9471945AE1924840CA /* arena.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7B6A40211882BF313693D52B /* arena.jpg */; };
@@ -14,23 +15,38 @@
 		124457F17E696F9DED22E237 /* GalleryReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */; };
 		1740F97992FA93BB15A23E79 /* mascot-dragon-thinking-small.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 3023D22B351C23ED6F18E134 /* mascot-dragon-thinking-small.mp4 */; };
 		18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */; };
+		1987FC75287E4317D6A95781 /* mascot-panda-thinking-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 0EFBC4F2483E6802716EB6D2 /* mascot-panda-thinking-3.png */; };
+		1C2340F2143230D620AACB7F /* CraftLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBA134880B9AAA10539D01C /* CraftLiveActivity.swift */; };
 		1FD2F2929867109959E9068E /* ConceptImageInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */; };
 		2092DA77027673DE016DE873 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E2D5FCD326990A4175C458A /* Assets.xcassets */; };
 		22964DEC7D640AF76B6DFEE9 /* WebAuthAttemptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */; };
+		237163BDB1476DCD8C0122A0 /* CraftStudioWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E45A8839E8F55D1C6A97FFB /* CraftStudioWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		239706ED26D5446DDC2EDC2D /* mascot-panda-concept-1.png in Resources */ = {isa = PBXBuildFile; fileRef = E697FB7FBE88C9F63A300584 /* mascot-panda-concept-1.png */; };
+		25558191BF815B7AE5C2A9A2 /* mascot-dragon-model-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 17EC2DA52BC85ECE32F26FA2 /* mascot-dragon-model-1.png */; };
+		263BAB2C80DC8BEEA844758E /* mascot-panda-thinking-5.png in Resources */ = {isa = PBXBuildFile; fileRef = BC7A7675A63638159A93AAB1 /* mascot-panda-thinking-5.png */; };
 		275F3D70B64A6829D847DD79 /* CraftWebAuthAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */; };
 		2A4F7A3F45B2AA05FC286035 /* CraftMascotLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88AF98B87BAA034033636034 /* CraftMascotLoop.swift */; };
 		2CFD71AA12AC0895B71DF6B0 /* CraftAppleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */; };
+		2ECE6B242DAB5019A119512F /* mascot-panda-concept-5.png in Resources */ = {isa = PBXBuildFile; fileRef = DA890E96EAC9BE4C25879B1B /* mascot-panda-concept-5.png */; };
+		2F1297E35DEF6B5B2B0862E6 /* mascot-dragon-thinking-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 07B0B921E1D7AAF34F16ABE6 /* mascot-dragon-thinking-3.png */; };
+		2F1A50BCBD3B49B93C3FCEFB /* mascot-dragon-thinking-6.png in Resources */ = {isa = PBXBuildFile; fileRef = E9F94C7B2BB1E578C512F36C /* mascot-dragon-thinking-6.png */; };
+		327EC9D8BF1DC532D614D843 /* mascot-dragon-concept-5.png in Resources */ = {isa = PBXBuildFile; fileRef = CACBB86A04F4C303178897A3 /* mascot-dragon-concept-5.png */; };
 		3357F735EE8B667FB60CB78F /* ranger-bow.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3456CACBFE3D92C8E4A20BCB /* ranger-bow.jpg */; };
 		33A986EC2DC9F32A6A8139C7 /* GalleryHomeGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9699F526FA8BBBA36C3AB11D /* GalleryHomeGrid.swift */; };
+		33DF80A3F799F36D135E77E1 /* CharacterAnimationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEAD04558186BB879CB46654 /* CharacterAnimationViews.swift */; };
 		3518980C13CDF75C244A79F6 /* star-skiff.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 121534373629F691833194DB /* star-skiff.jpg */; };
 		3756D369C085F1DC126F54AE /* ruins.jpg in Resources */ = {isa = PBXBuildFile; fileRef = D9D131A9ECFFF72C557410C2 /* ruins.jpg */; };
 		377A55B058C6544EFFF96469 /* race.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 24F77FA2D9BCA8FEED2FDB1E /* race.jpg */; };
+		39B9080FBE5841A5AF7C028C /* GenerationLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5D42DBFC93ED5E58016132 /* GenerationLiveActivity.swift */; };
 		39EDE6DAF5D5709D1495DFD6 /* CraftCameraFraming.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */; };
 		407DE26A92359818BDB9B93A /* SourceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */; };
 		409D67EDB581F540DB922499 /* CraftAPIKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCA171F35F3EFACBC8B935A /* CraftAPIKeys.swift */; };
 		40B537736194B36FBE29F839 /* ReviewFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD19FEBCF8275E61E7E9F92 /* ReviewFlowTests.swift */; };
 		44AC5736545B169EEAB77706 /* AIAccountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2910CF4103D2633730BB4ED0 /* AIAccountTests.swift */; };
 		46C1EBB5590587B6DABDDE72 /* MascotLoopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0C9F7C15DEC98ABE303DBC /* MascotLoopTests.swift */; };
+		495303354811F7270D6AFE7D /* mascot-dragon-concept-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 0F89965558EF3027B75C8154 /* mascot-dragon-concept-4.png */; };
+		4DF841F92D6D232BA13FDC72 /* CraftGenerationActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4285093A50584C6F2B1F62 /* CraftGenerationActivity.swift */; };
+		50FA9F244917481773D8A1E4 /* mascot-dragon-model-5.png in Resources */ = {isa = PBXBuildFile; fileRef = 87058D3439745BA0D1B932B0 /* mascot-dragon-model-5.png */; };
 		51691ABA7EBD059F0409CB58 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = D8B2169777A60D7C27E6357E /* RevenueCat */; };
 		531ABD8A60B673DF002405E2 /* mascot-panda-thinking-small.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 275EE028CC3478026A022FB2 /* mascot-panda-thinking-small.mp4 */; };
 		54B15CC21ABED66EC518842D /* lantern_cat_display.png in Resources */ = {isa = PBXBuildFile; fileRef = 6A76559D0F474BC1CDF2C44C /* lantern_cat_display.png */; };
@@ -41,12 +57,15 @@
 		5869A5E1CE458548447BF68D /* mascot-panda-thinking.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = BC726CAFA56585FF564F07A5 /* mascot-panda-thinking.mp4 */; };
 		5873060F12B9B83AC22EB36B /* sunblade.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 6232406CEC7D688B41F88EF1 /* sunblade.jpg */; };
 		58F0B6DD4024F26808303A58 /* CommunityGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F17779305D71D2343833EB /* CommunityGamesView.swift */; };
+		59A5D5BE2411B85EE4F82796 /* mascot-panda-model-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 464E5088A2C42F24AC9CDBC2 /* mascot-panda-model-3.png */; };
 		5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */; };
 		5E47A18AAAD704EF263FD85C /* dragon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 58D453DA123199E614C8A59D /* dragon.jpg */; };
 		5ED967CD1FBE8F204E0D5339 /* mascot-dragon-poster.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 08703E6CC5539D87DDA7BF7B /* mascot-dragon-poster.jpg */; };
 		6089830EE5F194D8873880BC /* mascot-panda-model.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 7FBCE45D965C278A810CEDDE /* mascot-panda-model.mp4 */; };
 		60CE774712AD4E228C18A37D /* AppStoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BBE72B7C1F2CFCA84420590 /* AppStoreCaptureTests.swift */; };
+		60F6B09601A842D85F920014 /* mascot-panda-thinking-6.png in Resources */ = {isa = PBXBuildFile; fileRef = 85AB42B68E7598C19F753D07 /* mascot-panda-thinking-6.png */; };
 		62A4DD4C7EED90CA2D71EA97 /* CraftAIPrivacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */; };
+		65D3AAD87A6DF1560071C162 /* CraftGenerationActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4285093A50584C6F2B1F62 /* CraftGenerationActivity.swift */; };
 		6731C7437CFBD30D087AB703 /* CommercePlans.json in Resources */ = {isa = PBXBuildFile; fileRef = D60B9B5E0FEC2B0040593DB0 /* CommercePlans.json */; };
 		67572AF640AF9DB8657E5876 /* panda-chef.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 21873040BDD82C27E4FEFD57 /* panda-chef.jpg */; };
 		69A33DC4846CBD94D0BF1C1A /* PlannerModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F568965FE64A62D26C440D18 /* PlannerModelPicker.swift */; };
@@ -57,8 +76,10 @@
 		7000A545F17C062EEA05445F /* emerald_dragon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E0A43A91B0DC2F1E99BAA60C /* emerald_dragon.jpg */; };
 		70DDA33ABB42DD0D24FD36C8 /* DisplayStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F2083B39667BB25F630BE5 /* DisplayStageTests.swift */; };
 		7258FB0A24B9E3B54297D70B /* survivor.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2E152E686F04A46C6EC3870D /* survivor.jpg */; };
+		72D8B08D7055EA79575BB49B /* mascot-dragon-thinking-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D9109B3CC85C8F490896B58 /* mascot-dragon-thinking-2.png */; };
 		74476A39CE344E16B9895EFD /* lantern_cat.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 44716F92972ADE7CE0F6F7ED /* lantern_cat.jpg */; };
 		7532A97E47D305BC5B15A4CB /* GameHandoffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188F5B144B0CC7FB97645EE4 /* GameHandoffTests.swift */; };
+		75E731366DBB821FA855DAC5 /* mascot-dragon-concept-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 802EA55AAF62E6DAABF9BA45 /* mascot-dragon-concept-3.png */; };
 		77403BC551D0E46B4E6AFAA4 /* ImageModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4250F6CCB7B5396DA02CBCDB /* ImageModelPicker.swift */; };
 		79FCB6F1D32A75140D1C1F00 /* ConceptProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4D89E71ED7CABE26A09D0 /* ConceptProjectView.swift */; };
 		7C178E7634F34F6C7A213CDB /* StudioAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59BB720FB5D0B095ADBE903 /* StudioAtmosphere.swift */; };
@@ -70,9 +91,11 @@
 		82677D765F176BDCB8CD8E73 /* mascot-dragon-concept.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = A60C89DE39801848ECEE7DED /* mascot-dragon-concept.mp4 */; };
 		82EB849C9CFCAE6FB90FB648 /* GameViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FADDAECF18D9DFE21ED0C61 /* GameViews.swift */; };
 		831BC81D396FAEF2474C3A1A /* ConceptGenerationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34C49376DDAF1CFF69D4BFAE /* ConceptGenerationSheet.swift */; };
+		83357EF953B24B50C1BED14F /* mascot-dragon-concept-1.png in Resources */ = {isa = PBXBuildFile; fileRef = F7BF4128BB0FF0FF0D7548D5 /* mascot-dragon-concept-1.png */; };
 		8531FB2D038C3578F7810366 /* public-gallery.json in Resources */ = {isa = PBXBuildFile; fileRef = 2335B8145EB431361A905B04 /* public-gallery.json */; };
 		863E9F0559B68C89121D2427 /* treasure-chest.jpg in Resources */ = {isa = PBXBuildFile; fileRef = EE1CF0D01070C45C2CC49058 /* treasure-chest.jpg */; };
 		86AAB39A5E14517D15CA879C /* GLTFKit2 in Frameworks */ = {isa = PBXBuildFile; productRef = C32B39FD0C286BA8AF484146 /* GLTFKit2 */; };
+		8840F317BAF8807431AA4F93 /* mascot-panda-model-5.png in Resources */ = {isa = PBXBuildFile; fileRef = 950627C1561B8B6AC1274B6C /* mascot-panda-model-5.png */; };
 		8871FF0BF22B9DDB6CA98A4B /* CraftImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402752169C3F372A7B663AEA /* CraftImageCache.swift */; };
 		8B9224313A552B6E26490459 /* mascot-panda-poster.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2B9D5858FF7F3F3A7370AE25 /* mascot-panda-poster.jpg */; };
 		8D16078DA5005507D2D19CCB /* VisualPolishTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE2D60CF3F5EB7289E93B92 /* VisualPolishTests.swift */; };
@@ -82,6 +105,7 @@
 		968BC3C36F780DF1D6AC9622 /* AIAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */; };
 		97711B6D90DA7DF86A01D11C /* CreationPlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E4F1D51244B51676645E2F /* CreationPlayTests.swift */; };
 		97DA39F1432E79FC39680682 /* CraftAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */; };
+		99A21F86B6BD53C4BE0E17A7 /* mascot-panda-concept-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 3571F8531AB9F0C60546D2F4 /* mascot-panda-concept-3.png */; };
 		9C7856C1314285E70300AA2B /* mascot-dragon-model.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 549AE0FE1C097E38BFA2DC2F /* mascot-dragon-model.mp4 */; };
 		9D340D8ECA0F9CF0D3AAEBA4 /* AIAccountReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C64A5D4FBB83CD9A9121E2E /* AIAccountReviewTests.swift */; };
 		9E3DC26C41439E725D41B1C4 /* CreatorComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A625AF1F1BA30507A5F737E0 /* CreatorComponents.swift */; };
@@ -90,6 +114,7 @@
 		9F656DBCD78A9FF1DEB8FC40 /* ModelGenerationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854C56E8AA6DB32FD24F5BE7 /* ModelGenerationSheet.swift */; };
 		A4321C09A76F4F8C7752F703 /* lantern-explorer.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 23D515057582D9A492CDA9BC /* lantern-explorer.jpg */; };
 		A7887EE4F414587708CD4339 /* PhotoReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F25B3DD9C7295EE9809B9A /* PhotoReviewView.swift */; };
+		A81F4FF8963BFA921A6BF8A2 /* mascot-dragon-model-2.png in Resources */ = {isa = PBXBuildFile; fileRef = BB29B6E4A4004B4F81647D37 /* mascot-dragon-model-2.png */; };
 		AC057B681025C02A6AE8C2CC /* CraftAIAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856CD944F244ADF9F3A007E4 /* CraftAIAccount.swift */; };
 		AE7EA706A9BBF886EDCEE434 /* LightingAdjustmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9275583410F75CB0425A81AB /* LightingAdjustmentView.swift */; };
 		B113CA0962357D4635CA77DB /* mascot-dragon-poster-small.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E3225FE6F6D39BB757B52A72 /* mascot-dragon-poster-small.jpg */; };
@@ -97,13 +122,21 @@
 		B2361437A9C2743E5A3BC505 /* ThumbnailReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6F51D4999409AF529B728F /* ThumbnailReviewTests.swift */; };
 		B3BED01B3C52EB907B7CFB44 /* lantern_cat.glb in Resources */ = {isa = PBXBuildFile; fileRef = 5348A015416EA3279ED71220 /* lantern_cat.glb */; };
 		B43A6005B32C660567C37BC9 /* mascot-panda-concept.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = CB537D3C8D78BAFD8A486066 /* mascot-panda-concept.mp4 */; };
+		B50B0F0915A0FC57CE51FFD8 /* mascot-dragon-concept-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 7217AEC58E8AEE6182A83B8F /* mascot-dragon-concept-2.png */; };
+		B68AA77E60D1E5BC22AF9EE9 /* mascot-panda-concept-2.png in Resources */ = {isa = PBXBuildFile; fileRef = BBCAC17AA50C20AF6967BB0A /* mascot-panda-concept-2.png */; };
+		B68C21D9038A8DA56A45C7C5 /* TokenShortfallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9388D964CAC9184F9D897A2 /* TokenShortfallTests.swift */; };
 		B6EFB8B7F21FF0B3050576C1 /* AIPrivacyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */; };
 		B6F475E2ACA87D6F48159550 /* ranger-outfit.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3C90536CB858B6B0A024A19 /* ranger-outfit.jpg */; };
 		BA5E5E1025EA00CAECB0CE8F /* StudioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D067109C9A1F6F4A5EF36FC /* StudioViews.swift */; };
 		BCD4E643103E7C0B9F6649BC /* moss-robot.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3D849E6DF6A00DDF0D5458FF /* moss-robot.jpg */; };
+		BCDD1ED22AFD35EAC32DB8FF /* mascot-panda-thinking-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 667A11D6B5C25DD7A25953F1 /* mascot-panda-thinking-4.png */; };
 		BDF9EBA1CE9A6818DAC22738 /* ImageModelSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA9E1E33FBB582D1DAFC450 /* ImageModelSelectionTests.swift */; };
+		BE53BFD0F9D038F753013F45 /* mascot-panda-model-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 85B04CA992A57E1D071BFA4C /* mascot-panda-model-1.png */; };
+		BE7B9CEBB0F202F2900099C8 /* mascot-dragon-thinking-1.png in Resources */ = {isa = PBXBuildFile; fileRef = E8B0A439AFD6F7F5DCAE23DB /* mascot-dragon-thinking-1.png */; };
 		C0CA4FD58CCCFE8BDD03249C /* sunshine_racer.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 15F4EF093E005031436C12BA /* sunshine_racer.jpg */; };
 		C30E90C7DC3948B7914C54FC /* CraftProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C18A1FC70286BC3EF9AAA55 /* CraftProfileTests.swift */; };
+		C343293F8CCB14192FE19187 /* mascot-panda-thinking-2.png in Resources */ = {isa = PBXBuildFile; fileRef = BD5EFFA6FA422618D7A4EA86 /* mascot-panda-thinking-2.png */; };
+		C39F03AD183B32A867D28E5A /* mascot-panda-model-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 8FF1E07875BE5AC48720C834 /* mascot-panda-model-2.png */; };
 		C4083D91782C20D70B5ABCD3 /* CommunityCloudService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F012E841E77D374C031468 /* CommunityCloudService.swift */; };
 		C489C5F5D169057DF07A8DAB /* CameraFramingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F602B15AB3A366EB3E4167E1 /* CameraFramingTests.swift */; };
 		C4B3FF548D695ACEDC1F3F88 /* ThumbnailForegroundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B2333EFAD6E30E80A5B9A2 /* ThumbnailForegroundTests.swift */; };
@@ -111,22 +144,32 @@
 		C62EA37CE99F194E45024804 /* ConceptModelActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2DEBAA0FC4724C16C815B3E /* ConceptModelActivity.swift */; };
 		C7140D1084275170832FFB77 /* AppearanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD1C00CE1138C389842CA8B /* AppearanceTests.swift */; };
 		C8BBCB4577037AAEAB6ED281 /* sunforge-helmet.jpg in Resources */ = {isa = PBXBuildFile; fileRef = E77FE2941711E6EF4C42C4F5 /* sunforge-helmet.jpg */; };
+		C8E8E58106E82B2577E4FAAA /* mascot-panda-concept-6.png in Resources */ = {isa = PBXBuildFile; fileRef = BBD97AAD63B43F5E548ED33C /* mascot-panda-concept-6.png */; };
 		CA0D1C87B6BB39309214195F /* trail-boots.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 37CC6CB127677D866FFBAF0D /* trail-boots.jpg */; };
+		CAB1E694820B32EAA119177A /* mascot-panda-thinking-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 3847C0B0124046A32E71AB78 /* mascot-panda-thinking-1.png */; };
 		CEC214AF8B4B25F302509680 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236EB5073D8DAA0D13EA75D8 /* PaywallView.swift */; };
 		D0C0F85D1B96DEC490EE1061 /* cloud-dragon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = BFE814F1741F2CF37C9C97C4 /* cloud-dragon.jpg */; };
 		D203188908166191D14F6274 /* CraftMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39966193754955EDF5F82865 /* CraftMotion.swift */; };
+		D495D1A216DB12B98C07AD3C /* mascot-dragon-model-6.png in Resources */ = {isa = PBXBuildFile; fileRef = 4053ACA25593607820DBE747 /* mascot-dragon-model-6.png */; };
 		D56610B6A2D4063E0F5FFF68 /* PublicGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1360AC9A3700C783D97A0583 /* PublicGallery.swift */; };
 		D705EBA0E06DD3D5501D6074 /* starlight-robe.jpg in Resources */ = {isa = PBXBuildFile; fileRef = CC51C63E77D2E5DB1CA9FA23 /* starlight-robe.jpg */; };
 		D71C0AFBF483FF00A097701E /* CraftConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7178DBF331689C815C902D /* CraftConversationView.swift */; };
 		D82C1161815DE0AA8CE30663 /* CraftStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D537D0E99719B3B4536DC88D /* CraftStudioApp.swift */; };
+		D8E943789468E2A1187B8E29 /* mascot-dragon-concept-6.png in Resources */ = {isa = PBXBuildFile; fileRef = 181F311CD92D1F8E0AC0CB13 /* mascot-dragon-concept-6.png */; };
 		DA29BF42D1673ECE69704E26 /* ConversationReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A8A22DBDC00768AD10690B /* ConversationReviewTests.swift */; };
 		DAA818DFE59C31EFFCA93495 /* CraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4508780AEF6C9C0FCF5E1A9 /* CraftStore.swift */; };
+		DFFF482DCD276D141D595623 /* mascot-panda-model-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 6506C5743DFAECBC36771571 /* mascot-panda-model-4.png */; };
 		E1B9A54205CA1310A07D9A42 /* mint-racer.jpg in Resources */ = {isa = PBXBuildFile; fileRef = FFE4BEB46C876F8A73D0CD9D /* mint-racer.jpg */; };
+		E361DA5DA56A3F5E4DCA7773 /* mascot-dragon-thinking-5.png in Resources */ = {isa = PBXBuildFile; fileRef = 7C06BE4F0D67020E336A1D3E /* mascot-dragon-thinking-5.png */; };
 		E690E1BE84259583A0390ADF /* ModelViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C5EB0688379A758EEA81A63 /* ModelViewport.swift */; };
+		E74123EBFFBAE131EE5D1662 /* mascot-panda-model-6.png in Resources */ = {isa = PBXBuildFile; fileRef = 5AF630C1851AD09729B211E5 /* mascot-panda-model-6.png */; };
 		E86EB7EF999A33EB5775FAE5 /* mascot-dragon-thinking.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 7046F48F036097AA06EE8CF9 /* mascot-dragon-thinking.mp4 */; };
+		E96491FACB4296ACE22E9F4C /* mascot-dragon-model-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 9A6D1395ED092CA4A51F0F88 /* mascot-dragon-model-4.png */; };
+		E976C58791D0AB0F4708C278 /* mascot-dragon-model-3.png in Resources */ = {isa = PBXBuildFile; fileRef = EC30FCE9F4BDC38A90BB4A7C /* mascot-dragon-model-3.png */; };
 		EA9A80072B85977FA40093B1 /* mascot-panda-poster-small.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 50CBDED90397F683EC8B5125 /* mascot-panda-poster-small.jpg */; };
 		EB67BA907E8918CF6FE558D4 /* CraftAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010418F04AD92F50C47D6E62 /* CraftAccount.swift */; };
 		EC62E2445C42FCA464DC031E /* CraftModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACDC587B2CAA8C9A613D86 /* CraftModelTests.swift */; };
+		EEC1640223D02FB73ADCC87A /* mascot-panda-concept-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 392E21CF13AEDE34B4E2994C /* mascot-panda-concept-4.png */; };
 		F03F04A96FD27009078C16A6 /* LibraryGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38B4F7896DEC76109A6EA90 /* LibraryGallery.swift */; };
 		F377E2BD72442F892BE9F495 /* forest-shield.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 57F91E9678362D9DD1D7FA70 /* forest-shield.jpg */; };
 		F53D079D47FD3DA559E09689 /* ImageModelReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B32021A75DFE2FA6FF6CFB6E /* ImageModelReviewTests.swift */; };
@@ -153,19 +196,45 @@
 			remoteGlobalIDString = 11FE7EC5812A30CD50317EF1;
 			remoteInfo = CraftStudio;
 		};
+		8CA30AB8DEC72B1CAAB3C1D3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EFFE33F3F52FF1D10E63FA1C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6AE0B5B7DF6BF70DC26A915F;
+			remoteInfo = CraftStudioWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		91D81D5652B29A7D2FD3D6AB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				237163BDB1476DCD8C0122A0 /* CraftStudioWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		010418F04AD92F50C47D6E62 /* CraftAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAccount.swift; sourceTree = "<group>"; };
+		07B0B921E1D7AAF34F16ABE6 /* mascot-dragon-thinking-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-3.png"; sourceTree = "<group>"; };
 		08703E6CC5539D87DDA7BF7B /* mascot-dragon-poster.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-dragon-poster.jpg"; sourceTree = "<group>"; };
 		09A8A22DBDC00768AD10690B /* ConversationReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationReviewTests.swift; sourceTree = "<group>"; };
 		0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAppearance.swift; sourceTree = "<group>"; };
 		0C0C805992396383BE2170F2 /* moon-fox.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "moon-fox.jpg"; sourceTree = "<group>"; };
 		0C18A1FC70286BC3EF9AAA55 /* CraftProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftProfileTests.swift; sourceTree = "<group>"; };
 		0C64A5D4FBB83CD9A9121E2E /* AIAccountReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAccountReviewTests.swift; sourceTree = "<group>"; };
+		0EFBC4F2483E6802716EB6D2 /* mascot-panda-thinking-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-thinking-3.png"; sourceTree = "<group>"; };
+		0F89965558EF3027B75C8154 /* mascot-dragon-concept-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-concept-4.png"; sourceTree = "<group>"; };
 		121534373629F691833194DB /* star-skiff.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "star-skiff.jpg"; sourceTree = "<group>"; };
 		1360AC9A3700C783D97A0583 /* PublicGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicGallery.swift; sourceTree = "<group>"; };
 		15F4EF093E005031436C12BA /* sunshine_racer.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = sunshine_racer.jpg; sourceTree = "<group>"; };
+		17EC2DA52BC85ECE32F26FA2 /* mascot-dragon-model-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-1.png"; sourceTree = "<group>"; };
+		181F311CD92D1F8E0AC0CB13 /* mascot-dragon-concept-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-concept-6.png"; sourceTree = "<group>"; };
 		188F5B144B0CC7FB97645EE4 /* GameHandoffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffTests.swift; sourceTree = "<group>"; };
 		18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAppleSignIn.swift; sourceTree = "<group>"; };
 		1AD87381AF3BE312F99AE4AA /* StageReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageReviewTests.swift; sourceTree = "<group>"; };
@@ -187,8 +256,11 @@
 		3023D22B351C23ED6F18E134 /* mascot-dragon-thinking-small.mp4 */ = {isa = PBXFileReference; path = "mascot-dragon-thinking-small.mp4"; sourceTree = "<group>"; };
 		3456CACBFE3D92C8E4A20BCB /* ranger-bow.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "ranger-bow.jpg"; sourceTree = "<group>"; };
 		34C49376DDAF1CFF69D4BFAE /* ConceptGenerationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConceptGenerationSheet.swift; sourceTree = "<group>"; };
+		3571F8531AB9F0C60546D2F4 /* mascot-panda-concept-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-3.png"; sourceTree = "<group>"; };
 		35846562FCB17AE98B378FB7 /* ModelPromptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPromptUITests.swift; sourceTree = "<group>"; };
 		37CC6CB127677D866FFBAF0D /* trail-boots.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "trail-boots.jpg"; sourceTree = "<group>"; };
+		3847C0B0124046A32E71AB78 /* mascot-panda-thinking-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-thinking-1.png"; sourceTree = "<group>"; };
+		392E21CF13AEDE34B4E2994C /* mascot-panda-concept-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-4.png"; sourceTree = "<group>"; };
 		39966193754955EDF5F82865 /* CraftMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftMotion.swift; sourceTree = "<group>"; };
 		39F2083B39667BB25F630BE5 /* DisplayStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayStageTests.swift; sourceTree = "<group>"; };
 		3AD1C00CE1138C389842CA8B /* AppearanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceTests.swift; sourceTree = "<group>"; };
@@ -197,12 +269,15 @@
 		3FADDAECF18D9DFE21ED0C61 /* GameViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViews.swift; sourceTree = "<group>"; };
 		401CBEDF227299202FF4171C /* StudioConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioConnection.swift; sourceTree = "<group>"; };
 		402752169C3F372A7B663AEA /* CraftImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftImageCache.swift; sourceTree = "<group>"; };
+		4053ACA25593607820DBE747 /* mascot-dragon-model-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-6.png"; sourceTree = "<group>"; };
 		41638B987C600F89412438FD /* FirebaseCreationLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseCreationLibrary.swift; sourceTree = "<group>"; };
 		4250F6CCB7B5396DA02CBCDB /* ImageModelPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageModelPicker.swift; sourceTree = "<group>"; };
 		44716F92972ADE7CE0F6F7ED /* lantern_cat.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = lantern_cat.jpg; sourceTree = "<group>"; };
 		4564A1E4E8F411BE653C7489 /* CraftThumbnailImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftThumbnailImage.swift; sourceTree = "<group>"; };
+		464E5088A2C42F24AC9CDBC2 /* mascot-panda-model-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-model-3.png"; sourceTree = "<group>"; };
 		4AE2D60CF3F5EB7289E93B92 /* VisualPolishTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualPolishTests.swift; sourceTree = "<group>"; };
 		4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4F3FFBAD330EB13A8985984C /* mascot-dragon-thinking-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-4.png"; sourceTree = "<group>"; };
 		50CBDED90397F683EC8B5125 /* mascot-panda-poster-small.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-panda-poster-small.jpg"; sourceTree = "<group>"; };
 		5348A015416EA3279ED71220 /* lantern_cat.glb */ = {isa = PBXFileReference; path = lantern_cat.glb; sourceTree = "<group>"; };
 		53E4F1D51244B51676645E2F /* CreationPlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationPlayTests.swift; sourceTree = "<group>"; };
@@ -210,37 +285,53 @@
 		57F91E9678362D9DD1D7FA70 /* forest-shield.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "forest-shield.jpg"; sourceTree = "<group>"; };
 		58D453DA123199E614C8A59D /* dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = dragon.jpg; sourceTree = "<group>"; };
 		5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionView.swift; sourceTree = "<group>"; };
+		5AF630C1851AD09729B211E5 /* mascot-panda-model-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-model-6.png"; sourceTree = "<group>"; };
 		5BBE72B7C1F2CFCA84420590 /* AppStoreCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreCaptureTests.swift; sourceTree = "<group>"; };
+		5D9109B3CC85C8F490896B58 /* mascot-dragon-thinking-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-2.png"; sourceTree = "<group>"; };
 		5E2D5FCD326990A4175C458A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5FBA134880B9AAA10539D01C /* CraftLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftLiveActivity.swift; sourceTree = "<group>"; };
 		60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAccountView.swift; sourceTree = "<group>"; };
 		6232406CEC7D688B41F88EF1 /* sunblade.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = sunblade.jpg; sourceTree = "<group>"; };
 		62A556B9A0B662FC4C5A2E62 /* SourceFlowReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceFlowReviewTests.swift; sourceTree = "<group>"; };
+		6506C5743DFAECBC36771571 /* mascot-panda-model-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-model-4.png"; sourceTree = "<group>"; };
+		667A11D6B5C25DD7A25953F1 /* mascot-panda-thinking-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-thinking-4.png"; sourceTree = "<group>"; };
 		68BE9224A1061FD95554C9E5 /* CraftModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftModels.swift; sourceTree = "<group>"; };
 		6A76559D0F474BC1CDF2C44C /* lantern_cat_display.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lantern_cat_display.png; sourceTree = "<group>"; };
 		6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPrivacyTests.swift; sourceTree = "<group>"; };
 		7046F48F036097AA06EE8CF9 /* mascot-dragon-thinking.mp4 */ = {isa = PBXFileReference; path = "mascot-dragon-thinking.mp4"; sourceTree = "<group>"; };
+		7217AEC58E8AEE6182A83B8F /* mascot-dragon-concept-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-concept-2.png"; sourceTree = "<group>"; };
 		73F3EAC820B250513EF13AB6 /* GalleryReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryReviewTests.swift; sourceTree = "<group>"; };
 		7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationJourneyView.swift; sourceTree = "<group>"; };
 		7B6A40211882BF313693D52B /* arena.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = arena.jpg; sourceTree = "<group>"; };
+		7C06BE4F0D67020E336A1D3E /* mascot-dragon-thinking-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-5.png"; sourceTree = "<group>"; };
+		7E45A8839E8F55D1C6A97FFB /* CraftStudioWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CraftStudioWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FBCE45D965C278A810CEDDE /* mascot-panda-model.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-model.mp4"; sourceTree = "<group>"; };
 		802D72F1B3C500C3E3F7340C /* ancient-oak.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "ancient-oak.jpg"; sourceTree = "<group>"; };
+		802EA55AAF62E6DAABF9BA45 /* mascot-dragon-concept-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-concept-3.png"; sourceTree = "<group>"; };
 		84BC6651879220F93EF79194 /* coconut-island.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "coconut-island.jpg"; sourceTree = "<group>"; };
 		854C56E8AA6DB32FD24F5BE7 /* ModelGenerationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelGenerationSheet.swift; sourceTree = "<group>"; };
 		856CD944F244ADF9F3A007E4 /* CraftAIAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAIAccount.swift; sourceTree = "<group>"; };
+		85AB42B68E7598C19F753D07 /* mascot-panda-thinking-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-thinking-6.png"; sourceTree = "<group>"; };
+		85B04CA992A57E1D071BFA4C /* mascot-panda-model-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-model-1.png"; sourceTree = "<group>"; };
+		87058D3439745BA0D1B932B0 /* mascot-dragon-model-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-5.png"; sourceTree = "<group>"; };
 		876AFF2BF55E3DD2E5EAF85F /* woodland-cottage.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "woodland-cottage.jpg"; sourceTree = "<group>"; };
 		87CC75012099F86DA948A17E /* CraftProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftProfile.swift; sourceTree = "<group>"; };
 		88AF98B87BAA034033636034 /* CraftMascotLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftMascotLoop.swift; sourceTree = "<group>"; };
 		8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSelectionTests.swift; sourceTree = "<group>"; };
 		8A29B5A8963EF959D6061C22 /* CloudWelcomeReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudWelcomeReviewTests.swift; sourceTree = "<group>"; };
+		8A4285093A50584C6F2B1F62 /* CraftGenerationActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftGenerationActivity.swift; sourceTree = "<group>"; };
 		8F1CF6C1EB50E3CE5FD913FB /* CreatorPlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPlansView.swift; sourceTree = "<group>"; };
 		8F9429FEEB4D144CFDDC1830 /* GameHandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffView.swift; sourceTree = "<group>"; };
 		8FCA171F35F3EFACBC8B935A /* CraftAPIKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAPIKeys.swift; sourceTree = "<group>"; };
+		8FF1E07875BE5AC48720C834 /* mascot-panda-model-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-model-2.png"; sourceTree = "<group>"; };
 		9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftWebAuthAttempt.swift; sourceTree = "<group>"; };
 		9275583410F75CB0425A81AB /* LightingAdjustmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightingAdjustmentView.swift; sourceTree = "<group>"; };
 		93B4769F23D4C7996618E967 /* APIKeysTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeysTests.swift; sourceTree = "<group>"; };
 		941D5B6DBBCE89C963430CE2 /* CraftImageCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftImageCacheTests.swift; sourceTree = "<group>"; };
+		950627C1561B8B6AC1274B6C /* mascot-panda-model-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-model-5.png"; sourceTree = "<group>"; };
 		9699F526FA8BBBA36C3AB11D /* GalleryHomeGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHomeGrid.swift; sourceTree = "<group>"; };
 		97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthAttemptTests.swift; sourceTree = "<group>"; };
+		9A6D1395ED092CA4A51F0F88 /* mascot-dragon-model-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-4.png"; sourceTree = "<group>"; };
 		9C6F51D4999409AF529B728F /* ThumbnailReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailReviewTests.swift; sourceTree = "<group>"; };
 		9EBE7CB90190E1DD404E65E6 /* BillingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingManager.swift; sourceTree = "<group>"; };
 		A0B6CC98DC0EA42793EE7A8B /* bunny-knight.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "bunny-knight.jpg"; sourceTree = "<group>"; };
@@ -250,10 +341,17 @@
 		A625AF1F1BA30507A5F737E0 /* CreatorComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorComponents.swift; sourceTree = "<group>"; };
 		A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftDisplayStage.swift; sourceTree = "<group>"; };
 		AAA9E1E33FBB582D1DAFC450 /* ImageModelSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageModelSelectionTests.swift; sourceTree = "<group>"; };
+		AEAD04558186BB879CB46654 /* CharacterAnimationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterAnimationViews.swift; sourceTree = "<group>"; };
 		AF85F6CED6AC4C9C083D972A /* ProfileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditorView.swift; sourceTree = "<group>"; };
 		B32021A75DFE2FA6FF6CFB6E /* ImageModelReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageModelReviewTests.swift; sourceTree = "<group>"; };
+		BB29B6E4A4004B4F81647D37 /* mascot-dragon-model-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-2.png"; sourceTree = "<group>"; };
+		BB5D42DBFC93ED5E58016132 /* GenerationLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationLiveActivity.swift; sourceTree = "<group>"; };
+		BBCAC17AA50C20AF6967BB0A /* mascot-panda-concept-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-2.png"; sourceTree = "<group>"; };
+		BBD97AAD63B43F5E548ED33C /* mascot-panda-concept-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-6.png"; sourceTree = "<group>"; };
 		BC572FC854F3A0127F692CA7 /* GameHandoffReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffReviewTests.swift; sourceTree = "<group>"; };
 		BC726CAFA56585FF564F07A5 /* mascot-panda-thinking.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-thinking.mp4"; sourceTree = "<group>"; };
+		BC7A7675A63638159A93AAB1 /* mascot-panda-thinking-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-thinking-5.png"; sourceTree = "<group>"; };
+		BD5EFFA6FA422618D7A4EA86 /* mascot-panda-thinking-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-thinking-2.png"; sourceTree = "<group>"; };
 		BDD19FEBCF8275E61E7E9F92 /* ReviewFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewFlowTests.swift; sourceTree = "<group>"; };
 		BFE814F1741F2CF37C9C97C4 /* cloud-dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "cloud-dragon.jpg"; sourceTree = "<group>"; };
 		C04ED4A4D6C250F62B82E1E8 /* CraftStudio.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CraftStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -261,6 +359,7 @@
 		C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConceptImageInspector.swift; sourceTree = "<group>"; };
 		C4508780AEF6C9C0FCF5E1A9 /* CraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftStore.swift; sourceTree = "<group>"; };
 		C59BB720FB5D0B095ADBE903 /* StudioAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioAtmosphere.swift; sourceTree = "<group>"; };
+		CACBB86A04F4C303178897A3 /* mascot-dragon-concept-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-concept-5.png"; sourceTree = "<group>"; };
 		CB537D3C8D78BAFD8A486066 /* mascot-panda-concept.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-concept.mp4"; sourceTree = "<group>"; };
 		CB8242C14A18639C3E73B660 /* waterfall-diorama.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "waterfall-diorama.jpg"; sourceTree = "<group>"; };
 		CC51C63E77D2E5DB1CA9FA23 /* starlight-robe.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "starlight-robe.jpg"; sourceTree = "<group>"; };
@@ -270,10 +369,16 @@
 		D60B9B5E0FEC2B0040593DB0 /* CommercePlans.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = CommercePlans.json; sourceTree = "<group>"; };
 		D6F0159EE0A935B500710640 /* CraftStudioUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CraftStudioUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9D131A9ECFFF72C557410C2 /* ruins.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ruins.jpg; sourceTree = "<group>"; };
+		DA890E96EAC9BE4C25879B1B /* mascot-panda-concept-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-5.png"; sourceTree = "<group>"; };
 		DE6BB56C4A4E28B8E2B5A0B3 /* CreationCostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationCostView.swift; sourceTree = "<group>"; };
 		E0A43A91B0DC2F1E99BAA60C /* emerald_dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = emerald_dragon.jpg; sourceTree = "<group>"; };
 		E3225FE6F6D39BB757B52A72 /* mascot-dragon-poster-small.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-dragon-poster-small.jpg"; sourceTree = "<group>"; };
+		E697FB7FBE88C9F63A300584 /* mascot-panda-concept-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-1.png"; sourceTree = "<group>"; };
 		E77FE2941711E6EF4C42C4F5 /* sunforge-helmet.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "sunforge-helmet.jpg"; sourceTree = "<group>"; };
+		E8B0A439AFD6F7F5DCAE23DB /* mascot-dragon-thinking-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-1.png"; sourceTree = "<group>"; };
+		E9388D964CAC9184F9D897A2 /* TokenShortfallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenShortfallTests.swift; sourceTree = "<group>"; };
+		E9F94C7B2BB1E578C512F36C /* mascot-dragon-thinking-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-6.png"; sourceTree = "<group>"; };
+		EC30FCE9F4BDC38A90BB4A7C /* mascot-dragon-model-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-3.png"; sourceTree = "<group>"; };
 		ED7178DBF331689C815C902D /* CraftConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftConversationView.swift; sourceTree = "<group>"; };
 		EE1CF0D01070C45C2CC49058 /* treasure-chest.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "treasure-chest.jpg"; sourceTree = "<group>"; };
 		EF18497858CF7714758D7445 /* CreationPlayViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationPlayViews.swift; sourceTree = "<group>"; };
@@ -282,6 +387,7 @@
 		F3F012E841E77D374C031468 /* CommunityCloudService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityCloudService.swift; sourceTree = "<group>"; };
 		F568965FE64A62D26C440D18 /* PlannerModelPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerModelPicker.swift; sourceTree = "<group>"; };
 		F602B15AB3A366EB3E4167E1 /* CameraFramingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFramingTests.swift; sourceTree = "<group>"; };
+		F7BF4128BB0FF0FF0D7548D5 /* mascot-dragon-concept-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-concept-1.png"; sourceTree = "<group>"; };
 		FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftCameraFraming.swift; sourceTree = "<group>"; };
 		FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAIPrivacy.swift; sourceTree = "<group>"; };
 		FFE4BEB46C876F8A73D0CD9D /* mint-racer.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mint-racer.jpg"; sourceTree = "<group>"; };
@@ -333,6 +439,15 @@
 			path = CraftStudio/Resources;
 			sourceTree = "<group>";
 		};
+		5BF6C3B1E8DD5FDF640AA3A0 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AFE806568C3D7F1CE9590276 /* MascotFrames */,
+			);
+			name = Resources;
+			path = CraftStudioWidgets/Resources;
+			sourceTree = "<group>";
+		};
 		621A5E7B879FB8A260D2A21B /* Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -351,6 +466,7 @@
 				1E0C9F7C15DEC98ABE303DBC /* MascotLoopTests.swift */,
 				8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */,
 				22B2333EFAD6E30E80A5B9A2 /* ThumbnailForegroundTests.swift */,
+				E9388D964CAC9184F9D897A2 /* TokenShortfallTests.swift */,
 				97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */,
 			);
 			name = Tests;
@@ -382,6 +498,7 @@
 				C04ED4A4D6C250F62B82E1E8 /* CraftStudio.app */,
 				D4FF317D70B70FC3326E2DE0 /* CraftStudioTests.xctest */,
 				D6F0159EE0A935B500710640 /* CraftStudioUITests.xctest */,
+				7E45A8839E8F55D1C6A97FFB /* CraftStudioWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -392,6 +509,7 @@
 				5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */,
 				60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */,
 				9EBE7CB90190E1DD404E65E6 /* BillingManager.swift */,
+				AEAD04558186BB879CB46654 /* CharacterAnimationViews.swift */,
 				F3F012E841E77D374C031468 /* CommunityCloudService.swift */,
 				A3F17779305D71D2343833EB /* CommunityGamesView.swift */,
 				34C49376DDAF1CFF69D4BFAE /* ConceptGenerationSheet.swift */,
@@ -407,7 +525,9 @@
 				FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */,
 				ED7178DBF331689C815C902D /* CraftConversationView.swift */,
 				A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */,
+				8A4285093A50584C6F2B1F62 /* CraftGenerationActivity.swift */,
 				402752169C3F372A7B663AEA /* CraftImageCache.swift */,
+				5FBA134880B9AAA10539D01C /* CraftLiveActivity.swift */,
 				88AF98B87BAA034033636034 /* CraftMascotLoop.swift */,
 				68BE9224A1061FD95554C9E5 /* CraftModels.swift */,
 				39966193754955EDF5F82865 /* CraftMotion.swift */,
@@ -443,11 +563,65 @@
 			path = CraftStudio/Sources;
 			sourceTree = "<group>";
 		};
+		AFE806568C3D7F1CE9590276 /* MascotFrames */ = {
+			isa = PBXGroup;
+			children = (
+				F7BF4128BB0FF0FF0D7548D5 /* mascot-dragon-concept-1.png */,
+				7217AEC58E8AEE6182A83B8F /* mascot-dragon-concept-2.png */,
+				802EA55AAF62E6DAABF9BA45 /* mascot-dragon-concept-3.png */,
+				0F89965558EF3027B75C8154 /* mascot-dragon-concept-4.png */,
+				CACBB86A04F4C303178897A3 /* mascot-dragon-concept-5.png */,
+				181F311CD92D1F8E0AC0CB13 /* mascot-dragon-concept-6.png */,
+				17EC2DA52BC85ECE32F26FA2 /* mascot-dragon-model-1.png */,
+				BB29B6E4A4004B4F81647D37 /* mascot-dragon-model-2.png */,
+				EC30FCE9F4BDC38A90BB4A7C /* mascot-dragon-model-3.png */,
+				9A6D1395ED092CA4A51F0F88 /* mascot-dragon-model-4.png */,
+				87058D3439745BA0D1B932B0 /* mascot-dragon-model-5.png */,
+				4053ACA25593607820DBE747 /* mascot-dragon-model-6.png */,
+				E8B0A439AFD6F7F5DCAE23DB /* mascot-dragon-thinking-1.png */,
+				5D9109B3CC85C8F490896B58 /* mascot-dragon-thinking-2.png */,
+				07B0B921E1D7AAF34F16ABE6 /* mascot-dragon-thinking-3.png */,
+				4F3FFBAD330EB13A8985984C /* mascot-dragon-thinking-4.png */,
+				7C06BE4F0D67020E336A1D3E /* mascot-dragon-thinking-5.png */,
+				E9F94C7B2BB1E578C512F36C /* mascot-dragon-thinking-6.png */,
+				E697FB7FBE88C9F63A300584 /* mascot-panda-concept-1.png */,
+				BBCAC17AA50C20AF6967BB0A /* mascot-panda-concept-2.png */,
+				3571F8531AB9F0C60546D2F4 /* mascot-panda-concept-3.png */,
+				392E21CF13AEDE34B4E2994C /* mascot-panda-concept-4.png */,
+				DA890E96EAC9BE4C25879B1B /* mascot-panda-concept-5.png */,
+				BBD97AAD63B43F5E548ED33C /* mascot-panda-concept-6.png */,
+				85B04CA992A57E1D071BFA4C /* mascot-panda-model-1.png */,
+				8FF1E07875BE5AC48720C834 /* mascot-panda-model-2.png */,
+				464E5088A2C42F24AC9CDBC2 /* mascot-panda-model-3.png */,
+				6506C5743DFAECBC36771571 /* mascot-panda-model-4.png */,
+				950627C1561B8B6AC1274B6C /* mascot-panda-model-5.png */,
+				5AF630C1851AD09729B211E5 /* mascot-panda-model-6.png */,
+				3847C0B0124046A32E71AB78 /* mascot-panda-thinking-1.png */,
+				BD5EFFA6FA422618D7A4EA86 /* mascot-panda-thinking-2.png */,
+				0EFBC4F2483E6802716EB6D2 /* mascot-panda-thinking-3.png */,
+				667A11D6B5C25DD7A25953F1 /* mascot-panda-thinking-4.png */,
+				BC7A7675A63638159A93AAB1 /* mascot-panda-thinking-5.png */,
+				85AB42B68E7598C19F753D07 /* mascot-panda-thinking-6.png */,
+			);
+			path = MascotFrames;
+			sourceTree = "<group>";
+		};
+		B34A6D20F2E6B3F8E48475FE /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				BB5D42DBFC93ED5E58016132 /* GenerationLiveActivity.swift */,
+			);
+			name = Sources;
+			path = CraftStudioWidgets/Sources;
+			sourceTree = "<group>";
+		};
 		B7AC73A38999667CB00F71E7 = {
 			isa = PBXGroup;
 			children = (
 				5333DDCADD1028E83A364EF3 /* Resources */,
+				5BF6C3B1E8DD5FDF640AA3A0 /* Resources */,
 				A70F225619BDAB6E93487F66 /* Sources */,
+				B34A6D20F2E6B3F8E48475FE /* Sources */,
 				621A5E7B879FB8A260D2A21B /* Tests */,
 				FB7E9956D3696BCE25302822 /* UITests */,
 				A1E1CA1CB914D4BBC53D02BF /* Products */,
@@ -514,10 +688,12 @@
 				4A9B692183236E7B0279B08C /* Sources */,
 				8ED67C488615FA96C81B6090 /* Resources */,
 				D8A9F45EEA0C030518A4D629 /* Frameworks */,
+				91D81D5652B29A7D2FD3D6AB /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8F99718CB7B5065BDFF7B02A /* PBXTargetDependency */,
 			);
 			name = CraftStudio;
 			packageProductDependencies = (
@@ -528,6 +704,24 @@
 			productName = CraftStudio;
 			productReference = C04ED4A4D6C250F62B82E1E8 /* CraftStudio.app */;
 			productType = "com.apple.product-type.application";
+		};
+		6AE0B5B7DF6BF70DC26A915F /* CraftStudioWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 572B0900788FFCB56337D651 /* Build configuration list for PBXNativeTarget "CraftStudioWidgets" */;
+			buildPhases = (
+				C36173C9D710E945015D68C5 /* Sources */,
+				F066B65AE2782BD914566D27 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CraftStudioWidgets;
+			packageProductDependencies = (
+			);
+			productName = CraftStudioWidgets;
+			productReference = 7E45A8839E8F55D1C6A97FFB /* CraftStudioWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		B5D7DDF9994511AC8DC02C47 /* CraftStudioUITests */ = {
 			isa = PBXNativeTarget;
@@ -578,6 +772,10 @@
 						DevelopmentTeam = C265XC3RH7;
 						ProvisioningStyle = Automatic;
 					};
+					6AE0B5B7DF6BF70DC26A915F = {
+						DevelopmentTeam = C265XC3RH7;
+						ProvisioningStyle = Automatic;
+					};
 					B5D7DDF9994511AC8DC02C47 = {
 						DevelopmentTeam = C265XC3RH7;
 						ProvisioningStyle = Automatic;
@@ -610,6 +808,7 @@
 				11FE7EC5812A30CD50317EF1 /* CraftStudio */,
 				EF60049E45044982F8C4387E /* CraftStudioTests */,
 				B5D7DDF9994511AC8DC02C47 /* CraftStudioUITests */,
+				6AE0B5B7DF6BF70DC26A915F /* CraftStudioWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -669,6 +868,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F066B65AE2782BD914566D27 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83357EF953B24B50C1BED14F /* mascot-dragon-concept-1.png in Resources */,
+				B50B0F0915A0FC57CE51FFD8 /* mascot-dragon-concept-2.png in Resources */,
+				75E731366DBB821FA855DAC5 /* mascot-dragon-concept-3.png in Resources */,
+				495303354811F7270D6AFE7D /* mascot-dragon-concept-4.png in Resources */,
+				327EC9D8BF1DC532D614D843 /* mascot-dragon-concept-5.png in Resources */,
+				D8E943789468E2A1187B8E29 /* mascot-dragon-concept-6.png in Resources */,
+				25558191BF815B7AE5C2A9A2 /* mascot-dragon-model-1.png in Resources */,
+				A81F4FF8963BFA921A6BF8A2 /* mascot-dragon-model-2.png in Resources */,
+				E976C58791D0AB0F4708C278 /* mascot-dragon-model-3.png in Resources */,
+				E96491FACB4296ACE22E9F4C /* mascot-dragon-model-4.png in Resources */,
+				50FA9F244917481773D8A1E4 /* mascot-dragon-model-5.png in Resources */,
+				D495D1A216DB12B98C07AD3C /* mascot-dragon-model-6.png in Resources */,
+				BE7B9CEBB0F202F2900099C8 /* mascot-dragon-thinking-1.png in Resources */,
+				72D8B08D7055EA79575BB49B /* mascot-dragon-thinking-2.png in Resources */,
+				2F1297E35DEF6B5B2B0862E6 /* mascot-dragon-thinking-3.png in Resources */,
+				031A94D190FA111914ECF753 /* mascot-dragon-thinking-4.png in Resources */,
+				E361DA5DA56A3F5E4DCA7773 /* mascot-dragon-thinking-5.png in Resources */,
+				2F1A50BCBD3B49B93C3FCEFB /* mascot-dragon-thinking-6.png in Resources */,
+				239706ED26D5446DDC2EDC2D /* mascot-panda-concept-1.png in Resources */,
+				B68AA77E60D1E5BC22AF9EE9 /* mascot-panda-concept-2.png in Resources */,
+				99A21F86B6BD53C4BE0E17A7 /* mascot-panda-concept-3.png in Resources */,
+				EEC1640223D02FB73ADCC87A /* mascot-panda-concept-4.png in Resources */,
+				2ECE6B242DAB5019A119512F /* mascot-panda-concept-5.png in Resources */,
+				C8E8E58106E82B2577E4FAAA /* mascot-panda-concept-6.png in Resources */,
+				BE53BFD0F9D038F753013F45 /* mascot-panda-model-1.png in Resources */,
+				C39F03AD183B32A867D28E5A /* mascot-panda-model-2.png in Resources */,
+				59A5D5BE2411B85EE4F82796 /* mascot-panda-model-3.png in Resources */,
+				DFFF482DCD276D141D595623 /* mascot-panda-model-4.png in Resources */,
+				8840F317BAF8807431AA4F93 /* mascot-panda-model-5.png in Resources */,
+				E74123EBFFBAE131EE5D1662 /* mascot-panda-model-6.png in Resources */,
+				CAB1E694820B32EAA119177A /* mascot-panda-thinking-1.png in Resources */,
+				C343293F8CCB14192FE19187 /* mascot-panda-thinking-2.png in Resources */,
+				1987FC75287E4317D6A95781 /* mascot-panda-thinking-3.png in Resources */,
+				BCDD1ED22AFD35EAC32DB8FF /* mascot-panda-thinking-4.png in Resources */,
+				263BAB2C80DC8BEEA844758E /* mascot-panda-thinking-5.png in Resources */,
+				60F6B09601A842D85F920014 /* mascot-panda-thinking-6.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -679,6 +921,7 @@
 				968BC3C36F780DF1D6AC9622 /* AIAccountView.swift in Sources */,
 				18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */,
 				7F851A5C8FFF4DA59E809EA5 /* BillingManager.swift in Sources */,
+				33DF80A3F799F36D135E77E1 /* CharacterAnimationViews.swift in Sources */,
 				C4083D91782C20D70B5ABCD3 /* CommunityCloudService.swift in Sources */,
 				58F0B6DD4024F26808303A58 /* CommunityGamesView.swift in Sources */,
 				831BC81D396FAEF2474C3A1A /* ConceptGenerationSheet.swift in Sources */,
@@ -694,7 +937,9 @@
 				39EDE6DAF5D5709D1495DFD6 /* CraftCameraFraming.swift in Sources */,
 				D71C0AFBF483FF00A097701E /* CraftConversationView.swift in Sources */,
 				5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */,
+				65D3AAD87A6DF1560071C162 /* CraftGenerationActivity.swift in Sources */,
 				8871FF0BF22B9DDB6CA98A4B /* CraftImageCache.swift in Sources */,
+				1C2340F2143230D620AACB7F /* CraftLiveActivity.swift in Sources */,
 				2A4F7A3F45B2AA05FC286035 /* CraftMascotLoop.swift in Sources */,
 				059C070BAD6A2E9071390ADC /* CraftModels.swift in Sources */,
 				D203188908166191D14F6274 /* CraftMotion.swift in Sources */,
@@ -747,6 +992,7 @@
 				46C1EBB5590587B6DABDDE72 /* MascotLoopTests.swift in Sources */,
 				407DE26A92359818BDB9B93A /* SourceSelectionTests.swift in Sources */,
 				C4B3FF548D695ACEDC1F3F88 /* ThumbnailForegroundTests.swift in Sources */,
+				B68C21D9038A8DA56A45C7C5 /* TokenShortfallTests.swift in Sources */,
 				22964DEC7D640AF76B6DFEE9 /* WebAuthAttemptTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -772,6 +1018,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C36173C9D710E945015D68C5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DF841F92D6D232BA13FDC72 /* CraftGenerationActivity.swift in Sources */,
+				39B9080FBE5841A5AF7C028C /* GenerationLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -785,9 +1040,31 @@
 			target = 11FE7EC5812A30CD50317EF1 /* CraftStudio */;
 			targetProxy = 319FCD1527BA41E88E8AEE7C /* PBXContainerItemProxy */;
 		};
+		8F99718CB7B5065BDFF7B02A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6AE0B5B7DF6BF70DC26A915F /* CraftStudioWidgets */;
+			targetProxy = 8CA30AB8DEC72B1CAAB3C1D3 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		02462515B22592B99948DB64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = CraftStudioWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "3D Craft";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = studio.craft.ios.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		0DA4E227E5F744AE00860D04 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -938,6 +1215,7 @@
 		4C9461BA9B872BAAE3E54470 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = CraftStudio/Configuration/CraftStudio.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -963,6 +1241,7 @@
 		5B31BF1456E1622827B0EDB8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = CraftStudio/Configuration/CraftStudio.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -1031,6 +1310,23 @@
 			};
 			name = Debug;
 		};
+		C190B932ABF824A3F44DE38F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = CraftStudioWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "3D Craft";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = studio.craft.ios.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1066,6 +1362,15 @@
 			buildConfigurations = (
 				4C9461BA9B872BAAE3E54470 /* Debug */,
 				5B31BF1456E1622827B0EDB8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		572B0900788FFCB56337D651 /* Build configuration list for PBXNativeTarget "CraftStudioWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				02462515B22592B99948DB64 /* Debug */,
+				C190B932ABF824A3F44DE38F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

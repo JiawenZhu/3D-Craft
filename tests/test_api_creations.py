@@ -84,7 +84,7 @@ class DeleteTests(unittest.TestCase):
 
     def test_delete_project_removes_every_record_and_file_of_that_project_only(self):
         result = self.service.delete_project(OWNER, 'mp-1')
-        self.assertEqual(result, dict(deleted=True, id='mp-1', images=1, models=1, jobs=2))
+        self.assertEqual(result, dict(deleted=True, id='mp-1', images=1, models=1, animations=0, jobs=2))
         for collection in ('studioProjects', 'studioConcepts', 'studioJobs', 'studioConversations', 'mobileCreations'):
             left = [r for r in self.studio.records(OWNER, collection) if r.get('projectId') == 'mp-1' or r['id'] == 'mp-1']
             self.assertEqual(left, [], collection)

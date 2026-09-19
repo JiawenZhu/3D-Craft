@@ -46,4 +46,29 @@ for char in dragon panda; do
   ffmpeg -v error -y -i "$OUT/mascot-$char-thinking.mp4" -frames:v 1 -q:v 4 "$OUT/mascot-$char-poster.jpg"
   ffmpeg -v error -y -i "$OUT/mascot-$char-thinking-small.mp4" -frames:v 1 -q:v 3 "$OUT/mascot-$char-poster-small.jpg"
 done
+
+# Dynamic Island / Lock Screen frames. Live Activities render snapshots and
+# cannot play video, so the widget advances through these stills as the job
+# reports progress. Frame 0 is the original art, shown under Reduce Motion.
+FRAMES_OUT="$ROOT/ios/CraftStudioWidgets/Resources/MascotFrames"
+mkdir -p "$FRAMES_OUT"
+for char in dragon panda; do
+  for phase in thinking concept model; do
+    ffmpeg -v error -y -i "$OUT/mascot-$char-$phase.mp4" \
+      -vf "select='not(mod(n\,16))',scale=200:200:flags=lanczos" -vsync 0 -frames:v 6 \
+      "$FRAMES_OUT/mascot-$char-$phase-%d.png"
+  done
+done
+# 24-bit stills cost about 50 KB each; a 128-colour palette holds the same
+# flat cartoon art at about 15 KB, which keeps the widget bundle small.
+PY_BIN="$ROOT/venv/bin/python"
+[ -x "$PY_BIN" ] || PY_BIN=python3
+"$PY_BIN" - "$FRAMES_OUT" <<'PYCODE'
+import pathlib, sys
+from PIL import Image
+for f in sorted(pathlib.Path(sys.argv[1]).glob("*.png")):
+    Image.open(f).convert("RGB").quantize(colors=128).save(f, optimize=True)
+PYCODE
+
 ls -l "$OUT"
+ls -l "$FRAMES_OUT"

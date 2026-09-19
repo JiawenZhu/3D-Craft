@@ -1,0 +1,242 @@
+import SwiftUI
+
+/// A finished character animation: the character image, then its loop on top.
+///
+/// The still is the image the animation was made from, so there is something
+/// truthful to show under Reduce Motion, before the first frame decodes, and
+/// whenever the ambient gate closes.
+/// Downloads a character animation once and plays it from disk.
+///
+/// The clip lives in this account's private Storage, which needs an identity
+/// header on every request, and AVPlayer cannot carry one. Fetching it first
+/// also means the loop plays from local disk rather than re-streaming.
+@MainActor
+final class CraftAnimationFile: ObservableObject {
+    @Published private(set) var localURL: URL?
+    @Published private(set) var failed = false
+    private static let folder = FileManager.default.temporaryDirectory.appendingPathComponent("animations", isDirectory: true)
+
+    func load(_ remote: URL, id: String) async {
+        let destination = Self.folder.appendingPathComponent(id + ".mp4")
+        if FileManager.default.fileExists(atPath: destination.path) { localURL = destination; return }
+        do {
+            let (data, response) = try await CraftCloudMedia.data(remote)
+            guard (response as? HTTPURLResponse)?.statusCode ?? 200 < 400, data.count > 1024 else { failed = true; return }
+            try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
+            try data.write(to: destination, options: .atomic)
+            localURL = destination
+        } catch {
+            failed = true
+        }
+    }
+}
+
+/// A finished character animation: the character image, then its loop on top.
+///
+/// The still is the image the animation was made from, so there is something
+/// truthful to show under Reduce Motion, before the clip arrives, and whenever
+/// the ambient gate closes.
+struct CraftAnimationLoop: View {
+    let url: URL
+    let id: String
+    var posterURL: URL?
+    var cornerRadius: CGFloat = 20
+    @StateObject private var file = CraftAnimationFile()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.craftAmbientMotion) private var ambient
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+
+    private var playing: Bool { !reduceMotion && ambient }
+
+    var body: some View {
+        ZStack {
+            appearance.washSoft
+            if let posterURL { CraftThumbnailImage(url: posterURL).scaledToFill() }
+            if playing, let local = file.localURL {
+                CraftLoopingVideo(url: local, playing: true).id(local)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .strokeBorder(appearance.fill.opacity(0.35), lineWidth: 1))
+        .task(id: url) { if playing { await file.load(url, id: id) } }
+        .accessibilityLabel(Text(reduceMotion ? "Animated character, paused" : "Animated character, looping"))
+    }
+
+    /// The downloaded file, for sharing or saving.
+    var fileURL: URL? { file.localURL }
+}
+
+/// An animated character on its own: the loop, and a way to take it elsewhere.
+struct AnimatedCharacterDetailView: View {
+    let asset: CraftAsset
+    @EnvironmentObject private var store: CraftStore
+    @StateObject private var file = CraftAnimationFile()
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                ZStack {
+                    appearance.washSoft
+                    if let poster = asset.thumbURL { CraftThumbnailImage(url: poster).scaledToFit() }
+                    if !reduceMotion, let local = file.localURL {
+                        CraftLoopingVideo(url: local, playing: true).id(local)
+                    }
+                }
+                .frame(height: 340)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .accessibilityIdentifier("animation.player")
+
+                Text(asset.name).font(.system(size: 22, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+
+                if let local = file.localURL {
+                    ShareLink(item: local) {
+                        Label(store.t("Share or save this loop", "分享或保存动画"), systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(CraftPrimary(verticalPadding: 14, cornerRadius: 16))
+                    .accessibilityIdentifier("animation.share")
+                } else if file.failed {
+                    Text(store.t("This animation could not be loaded. Check your connection and try again.",
+                                 "无法加载这段动画，请检查网络后重试。"))
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    ProgressView()
+                }
+
+                Text(store.t("A silent 4-second loop that ends where it starts, so it repeats cleanly in a game or a video.",
+                             "无声循环动画，首尾一致，可在游戏或视频中无缝重复播放。"))
+                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            .padding(24).frame(maxWidth: 650).frame(maxWidth: .infinity)
+        }
+        .background { StudioAtmosphere() }
+        .navigationTitle(store.t("Animated character", "动画角色"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { if let url = asset.animationURL { await file.load(url, id: asset.id) } }
+    }
+}
+
+/// Confirms what the character will do, how long the loop is, and what it costs
+/// before any Tokens are reserved.
+struct AnimationGenerationSheet: View {
+    let concept: CraftConcept
+    let chinese: Bool
+    let onGenerate: (String, String, String) -> Void   // motion, resolution, duration
+    @EnvironmentObject private var store: CraftStore
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+    @Environment(\.dismiss) private var dismiss
+    @State private var motion = ""
+    @State private var resolution = "480p"
+    @State private var duration = "4"
+    @State private var cost: Int?
+    @State private var loading = true
+
+    private func t(_ en: String, _ zh: String) -> String { chinese ? zh : en }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text(t("Bring this character to life", "让这个角色动起来"))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                    Text(t("A short silent loop that starts and ends on the same pose, so it repeats cleanly. Use it in a game, a video, or anywhere you like.",
+                           "生成一段无声循环动画，首尾同一姿势，可以无缝重复播放。可用于游戏、视频或任何你喜欢的地方。"))
+                        .font(.subheadline).foregroundStyle(.secondary)
+
+                    if let url = URL(string: concept.imageUrl) {
+                        CraftThumbnailImage(url: url).scaledToFill()
+                            .frame(height: 180).frame(maxWidth: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(t("What should it do?", "让它做什么？")).font(.subheadline.weight(.semibold))
+                        TextField(t("Optional, e.g. it waves and smiles", "可选，例如：挥手微笑"), text: $motion, axis: .vertical)
+                            .lineLimit(2...4).textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("animation.motion")
+                        Text(t("Left empty, the character breathes, blinks and shifts gently.",
+                               "留空时，角色会自然呼吸、眨眼并轻轻晃动。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+
+                    picker(t("Length", "时长"), selection: $duration,
+                           options: [("4", t("4 seconds", "4 秒")), ("6", t("6 seconds", "6 秒"))],
+                           identifier: "animation.duration")
+                    picker(t("Quality", "画质"), selection: $resolution,
+                           options: [("480p", t("Standard", "标准")), ("720p", t("High", "高清"))],
+                           identifier: "animation.resolution")
+
+                    costRow
+                }
+                .padding(24).frame(maxWidth: 650).frame(maxWidth: .infinity)
+            }
+            .background { StudioAtmosphere() }
+            .navigationTitle(t("Animate", "生成动画"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(t("Cancel", "取消")) { dismiss() }
+                }
+            }
+            .safeAreaInset(edge: .bottom) { generateButton }
+            .task(id: resolution + duration) { await refreshCost() }
+        }
+    }
+
+    private func picker(_ title: String, selection: Binding<String>,
+                        options: [(String, String)], identifier: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline.weight(.semibold))
+            Picker(title, selection: selection) {
+                ForEach(options, id: \.0) { Text($0.1).tag($0.0) }
+            }.pickerStyle(.segmented).accessibilityIdentifier(identifier)
+        }
+    }
+
+    private var costRow: some View {
+        HStack {
+            Label(t("Cost", "费用"), systemImage: "circle.hexagongrid.fill")
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            if loading { ProgressView() }
+            else if let cost {
+                Text("\(cost) Tokens").font(.subheadline.weight(.semibold)).monospacedDigit()
+                    .accessibilityIdentifier("animation.cost")
+            } else {
+                Text(t("Price pending", "价格待确认")).font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+        .padding(14).background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var generateButton: some View {
+        VStack(spacing: 6) {
+            Button {
+                guard let cost, store.wallet.available >= cost else { store.showPaywall = true; return }
+                onGenerate(motion.trimmingCharacters(in: .whitespacesAndNewlines), resolution, duration)
+                dismiss()
+            } label: {
+                Label(t("Generate animation", "生成动画"), systemImage: "sparkles")
+            }
+            .buttonStyle(CraftPrimary(armed: cost != nil && !store.busy, busy: store.busy,
+                                      verticalPadding: 14, cornerRadius: 16))
+            .disabled(cost == nil || store.busy)
+            .accessibilityIdentifier("animation.generate")
+            if let cost, store.wallet.available < cost {
+                Text(t("You need \(cost) Tokens. Add Tokens to continue.", "需要 \(cost) 个 Token，请先补充。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 24).padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+    }
+
+    private func refreshCost() async {
+        loading = true
+        cost = await store.animationCost(resolution: resolution, duration: duration)
+        loading = false
+    }
+}

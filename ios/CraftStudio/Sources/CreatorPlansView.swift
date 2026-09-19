@@ -48,6 +48,8 @@ struct CreatorPlansView: View {
     @State private var message: String?
     @State private var failed = false
     @State private var showCosts = false
+    @State private var routed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let catalog = CreatorPlanCatalog.bundled
     private let green = CraftAppearance.emerald.ink
@@ -80,6 +82,7 @@ struct CreatorPlansView: View {
                 VStack(spacing: 0) {
                     hero(height: typeSize.isAccessibilitySize ? 160 : min(200, max(120, geometry.size.height * 0.21)))
                     VStack(spacing: 14) {
+                        if let shortfall = store.shortfall { shortfallCard(shortfall) }
                         categoryPicker
                         if topups {
                             ForEach(catalog?.topups ?? []) { pack in
@@ -126,6 +129,15 @@ struct CreatorPlansView: View {
         .tint(green)
         .accessibilityIdentifier("paywall.custom")
         .task {
+            // Someone who already subscribes needs Tokens now, not another
+            // plan; someone with no plan is usually better off starting there.
+            if !routed, store.shortfall != nil {
+                routed = true
+                let wantsTopup = CraftPaywallRoute.startOnTokenPacks(hasPlan: billing.hasCreatorEntitlement)
+                topups = wantsTopup
+                selectedID = wantsTopup ? (catalog?.topups?.first?.id ?? "craft.credits.small.v1")
+                                        : "craft.creator.monthly.v1"
+            }
             await billing.loadProducts()
             if let uid = CraftAccount.shared.uid {
                 await billing.checkRevenueCatStatus(userId: uid)
@@ -159,6 +171,35 @@ struct CreatorPlansView: View {
             Text(t("Your ideas. Ready for 3D.", "创造角色、概念图与 3D 模型。"))
                 .font(.subheadline).foregroundStyle(green.opacity(0.8)).multilineTextAlignment(.center)
         }.padding(.horizontal, 24).padding(.top, 6).padding(.bottom, 18)
+    }
+
+    /// Says plainly what the blocked creation needed, with the app's own mascot
+    /// keeping the moment friendly rather than scolding.
+    private func shortfallCard(_ shortfall: CraftShortfall) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            CraftMascotLoop(phase: .thinking, size: 56, active: !reduceMotion)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(t("\(shortfall.missing) more Tokens needed", "还需 \(shortfall.missing) 个 Tokens"))
+                    .font(.subheadline.weight(.semibold))
+                Text(t("\(shortfall.sentenceStart) costs \(shortfall.needed) Tokens and you have \(shortfall.available).",
+                       "\(shortfall.what)需要 \(shortfall.needed) 个 Tokens，你还剩 \(shortfall.available) 个。"))
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(billing.hasCreatorEntitlement
+                     ? t("Your plan's Tokens are used up for now. A pack tops you up right away.",
+                         "本期订阅 Tokens 已用完，购买 Token 包可立即继续。")
+                     : t("A plan gives you Tokens every period. A one-time pack works too.",
+                         "订阅每期赠送 Tokens，也可以单次购买 Token 包。"))
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(mint.opacity(0.35), in: RoundedRectangle(cornerRadius: 20))
+        .craftEntrance(0, style: .reveal)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("paywall.shortfall")
     }
 
     private var categoryPicker: some View {

@@ -58,6 +58,14 @@ import StoreKitTest
          .onChange(of: scenePhase) { _, phase in
              if phase == .active { Task { await account.verifyAppleAuthorization(); await store.refreshOutsideChanges() } }
          }
+         .onOpenURL { url in
+             // Tapping the Live Activity opens the project it is reporting on.
+             guard url.scheme == "studio.craft.ios", url.host == "project" else { return }
+             let projectID = url.lastPathComponent
+             guard !projectID.isEmpty, projectID != "/" else { return }
+             store.path = [.project(projectID)]
+             Task { await store.refreshOutsideChanges() }
+         }
          .onChange(of: account.uid) { _, newUid in
              Task {
                  await store.accountChanged()
@@ -91,7 +99,10 @@ struct CraftRoot: View {
                     Group {
                         switch route {
                         case .project(let id): CraftConversationView(projectID: id)
-                        case .asset(let asset): AssetDetailView(asset: asset)
+                        case .asset(let asset):
+                            // An animated character has no mesh to inspect; it plays instead.
+                            if asset.isAnimated { AnimatedCharacterDetailView(asset: asset) }
+                            else { AssetDetailView(asset: asset) }
                         case .games(let asset): GameChooserView(asset: asset)
                         case .wallet: WalletView()
                         case .settings: ProfileView()
@@ -121,6 +132,7 @@ struct CraftRoot: View {
         .animation(CraftMotion.gated(.glide, reduceMotion), value: store.completedModelCards.first?.id)
         .animation(CraftMotion.gated(.glide, reduceMotion), value: store.connectionNotice)
         .sheet(isPresented: $store.showPaywall, onDismiss: {
+            store.shortfall = nil
             store.presentPurchasedWallet()
         }) { PaywallView().craftAmbientHost() }
         .onChange(of: store.purchaseToPresent?.id) { _, id in
