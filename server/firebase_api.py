@@ -602,12 +602,16 @@ def sync(account=Depends(owner)):
 class LiveActivityBody(BaseModel):
     jobId: str = Field(min_length=3, max_length=120)
     token: str = Field(min_length=32, max_length=200)
+    # Development builds register sandbox tokens; TestFlight and the App Store
+    # register production ones. Apple serves them from different hosts.
+    environment: Literal['sandbox', 'production'] = 'production'
 
 
 @app.post('/api/mobile/live-activity')
 def register_live_activity(body: LiveActivityBody, account=Depends(owner)):
     from . import live_activity
-    return live_activity.register(studio().db, account.removeprefix('firebase:'), body.jobId, body.token)
+    return live_activity.register(studio().db, account.removeprefix('firebase:'),
+                                  body.jobId, body.token, body.environment)
 
 
 @app.get('/api/mobile/wallet')

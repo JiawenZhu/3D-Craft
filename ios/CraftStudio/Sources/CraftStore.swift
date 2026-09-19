@@ -354,7 +354,15 @@ struct PendingGeneration: Codable, Equatable {
         liveActivitiesOff = false
         centre.registerToken = { [weak self] jobId, token in
             guard let self else { return }
-            _ = try? await self.request("/live-activity", method: "POST", body: ["jobId": jobId, "token": token])
+            // A development build's token lives on Apple's sandbox host; a
+            // TestFlight or App Store build's lives on production.
+            #if DEBUG
+            let environment = "sandbox"
+            #else
+            let environment = "production"
+            #endif
+            _ = try? await self.request("/live-activity", method: "POST",
+                                        body: ["jobId": jobId, "token": token, "environment": environment])
         }
         let named = Dictionary(projects.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
         let theme = UserDefaults.standard.string(forKey: CraftAppearance.storageKey)

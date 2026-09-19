@@ -35,8 +35,17 @@ def bundle_id() -> str:
     return os.getenv('APNS_BUNDLE_ID', 'studio.craft.ios')
 
 
-def host() -> str:
-    return SANDBOX_HOST if os.getenv('APNS_SANDBOX') == '1' else PRODUCTION_HOST
+def host(environment: Optional[str] = None) -> str:
+    """Apple keeps development and production tokens on separate hosts.
+
+    A build signed for development (running from Xcode on a device) registers a
+    sandbox token, while TestFlight and App Store builds register production
+    ones. Sending to the wrong host returns BadDeviceToken, so the app tells us
+    which it is and we keep that with the token.
+    """
+    if environment is None:
+        environment = 'sandbox' if os.getenv('APNS_SANDBOX') == '1' else 'production'
+    return SANDBOX_HOST if environment == 'sandbox' else PRODUCTION_HOST
 
 
 def authorization() -> str:
@@ -67,14 +76,17 @@ def ref(db, uid: str, job_id: str):
             .document('liveActivities').collection('items').document(job_id))
 
 
-def register(db, uid: str, job_id: str, token: str) -> Dict[str, Any]:
+def register(db, uid: str, job_id: str, token: str, environment: str = 'production') -> Dict[str, Any]:
     """Stores the activity's push token. Called by the app, so it may raise."""
     from fastapi import HTTPException
     if not isinstance(token, str) or not 32 <= len(token) <= 200 or any(c not in '0123456789abcdefABCDEF' for c in token):
         raise HTTPException(422, 'Invalid Live Activity token.')
-    if not isinstance(job_id, str) or not job_id.startswith(('mj-', 'cj-')) or len(job_id) > 120:
+    if not isinstance(job_id, str) or not job_id.startswith(('mj-', 'cj-', 'an-')) or len(job_id) > 120:
         raise HTTPException(422, 'Invalid creation identifier.')
-    ref(db, uid, job_id).set({'token': token, 'jobId': job_id, 'frame': 1, 'updatedAt': time.time()})
+    if environment not in ('sandbox', 'production'):
+        raise HTTPException(422, 'Invalid push environment.')
+    ref(db, uid, job_id).set({'token': token, 'jobId': job_id, 'frame': 1,
+                              'environment': environment, 'updatedAt': time.time()})
     return {'registered': True, 'pushEnabled': configured()}
 
 
@@ -87,7 +99,7 @@ def content_state(job: Dict[str, Any], frame: int) -> Dict[str, Any]:
     phase = 'thinking' if status == 'queued' else ('model' if job.get('kind') == 'model' else 'concept')
     progress = 1.0 if done else min(max(float(job.get('progress') or 0) / 100, 0.0), 1.0)
     return {'phase': phase, 'progress': progress, 'frame': max(1, min(frame, 6)),
-            'finished': done, 'failed': failed}
+            'finished': done, 'failed': failed, 'stage': job.get('stage')}
 
 
 def payload(state: Dict[str, Any], event: str) -> Dict[str, Any]:
@@ -100,7 +112,7 @@ def payload(state: Dict[str, Any], event: str) -> Dict[str, Any]:
     return {'aps': aps}
 
 
-def send(token: str, body: Dict[str, Any], *, timeout: float = 10) -> int:
+def send(token: str, body: Dict[str, Any], *, environment: Optional[str] = None, timeout: float = 10) -> int:
     import httpx
     headers = {'authorization': 'bearer ' + authorization(),
                'apns-topic': bundle_id() + TOPIC_SUFFIX,
@@ -108,7 +120,7 @@ def send(token: str, body: Dict[str, Any], *, timeout: float = 10) -> int:
                'apns-priority': '10',
                'apns-expiration': str(int(time.time() + STALE_AFTER))}
     with httpx.Client(http2=True, timeout=timeout) as client:
-        response = client.post(f'{host()}/3/device/{token}', json=body, headers=headers)
+        response = client.post(f'{host(environment)}/3/device/{token}', json=body, headers=headers)
     return response.status_code
 
 
@@ -129,7 +141,8 @@ def notify(db, uid: str, job: Dict[str, Any]) -> Optional[str]:
         ending = status not in ('queued', 'running')
         frame = int(record.get('frame') or 1) % 6 + 1
         state = content_state(job, frame)
-        code = send(record['token'], payload(state, 'end' if ending else 'update'))
+        code = send(record['token'], payload(state, 'end' if ending else 'update'),
+                    environment=record.get('environment'))
         if ending or code in (400, 403, 410):
             # Gone, unauthorized, or simply over: stop tracking this activity.
             ref(db, uid, job_id).delete()

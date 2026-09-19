@@ -10,8 +10,8 @@ KEY_ENV = {'APNS_PRIVATE_KEY': '-----BEGIN PRIVATE KEY-----\nnot-a-real-key\n---
 TOKEN = 'a' * 64
 
 
-def job(status='running', progress=40, kind='model', jid='mj-1'):
-    return {'id': jid, 'status': status, 'progress': progress, 'kind': kind}
+def job(status='running', progress=40, kind='model', jid='mj-1', stage='reconstructing'):
+    return {'id': jid, 'status': status, 'progress': progress, 'kind': kind, 'stage': stage}
 
 
 class RegisterTests(unittest.TestCase):
@@ -22,6 +22,18 @@ class RegisterTests(unittest.TestCase):
         result = live_activity.register(self.studio.db, UID, 'mj-1', TOKEN)
         self.assertTrue(result['registered'])
         self.assertEqual(live_activity.ref(self.studio.db, UID, 'mj-1').get().to_dict()['token'], TOKEN)
+
+    def test_the_push_host_follows_the_build_that_registered(self):
+        live_activity.register(self.studio.db, UID, 'mj-2', TOKEN, 'sandbox')
+        self.assertEqual(live_activity.ref(self.studio.db, UID, 'mj-2').get().to_dict()['environment'], 'sandbox')
+        self.assertEqual(live_activity.host('sandbox'), live_activity.SANDBOX_HOST)
+        self.assertEqual(live_activity.host('production'), live_activity.PRODUCTION_HOST)
+        with patch.dict('os.environ', KEY_ENV), patch.object(live_activity, 'send', return_value=200) as send:
+            live_activity.notify(self.studio.db, UID, job(jid='mj-2'))
+        self.assertEqual(send.call_args.kwargs['environment'], 'sandbox')
+
+    def test_the_stage_travels_with_the_state(self):
+        self.assertEqual(live_activity.content_state(job(stage='rendering_views'), 1)['stage'], 'rendering_views')
 
     def test_junk_is_refused(self):
         for jid, token in [('mj-1', 'not-hex!'), ('mj-1', 'ab'), ('../escape', TOKEN), ('other-1', TOKEN)]:
