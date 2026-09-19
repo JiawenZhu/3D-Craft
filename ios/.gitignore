@@ -6,6 +6,10 @@ build/
 *.ipa
 *.xcdistributionlogs/
 .DS_Store
+*.p8
+*.pem
+*.key
+*.mobileprovision
 
 # Antigravity CLI and Agent integrations (prevent upload to App Store / GitHub)
 .antigravity/

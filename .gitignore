@@ -15,6 +15,9 @@ venv/
 *.egg-info/
 .env
 .env.*
+*.p8
+*.pem
+*.key
 *.glb
 *.obj
 *.fbx
