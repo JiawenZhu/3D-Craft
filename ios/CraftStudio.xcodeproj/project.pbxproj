@@ -26,6 +26,7 @@
 		263BAB2C80DC8BEEA844758E /* mascot-panda-thinking-5.png in Resources */ = {isa = PBXBuildFile; fileRef = BC7A7675A63638159A93AAB1 /* mascot-panda-thinking-5.png */; };
 		275F3D70B64A6829D847DD79 /* CraftWebAuthAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */; };
 		2A4F7A3F45B2AA05FC286035 /* CraftMascotLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88AF98B87BAA034033636034 /* CraftMascotLoop.swift */; };
+		2BB465D9B6A8CBF3CA4B4ABF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E500B51AFC4FD7C475D79A2C /* Assets.xcassets */; };
 		2CFD71AA12AC0895B71DF6B0 /* CraftAppleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */; };
 		2ECE6B242DAB5019A119512F /* mascot-panda-concept-5.png in Resources */ = {isa = PBXBuildFile; fileRef = DA890E96EAC9BE4C25879B1B /* mascot-panda-concept-5.png */; };
 		2F1297E35DEF6B5B2B0862E6 /* mascot-dragon-thinking-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 07B0B921E1D7AAF34F16ABE6 /* mascot-dragon-thinking-3.png */; };
@@ -373,6 +374,7 @@
 		DE6BB56C4A4E28B8E2B5A0B3 /* CreationCostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreationCostView.swift; sourceTree = "<group>"; };
 		E0A43A91B0DC2F1E99BAA60C /* emerald_dragon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = emerald_dragon.jpg; sourceTree = "<group>"; };
 		E3225FE6F6D39BB757B52A72 /* mascot-dragon-poster-small.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-dragon-poster-small.jpg"; sourceTree = "<group>"; };
+		E500B51AFC4FD7C475D79A2C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E697FB7FBE88C9F63A300584 /* mascot-panda-concept-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-1.png"; sourceTree = "<group>"; };
 		E77FE2941711E6EF4C42C4F5 /* sunforge-helmet.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "sunforge-helmet.jpg"; sourceTree = "<group>"; };
 		E8B0A439AFD6F7F5DCAE23DB /* mascot-dragon-thinking-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-1.png"; sourceTree = "<group>"; };
@@ -442,6 +444,7 @@
 		5BF6C3B1E8DD5FDF640AA3A0 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				E500B51AFC4FD7C475D79A2C /* Assets.xcassets */,
 				AFE806568C3D7F1CE9590276 /* MascotFrames */,
 			);
 			name = Resources;
@@ -872,6 +875,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2BB465D9B6A8CBF3CA4B4ABF /* Assets.xcassets in Resources */,
 				83357EF953B24B50C1BED14F /* mascot-dragon-concept-1.png in Resources */,
 				B50B0F0915A0FC57CE51FFD8 /* mascot-dragon-concept-2.png in Resources */,
 				75E731366DBB821FA855DAC5 /* mascot-dragon-concept-3.png in Resources */,
@@ -1100,7 +1104,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2026091901;
+				CURRENT_PROJECT_VERSION = 2026091902;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = C265XC3RH7;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1162,7 +1166,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2026091901;
+				CURRENT_PROJECT_VERSION = 2026091902;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = C265XC3RH7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

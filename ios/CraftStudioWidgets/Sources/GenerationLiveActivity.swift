@@ -17,7 +17,7 @@ struct GenerationLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    MascotBadge(context: context, size: 46)
+                    MascotBadge(context: context, size: 52)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 2) {
@@ -42,14 +42,16 @@ struct GenerationLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                MascotBadge(context: context, size: 22, ring: false)
+                MascotBadge(context: context, size: 24, ring: true)
             } compactTrailing: {
                 CompactProgress(context: context)
             } minimal: {
-                MascotBadge(context: context, size: 20, ring: false)
+                MascotBadge(context: context, size: 22, ring: true)
             }
             .widgetURL(URL(string: "studio.craft.ios://project/\(context.attributes.projectId)"))
-            .keylineTint(Color(red: 0.85, green: 0.63, blue: 0.95))
+            .keylineTint(context.attributes.mascot == .panda
+                ? Color(red: 0.45, green: 0.85, blue: 0.65)
+                : Color(red: 0.85, green: 0.63, blue: 0.95))
         }
     }
 
@@ -99,7 +101,7 @@ private struct LockScreenView: View {
     }
 }
 
-// MARK: - Pieces
+private final class WidgetBundleToken {}
 
 /// The waiting mascot for this phase: thinking while queued, drawing for
 /// concept images, shaping for 3D. A still, stepped by real progress.
@@ -116,18 +118,73 @@ private struct MascotBadge: View {
                                     dimmed ? 1 : context.state.frame)
     }
 
+    private var isPanda: Bool {
+        context.attributes.mascot == .panda
+    }
+
+    private var themeColor: Color {
+        isPanda ? Color(red: 0.45, green: 0.85, blue: 0.65) // Emerald green
+                : Color(red: 0.85, green: 0.63, blue: 0.95) // Lavender purple (Rodin)
+    }
+
+    private var themeBackground: Color {
+        isPanda ? Color(red: 0.90, green: 0.96, blue: 0.93)
+                : Color(red: 0.94, green: 0.92, blue: 0.98)
+    }
+
+    private var mascotImage: Image? {
+        let bundle = Bundle(for: WidgetBundleToken.self)
+        // 1. Try named asset from Asset Catalog
+        if let uiImage = UIImage(named: name, in: bundle, with: nil) {
+            return Image(uiImage: uiImage)
+        }
+        // 2. Try loose file in extension bundle
+        if let path = bundle.path(forResource: name, ofType: "png"),
+           let uiImage = UIImage(contentsOfFile: path) {
+            return Image(uiImage: uiImage)
+        }
+        // 3. Try main bundle
+        if let path = Bundle.main.path(forResource: name, ofType: "png"),
+           let uiImage = UIImage(contentsOfFile: path) {
+            return Image(uiImage: uiImage)
+        }
+        if let uiImage = UIImage(named: name, in: .main, with: nil) {
+            return Image(uiImage: uiImage)
+        }
+        return nil
+    }
+
     var body: some View {
-        Image(name)
-            .resizable().scaledToFill()
-            .frame(width: size, height: size)
-            .clipShape(Circle())
-            .overlay {
-                if ring {
-                    Circle().strokeBorder(Color.white.opacity(dimmed ? 0.18 : 0.35), lineWidth: 1)
-                }
+        ZStack {
+            Circle()
+                .fill(themeBackground)
+                .frame(width: size, height: size)
+
+            if let img = mascotImage {
+                img
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Image(name, bundle: Bundle(for: WidgetBundleToken.self))
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
             }
-            .opacity(dimmed ? 0.75 : 1)
-            .accessibilityHidden(true)
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .contentTransition(.opacity)
+        .overlay {
+            if ring {
+                Circle().strokeBorder(themeColor.opacity(dimmed ? 0.35 : 0.8), lineWidth: size > 40 ? 1.5 : 1)
+            }
+        }
+        .opacity(dimmed ? 0.75 : 1)
+        .accessibilityHidden(true)
+        .animation(.easeInOut(duration: 0.35), value: context.state.frame)
     }
 }
 
@@ -139,6 +196,10 @@ private struct ProgressBar: View {
     var height: CGFloat
     @Environment(\.isLuminanceReduced) private var dimmed
 
+    private var isPanda: Bool {
+        context.attributes.mascot == .panda
+    }
+
     private var fraction: Double {
         context.state.finished ? 1 : max(context.state.progress, context.state.phase == .thinking ? 0.06 : 0.02)
     }
@@ -147,7 +208,9 @@ private struct ProgressBar: View {
             ? [Color(red: 0.95, green: 0.55, blue: 0.45), Color(red: 0.85, green: 0.35, blue: 0.30)]
             : context.state.finished
                 ? [Color(red: 0.60, green: 0.90, blue: 0.75), Color(red: 0.45, green: 0.82, blue: 0.65)]
-                : [Color(red: 0.85, green: 0.63, blue: 0.95), Color(red: 0.62, green: 0.78, blue: 0.98)]
+                : isPanda
+                    ? [Color(red: 0.45, green: 0.85, blue: 0.65), Color(red: 0.30, green: 0.75, blue: 0.55)]
+                    : [Color(red: 0.85, green: 0.63, blue: 0.95), Color(red: 0.62, green: 0.78, blue: 0.98)]
         return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
@@ -185,6 +248,12 @@ private struct ProgressBar: View {
 private struct CompactProgress: View {
     let context: ActivityViewContext<CraftGenerationAttributes>
 
+    private var activeColor: Color {
+        context.attributes.mascot == .panda
+            ? Color(red: 0.45, green: 0.85, blue: 0.65)
+            : Color(red: 0.85, green: 0.63, blue: 0.95)
+    }
+
     var body: some View {
         ZStack {
             Circle().stroke(Color.white.opacity(0.2), lineWidth: 2.5)
@@ -192,7 +261,7 @@ private struct CompactProgress: View {
                 .trim(from: 0, to: max(0.04, context.state.finished ? 1 : context.state.progress))
                 .stroke(context.state.failed ? Color.orange
                         : context.state.finished ? Color.green
-                        : Color(red: 0.85, green: 0.63, blue: 0.95),
+                        : activeColor,
                         style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if context.state.finished {
