@@ -1,12 +1,13 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Originals, concept images and previews: private cloud-service uploads.
+    // Originals, concept images, previews and animated characters: private
+    // cloud-service uploads the owner may read but never write.
     match /users/{uid}/{category}/{file} {
       allow read: if request.auth != null && request.auth.uid == uid
         && request.auth.token.firebase.sign_in_provider != 'anonymous'
         && !firestore.exists(/databases/(default)/documents/accountDeletions/$(request.auth.uid))
-        && category in ['files', 'images', 'previews'];
+        && category in ['files', 'images', 'previews', 'animations'];
       allow write: if false;
     }
     match /users/{uid}/models/{file} {

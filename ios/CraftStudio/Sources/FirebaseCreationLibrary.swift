@@ -38,15 +38,22 @@ enum FirebaseCreationLibrary {
             for doc in result["documents"] as? [[String: Any]] ?? [] {
                 let fields = doc["fields"] as? [String: [String: Any]] ?? [:]
                 let d = fields.compactMapValues(value)
-                guard d["ownerId"] as? String == uid, d["kind"] as? String == "3D object",
+                // 3D objects and animated characters are the library; concept
+                // images live in their projects instead.
+                let kind = d["kind"] as? String
+                guard d["ownerId"] as? String == uid, kind == "3D object" || kind == "Animated character",
                       let name = doc["name"] as? String, let ident = name.split(separator: "/").last else { continue }
+                let animated = kind == "Animated character"
                 let imagePath = d["previewStoragePath"] as? String ?? ""
                 let modelPath = d["modelStoragePath"] as? String ?? ""
                 var preview = mediaURL(path: imagePath, uid: uid)?.absoluteString
                 // Legacy Firebase documents carry their preview inline. Keep them readable.
                 if preview == nil, let inline = d["preview"] as? String, inline.hasPrefix("data:image/") { preview = inline }
-                records.append(CraftAsset(id: String(ident).replacingOccurrences(of: "model:", with: "", options: .anchored), name: d["name"] as? String ?? "Untitled creation",
-                    modelUrl: mediaURL(path: modelPath, uid: uid)?.absoluteString, thumbUrl: preview))
+                let id = String(ident).replacingOccurrences(of: animated ? "animation:" : "model:", with: "", options: .anchored)
+                var asset = CraftAsset(id: id, name: d["name"] as? String ?? "Untitled creation",
+                    modelUrl: animated ? nil : mediaURL(path: modelPath, uid: uid)?.absoluteString, thumbUrl: preview)
+                if animated { asset.animationUrl = mediaURL(path: d["animationStoragePath"] as? String ?? "", uid: uid)?.absoluteString }
+                records.append(asset)
             }
             pageToken = result["nextPageToken"] as? String
         } while pageToken?.isEmpty == false
