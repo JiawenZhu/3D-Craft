@@ -40,7 +40,7 @@ class PromptRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     idempotencyKey: str = Field(min_length=8,max_length=120)
     prompt: str = Field(default='',max_length=4000)
-    plannerModel: Literal['gemini-3.8-flash'] = provider.MODEL
+    plannerModel: Literal['gemini-3.5-flash-lite', 'gemini-3.8-flash'] = provider.MODEL
     plannerEffort: Literal['low','medium','high'] = 'low'
     maxTokens: int = Field(strict=True,ge=1,le=100)
 
@@ -49,7 +49,7 @@ class ChatRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     clientId: str = Field(min_length=8,max_length=120)
     text: str = Field(min_length=1,max_length=4000)
-    plannerModel: Literal['gemini-3.8-flash'] = provider.MODEL
+    plannerModel: Literal['gemini-3.5-flash-lite', 'gemini-3.8-flash'] = provider.MODEL
     plannerEffort: Literal['low','medium','high'] = 'low'
     conceptId: str | None = Field(default=None,max_length=150)
     style: str = Field(default='Stylized',max_length=100)

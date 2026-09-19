@@ -64,9 +64,9 @@ IS_PRODUCTION = (
     or os.getenv("RODIN_PRODUCTION", "").lower() in ("1", "true", "yes")
 )
 
-# The planner writes every prompt the image model executes, so a weaker text
-# model degrades the concept and no amount of image quality rescues it.
-GEMINI_TEXT_MODEL = os.getenv("RODIN_GEMINI_TEXT_MODEL", "gemini-3.8-flash")
+# Speed is the primary factor for interactive planning, with prompt guidance
+# keeping user intent and step-by-step 3D design structured and fast.
+GEMINI_TEXT_MODEL = os.getenv("RODIN_GEMINI_TEXT_MODEL", "gemini-3.5-flash-lite")
 # The concept image sets the ceiling on the mesh — image-to-3D cannot recover
 # detail that was never rendered — so this defaults to the pro model.
 GEMINI_IMAGE_MODEL = os.getenv("RODIN_GEMINI_IMAGE_MODEL", "gemini-3-pro-image")

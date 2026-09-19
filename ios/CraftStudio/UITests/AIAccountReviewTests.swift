@@ -72,7 +72,7 @@ final class AIAccountReviewTests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(planner.isHittable); planner.tap()
-        XCTAssertTrue(app.buttons["planner.model.gemini-3.8-flash"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["planner.model.gemini-3.5-flash-lite"].waitForExistence(timeout: 10))
         capture(app, "prompt-planning-models")
     }
     @MainActor private func capture(_ app: XCUIApplication, _ name: String) {

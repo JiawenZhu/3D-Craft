@@ -10,7 +10,7 @@ from google.auth.transport.requests import Request
 import requests
 from PIL import Image
 
-MODEL = 'gemini-3.8-flash'
+MODEL = 'gemini-3.5-flash-lite'
 PROJECT = 'forma-studio-2026'
 URL = f'https://aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/global/publishers/google/models/{MODEL}'
 MAX_INPUT = 16000

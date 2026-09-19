@@ -41,6 +41,11 @@ def catalog(today=None):
             "Per 1K/2K output image. 4K: $0.24. Input $2/M and text/thinking output $12/M tokens are additional.",
             "每张 1K/2K 输出图 $0.134；4K $0.24。另计输入 $2/百万、文字及思考输出 $12/百万 tokens。", GOOGLE_SOURCE,
             fourKUsd=.24, inputPerMillion=2., outputPerMillion=12.),
+        "gemini-3.5-flash-lite": row("Gemini 3.5 Flash-Lite", "tokens", None,
+            "Billed on actual input and output tokens. Fastest latency for interactive prompt planning.",
+            "按实际输入和输出 tokens 计费。针对交互式规划优化超低延迟。", GOOGLE_SOURCE,
+            inputPerMillion=.075,
+            outputPerMillion=.30),
         "gemini-3.8-flash": row("Gemini 3.8 Flash", "tokens", None,
             "Billed on actual input and output (including thinking) tokens. Introductory rates through Dec 31, 2026.",
             "按实际输入和输出（含思考）tokens 计费。优惠费率截至 2026 年 12 月 31 日。", GOOGLE_SOURCE,
@@ -71,7 +76,7 @@ def catalog(today=None):
         models["trellis-2"].update(multiUnitUsd=None, multiTexturedUsd=None)
     if models["trellis-2"].get("multiTexturedUsd") is None or models["hunyuan3d-2.1"].get("multiTexturedUsd") is None:
         models["hybrid"].update(multiUnitUsd=None, multiTexturedUsd=None)
-    for key, configured in (("gemini-3-pro-image",GEMINI_IMAGE_MODEL),("gemini-3.8-flash",GEMINI_TEXT_MODEL)):
+    for key, configured in (("gemini-3-pro-image",GEMINI_IMAGE_MODEL),("gemini-3.5-flash-lite",GEMINI_TEXT_MODEL)):
         if configured != key:
             models[key] = row(configured, "unknown", note="Configured model price pending verification.", zh="当前配置模型价格待核实。")
     for key in ("trellis-2", "hybrid"):

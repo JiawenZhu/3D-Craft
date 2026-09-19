@@ -4,8 +4,8 @@ struct CraftPlannerModel: Identifiable, Equatable {
     let id: String
     let name: String
     let reasoningEfforts: [String]
-    static let defaultID = "gemini-3.8-flash"
-    static let defaultName = "Gemini 3.8 Flash"
+    static let defaultID = "gemini-3.5-flash-lite"
+    static let defaultName = "Gemini 3.5 Flash-Lite"
     var fastEffort: String? {
         ["low", "none", "minimal"].first(where: reasoningEfforts.contains) ?? reasoningEfforts.first
     }

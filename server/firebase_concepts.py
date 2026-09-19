@@ -28,7 +28,7 @@ class ConceptRequest(BaseModel):
     count:int=Field(default=1,strict=True,ge=1,le=4)
     prompt:str=Field(default='',max_length=4000)
     imageModel:Literal['gemini-3-pro-image']=provider.MODEL
-    plannerModel:Literal['gemini-3.8-flash']=provider.planner.MODEL
+    plannerModel:Literal['gemini-3.5-flash-lite', 'gemini-3.8-flash']=provider.planner.MODEL
     plannerEffort:Literal['low']='low'
     preserveReference:bool=False
     referenceId:str|None=Field(default=None,max_length=150)

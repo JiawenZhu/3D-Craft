@@ -93,8 +93,8 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
                         },
                         "plannerModel": {
                             "type": "string",
-                            "enum": ["gemini-3.8-flash"],
-                            "default": "gemini-3.8-flash",
+                            "enum": ["gemini-3.5-flash-lite", "gemini-3.8-flash"],
+                            "default": "gemini-3.5-flash-lite",
                         },
                         "plannerEffort": {
                             "type": "string",
@@ -153,7 +153,7 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
                     "properties": {
                         "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 120},
                         "prompt": {"type": "string", "maxLength": 4000, "default": ""},
-                        "plannerModel": {"type": "string", "enum": ["gemini-3.8-flash"], "default": "gemini-3.8-flash"},
+                        "plannerModel": {"type": "string", "enum": ["gemini-3.5-flash-lite", "gemini-3.8-flash"], "default": "gemini-3.5-flash-lite"},
                         "plannerEffort": {"type": "string", "enum": ["low", "medium", "high"], "default": "low"},
                         "maxTokens": {"type": "integer", "minimum": 1, "maximum": 100},
                     },
@@ -164,7 +164,7 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
                     "properties": {
                         "clientId": {"type": "string", "minLength": 8, "maxLength": 120},
                         "text": {"type": "string", "minLength": 1, "maxLength": 4000},
-                        "plannerModel": {"type": "string", "enum": ["gemini-3.8-flash"], "default": "gemini-3.8-flash"},
+                        "plannerModel": {"type": "string", "enum": ["gemini-3.5-flash-lite", "gemini-3.8-flash"], "default": "gemini-3.5-flash-lite"},
                         "plannerEffort": {"type": "string", "enum": ["low", "medium", "high"], "default": "low"},
                         "conceptId": {"type": "string", "nullable": True, "maxLength": 150},
                         "style": {"type": "string", "default": "Stylized", "maxLength": 100},
