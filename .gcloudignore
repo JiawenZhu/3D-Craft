@@ -1,0 +1,22 @@
+# Cloud Build only needs what deploy/cloud-api/Dockerfile copies. Uploading the
+# whole repository sent about 500 MB per deploy (design assets, iOS resources,
+# local runs); this keeps it to the server modules and their one config file.
+#
+# Pattern: ignore everything, re-include a directory, re-ignore its contents,
+# then re-include only the files the image uses.
+*
+!.gcloudignore
+!deploy/
+deploy/*
+!deploy/cloud-api/
+deploy/cloud-api/*
+!deploy/cloud-api/Dockerfile
+!deploy/cloud-api/cloudbuild.yaml
+!server/
+server/*
+!server/*.py
+!config/
+config/*
+!config/commerce/
+config/commerce/*
+!config/commerce/plans.json
