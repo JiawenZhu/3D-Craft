@@ -11,6 +11,7 @@ import requests
 from PIL import Image
 
 MODEL = 'gemini-3.5-flash-lite'
+FALLBACK_MODEL = 'gemini-3.8-flash'
 PROJECT = 'forma-studio-2026'
 URL = f'https://aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/global/publishers/google/models/{MODEL}'
 MAX_INPUT = 16000
@@ -106,26 +107,39 @@ def preflight(payload, maximum=MAX_INPUT):
     return total
 
 
-def generate(payload, prices, kind='prompt'):
-    result=call('generateContent',payload)
-    candidates=result.get('candidates') or []
-    if not candidates or candidates[0].get('finishReason')!='STOP':
-        raise PlannerError('No complete suggestion was returned. Your original description is unchanged.')
+def generate(payload, prices, kind='prompt', model=MODEL):
+    active_model = model
     try:
-        parts=candidates[0]['content']['parts']
-        text=''.join(p.get('text','') for p in parts if not p.get('thought'))
-        parsed=json.loads(text)
-        answer=validate_answer(parsed,kind)
-        usage=result['usageMetadata']
-        counts=[usage['promptTokenCount'],usage.get('candidatesTokenCount',0),usage.get('thoughtsTokenCount',0)]
-        cached=usage.get('cachedContentTokenCount',0)
-        if any(type(n) is not int or n < 0 for n in counts+[cached]) or counts[0]==0 or cached>counts[0]: raise ValueError()
-    except (KeyError,IndexError,TypeError,ValueError):
+        result = call('generateContent', payload, model=active_model)
+        candidates = result.get('candidates') or []
+        if not candidates or candidates[0].get('finishReason') != 'STOP':
+            raise PlannerError('No complete suggestion was returned. Your original description is unchanged.')
+    except PlannerError:
+        if active_model == MODEL and FALLBACK_MODEL:
+            logging.getLogger(__name__).warning('Primary model %s failed, falling back to %s', MODEL, FALLBACK_MODEL)
+            active_model = FALLBACK_MODEL
+            result = call('generateContent', payload, model=active_model)
+            candidates = result.get('candidates') or []
+            if not candidates or candidates[0].get('finishReason') != 'STOP':
+                raise PlannerError('No complete suggestion was returned. Your original description is unchanged.')
+        else:
+            raise
+    try:
+        parts = candidates[0]['content']['parts']
+        text = ''.join(p.get('text', '') for p in parts if not p.get('thought'))
+        parsed = json.loads(text)
+        answer = validate_answer(parsed, kind)
+        usage = result['usageMetadata']
+        counts = [usage['promptTokenCount'], usage.get('candidatesTokenCount', 0), usage.get('thoughtsTokenCount', 0)]
+        cached = usage.get('cachedContentTokenCount', 0)
+        if any(type(n) is not int or n < 0 for n in counts + [cached]) or counts[0] == 0 or cached > counts[0]:
+            raise ValueError()
+    except (KeyError, IndexError, TypeError, ValueError):
         raise PlannerError('No usable suggestion was returned. Your original description is unchanged.') from None
     # Only the validated suggestion and usage counts are retained, not raw
     # responses or provider thought signatures. Charge is capped by consent.
-    return {**answer,'model':MODEL,'usage':{'input':counts[0],'output':sum(counts[1:]),'cachedInput':cached},
-            **cost(counts[0],sum(counts[1:]),prices,cached)}
+    return {**answer, 'model': active_model, 'usage': {'input': counts[0], 'output': sum(counts[1:]), 'cachedInput': cached},
+            **cost(counts[0], sum(counts[1:]), prices, cached)}
 
 
 def validate_answer(parsed, kind):

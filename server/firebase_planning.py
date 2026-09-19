@@ -308,7 +308,8 @@ class CloudPlanning:
         # Check the quote again after potentially slow, uncharged preparation.
         if self.now()>=min(data['deadline'],data['estimate']['expiresAt']):return self.finish(uid,jid,token)
         self.advance(uid,jid,token,'queued',{'phase':'calling','status':'working'})
-        try:answer=provider.generate(payload,data['estimate']['rates'],data.get('kind','prompt'))
+        model_req = data.get('options', {}).get('plannerModel') or provider.MODEL
+        try:answer=provider.generate(payload,data['estimate']['rates'],data.get('kind','prompt'),model=model_req)
         except provider.PlannerError as exc:return self.finish(uid,jid,token,str(exc))
         self.advance(uid,jid,token,'calling',{'phase':'answered','answer':answer})
         return self.finish(uid,jid,token)

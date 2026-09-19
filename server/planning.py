@@ -5,6 +5,7 @@ from pathlib import Path
 from . import gemini
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODEL = "gemini-3.8-flash"
 
 from .creative_prompts import SYSTEM as MODEL_PROMPT_SYSTEM
 
@@ -15,11 +16,19 @@ def improve_model_prompt(owner: str, model: str, words: str, image: Path, *, eff
     schema = {"type": "object", "properties": {"prompt": {"type": "string"}},
               "required": ["prompt"], "additionalProperties": False}
     prompt = MODEL_PROMPT_SYSTEM + "\nUser words:\n" + words
-    if model == DEFAULT_MODEL:
-        data = gemini._call(gemini.GEMINI_TEXT_MODEL, {
+    if model in (DEFAULT_MODEL, FALLBACK_MODEL):
+        target = gemini.GEMINI_TEXT_MODEL if model == DEFAULT_MODEL else model
+        body = {
             "contents": [{"role":"user", "parts":[gemini._inline(image), {"text":prompt}]}],
             "generationConfig": {"responseMimeType":"application/json",
-                                 "responseSchema":{k:v for k,v in schema.items() if k != "additionalProperties"}}})
+                                 "responseSchema":{k:v for k,v in schema.items() if k != "additionalProperties"}}}
+        try:
+            data = gemini._call(target, body)
+        except Exception:
+            if target != FALLBACK_MODEL:
+                data = gemini._call(FALLBACK_MODEL, body)
+            else:
+                raise
         parts = ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts", [])
         result = json.loads("".join(part.get("text", "") for part in parts))
     else:
@@ -32,7 +41,7 @@ def improve_model_prompt(owner: str, model: str, words: str, image: Path, *, eff
 
 
 def require_available(owner: str, model: str, effort: str = "low") -> None:
-    if model == DEFAULT_MODEL:
+    if model in (DEFAULT_MODEL, FALLBACK_MODEL):
         if not gemini.GEMINI_API_KEY:
             raise RuntimeError("Gemini prompt planning is not configured")
         return
