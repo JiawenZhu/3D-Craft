@@ -240,6 +240,9 @@ struct PendingGeneration: Codable, Equatable {
     /// What a blocked creation needed, so the paywall can explain itself and
     /// open on the page that actually helps.
     @Published var shortfall: CraftShortfall?
+    /// True when a creation is running but iOS Live Activities are switched off
+    /// for this app, so the Lock Screen and Dynamic Island stay empty.
+    @Published var liveActivitiesOff = false
 
     /// Records the gap and opens the paywall. `what` names the creation in the
     /// person's own terms ("this 3D model"), never a job id.
@@ -313,6 +316,9 @@ struct PendingGeneration: Codable, Equatable {
             pending.jobID=id
             try persistPending(pending)
             acceptJob(CraftJob(job, base: apiBase))
+            // The Lock Screen should show the work immediately, not after the
+            // next poll three seconds later.
+            syncLiveActivities()
             try resolvePending(from: jobs)
             return pending.projectID
         }catch {
@@ -340,7 +346,12 @@ struct PendingGeneration: Codable, Equatable {
     /// Mirrors running jobs on the Lock Screen and Dynamic Island.
     func syncLiveActivities() {
         let centre = CraftLiveActivityCenter.shared
-        guard centre.available else { return }
+        guard centre.available else {
+            // Nothing will appear on the Lock Screen; say so where it matters.
+            liveActivitiesOff = centre.unavailableReason == "off-in-settings" && jobs.contains(where: \.isActive)
+            return
+        }
+        liveActivitiesOff = false
         centre.registerToken = { [weak self] jobId, token in
             guard let self else { return }
             _ = try? await self.request("/live-activity", method: "POST", body: ["jobId": jobId, "token": token])
@@ -358,6 +369,7 @@ struct PendingGeneration: Codable, Equatable {
             jobs[index] = job
         } else { jobs.insert(job, at: 0) }
         completedModelCards.append(contentsOf: completionTracker.receive(jobs))
+        syncLiveActivities()
     }
 
     private func refreshCreationState() async throws {

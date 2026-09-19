@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SwiftUI
 #if canImport(ActivityKit)
 import ActivityKit
@@ -16,7 +17,7 @@ import ActivityKit
 /// backgrounded; if push is unavailable, the activity simply holds its last
 /// state and ends on the next launch.
 @MainActor
-final class CraftLiveActivityCenter {
+final class CraftLiveActivityCenter: ObservableObject {
     static let shared = CraftLiveActivityCenter()
 
     /// Terminal jobs whose activity has been ended, so it is not restarted.
@@ -25,13 +26,21 @@ final class CraftLiveActivityCenter {
     private var tokenTasks: [String: Task<Void, Never>] = [:]
     /// Called with (jobId, hex push token) so the store can register it.
     var registerToken: ((String, String) async -> Void)?
+    /// Why the Lock Screen is empty, when it is. Read by the app to explain.
+    @Published private(set) var unavailableReason: String?
+    private let log = Logger(subsystem: "studio.craft.ios", category: "LiveActivity")
 
     private init() {}
 
     var available: Bool {
         #if canImport(ActivityKit)
-        if #available(iOS 16.2, *) { return ActivityAuthorizationInfo().areActivitiesEnabled }
+        if #available(iOS 16.2, *) {
+            let enabled = ActivityAuthorizationInfo().areActivitiesEnabled
+            unavailableReason = enabled ? nil : "off-in-settings"
+            return enabled
+        }
         #endif
+        unavailableReason = "unsupported"
         return false
     }
 
@@ -72,14 +81,26 @@ final class CraftLiveActivityCenter {
         guard activity(for: job.id) == nil, !finished.contains(job.id) else { return }
         let attributes = CraftGenerationAttributes(
             jobId: job.id, kind: job.kind, projectId: job.projectId, projectName: projectName,
-            mascot: .forTheme(emerald: emerald), chinese: chinese)
+            mascot: .forTheme(emerald: emerald), chinese: chinese,
+            startedAt: job.createdAt.map { Date(timeIntervalSince1970: $0) } ?? .now)
+        let content = ActivityContent(state: state(for: job), staleDate: staleDate())
         do {
-            let started = try Activity.request(attributes: attributes,
-                                               content: .init(state: state(for: job), staleDate: staleDate()),
-                                               pushType: .token)
+            let started = try Activity.request(attributes: attributes, content: content, pushType: .token)
+            unavailableReason = nil
+            log.info("Live Activity started for \(job.id, privacy: .public) (\(job.kind, privacy: .public))")
             observeToken(started)
         } catch {
-            // A refused or unavailable activity never blocks the creation itself.
+            // Push may be refused while the rest still works, so try again
+            // without it rather than leaving the Lock Screen empty.
+            log.error("Live Activity with push refused: \(error.localizedDescription, privacy: .public)")
+            do {
+                _ = try Activity.request(attributes: attributes, content: content, pushType: nil)
+                unavailableReason = nil
+                log.info("Live Activity started without push for \(job.id, privacy: .public)")
+            } catch {
+                unavailableReason = "refused"
+                log.error("Live Activity refused: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
@@ -123,6 +144,6 @@ final class CraftLiveActivityCenter {
         return .init(phase: CraftActivityPhase.of(status: job.status, kind: job.kind),
                      progress: done ? 1 : job.progress / 100,
                      frame: frames[job.id] ?? 1,
-                     finished: done, failed: failed)
+                     finished: done, failed: failed, stage: job.stage)
     }
 }

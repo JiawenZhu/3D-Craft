@@ -14,6 +14,7 @@ import UIKit
 /// radius — every frame it was on screen.
 struct GenerationJourneyView: View {
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+    @EnvironmentObject private var store: CraftStore
     let job: CraftJob
     let sourceURL: URL?
     let selectedConceptURL: URL?
@@ -60,6 +61,7 @@ struct GenerationJourneyView: View {
             if modelJob && job.isActive { PlayWhileCreatingCard(job: job) }
             header
             if job.isActive { activityPreview }
+            if job.isActive && store.liveActivitiesOff { lockScreenHint }
 
             VStack(spacing: 0) {
                 ForEach(0..<4, id: \.self) { index in
@@ -103,6 +105,31 @@ struct GenerationJourneyView: View {
                 connectorSweep = false
             }
         }
+    }
+
+    /// Live Activities are switched off for 3D Craft, so the Lock Screen and
+    /// Dynamic Island will stay empty until that is turned back on.
+    private var lockScreenHint: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "lock.iphone").foregroundStyle(lilac)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(t("Follow this on the Lock Screen", "在锁屏上查看进度"))
+                    .font(.subheadline.weight(.semibold))
+                Text(t("Live Activities are off for 3D Craft, so progress won’t appear on the Lock Screen or Dynamic Island.",
+                       "3D Craft 的实时活动已关闭，锁屏和灵动岛不会显示创作进度。"))
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(t("Open Settings", "打开设置")) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }.font(.caption.weight(.semibold)).buttonStyle(.plain).foregroundStyle(lilac)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 18))
+        .accessibilityIdentifier("generation.liveActivityOff")
     }
 
     // MARK: - Header

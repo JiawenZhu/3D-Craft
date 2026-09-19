@@ -34,11 +34,15 @@ public struct CraftGenerationAttributes: Codable, Hashable, Sendable {
     public var projectName: String
     public var mascot: CraftActivityMascot
     public var chinese: Bool
+    /// When the job started, so the Lock Screen can tick a live elapsed time
+    /// without any push: the system renders that text itself.
+    public var startedAt: Date
 
     public init(jobId: String, kind: String, projectId: String, projectName: String,
-                mascot: CraftActivityMascot, chinese: Bool) {
+                mascot: CraftActivityMascot, chinese: Bool, startedAt: Date = .now) {
         self.jobId = jobId; self.kind = kind; self.projectId = projectId
         self.projectName = projectName; self.mascot = mascot; self.chinese = chinese
+        self.startedAt = startedAt
     }
 
     public struct State: Codable, Hashable, Sendable {
@@ -47,11 +51,14 @@ public struct CraftGenerationAttributes: Codable, Hashable, Sendable {
         public var frame: Int            // 1...6, the mascot still to show
         public var finished: Bool
         public var failed: Bool
+        /// The job's own stage word, shown under the bar.
+        public var stage: String?
 
         public init(phase: CraftActivityPhase, progress: Double, frame: Int,
-                    finished: Bool = false, failed: Bool = false) {
+                    finished: Bool = false, failed: Bool = false, stage: String? = nil) {
             self.phase = phase; self.progress = min(max(progress, 0), 1)
             self.frame = frame; self.finished = finished; self.failed = failed
+            self.stage = stage
         }
     }
 }
@@ -78,6 +85,21 @@ public enum CraftActivityText {
     public static func title(kind: String, chinese: Bool) -> String {
         kind == "model" ? (chinese ? "从你的图片到 3D" : "From your image to 3D")
                         : (chinese ? "让灵感逐渐成形" : "An idea taking shape")
+    }
+
+    /// A short, plain stage label. The job's own stage words are internal, so
+    /// they are mapped rather than shown raw.
+    public static func stageLabel(_ state: CraftGenerationAttributes.State, chinese: Bool) -> String {
+        if state.failed { return chinese ? "已停止" : "Stopped" }
+        if state.finished { return chinese ? "已完成" : "Ready" }
+        switch state.stage {
+        case "analyzing_reference": return chinese ? "读取参考" : "Reading your reference"
+        case "rendering_views":     return chinese ? "绘制图像" : "Drawing"
+        case "validating_views":    return chinese ? "检查视角" : "Checking views"
+        case "reconstructing":      return chinese ? "重建三维" : "Building in 3D"
+        case "queued", .none:       return chinese ? "排队中" : "In line"
+        default:                    return chinese ? "创作中" : "Working"
+        }
     }
 
     public static func frameName(_ mascot: CraftActivityMascot, _ phase: CraftActivityPhase, _ frame: Int) -> String {
