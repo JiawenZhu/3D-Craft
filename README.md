@@ -1,213 +1,269 @@
-# 3D Craft
+<p align="center">
+  <img src="docs/app-store/2026-09-12/branding/AppIcon-1024.png" width="128" height="128" alt="3D Craft Icon" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" />
+</p>
 
-Next-generation generative 3D workspace driving state-of-the-art multimodal AI (**Gemini 3.8 Flash**, **Gemini 3 Pro Image**) and open 3D reconstruction engines (**Microsoft TRELLIS.2**, **Tencent Hunyuan3D-2.1**).
+<h1 align="center">3D Craft</h1>
 
-Featuring cloud-native **Firebase Authentication** & **Cloud Firestore** real-time synchronization, allowing seamless creation, management, exploration, and deletion of 3D assets across devices.
+<p align="center">
+  <strong>From Idea to 3D in Seconds — A complete creative studio & generative 3D pipeline for iOS, Web, and Cloud.</strong>
+</p>
+
+<p align="center">
+  <a href="#-what-is-3d-craft">What is 3D Craft</a> •
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-visual-showcase">Visual Showcase</a> •
+  <a href="#-how-it-works">How It Works</a> •
+  <a href="#-quickstart">Quickstart</a> •
+  <a href="#-developer-api--agent-integrations">API & Agents</a> •
+  <a href="#-engines-comparison">3D Engines</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/iOS-17.0%2B-blue?logo=apple&style=flat-square" alt="iOS 17+" />
+  <img src="https://img.shields.io/badge/Swift-5.0-orange?logo=swift&style=flat-square" alt="Swift 5" />
+  <img src="https://img.shields.io/badge/React-18.3-blue?logo=react&style=flat-square" alt="React 18" />
+  <img src="https://img.shields.io/badge/Three.js-0.173-black?logo=three.js&style=flat-square" alt="Three.js" />
+  <img src="https://img.shields.io/badge/FastAPI-Python_3.11%2B-teal?logo=fastapi&style=flat-square" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore-yellow?logo=firebase&style=flat-square" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Cloud_Run-GCP-blue?logo=googlecloud&style=flat-square" alt="Google Cloud Run" />
+</p>
 
 ---
 
-## Quickstart
+## 💡 What is 3D Craft?
 
-```bash
-npm install && npm run dev
-```
+**3D Craft** bridges the gap between imagination and ready-to-use 3D models. Standard image-to-3D models often fail because real-world photos contain cluttered backgrounds, irregular lighting, and baked-in shadows that ruin 3D meshes. 
 
-That alone gets you the full interface. Generations run in **preview mode** (simulated)
-until an inference server is up, so every control is usable immediately.
-
-To generate real meshes:
-
-```bash
-./scripts/setup.sh --local          # venv + torch (CUDA / MPS / CPU auto-detected)
-python scripts/fetch_weights.py     # source repos + Hunyuan3D shape weights (~7.5 GB)
-npm run server                      # http://127.0.0.1:8000
-```
-
-`npm run doctor` prints exactly what your machine can and cannot run.
+3D Craft solves this through an intelligent **multimodal AI pipeline**:
+1. **Creative Dialogue**: You describe an idea or upload a reference sketch/photo.
+2. **AI Concept Pass**: Google Gemini crafts an isolated, background-free studio concept asset with clean geometry lines and neutral lighting.
+3. **High-Fidelity 3D Reconstruction**: The concept is transformed into a watertight, textured **GLB 3D model** via state-of-the-art reconstruction engines (**Microsoft TRELLIS.2**, **Tencent Hunyuan3D-2.1**, or **Hyper3D Rodin**).
+4. **Interactive 3D Studio**: Inspect models with turntable controls, customize studio lighting, toggle solid/wireframe views, and export GLBs or hand them off directly to game engines and AI coding agents.
 
 ---
 
-## Recommended: run it on fal
+## ✨ Key Features
 
-For anything resembling production, use fal.ai. It hosts the same models, returns in
-seconds instead of minutes, and costs cents per asset.
+- **📱 Native iOS Client (iPhone & iPad)**: High-performance SwiftUI interface with native SceneKit / GLTFKit2 model rendering, dynamic studio lighting, haptic feedback, and offline caching.
+- **🌐 Interactive Web Studio**: Responsive Three.js viewport with real-time A/B engine comparisons, face/vertex count diagnostics, and camera orbital stages.
+- **🐲 Themed Mascot Waiting Loops**: Expressive procedural animations (Cloud Dragon & Panda Chef) that keep generation and modeling phases delightfully engaging.
+- **🔑 Developer API & Agent Integrations**: Full REST API (`/api/v1/creations`) with account-owned API keys (`craft_live_`) enabling external AI agents (Claude Code, Antigravity, OpenAI Codex) to automate 3D workflows with permanent delete protection.
+- **⚡ 20-Second Live Background Sync**: Foreground WebSocket/polling synchronization ensures creations made via API or agents appear on device in near real-time without pull-to-refresh.
+- **🎮 Play Your Asset (Lanternfall)**: Instantly test generated 3D models inside built-in Godot mini-games or generate structured briefs for external game builders.
+- **💳 Cloud Native & Cross-Platform**: Firebase Auth (Sign in with Apple, Google, Email), Cloud Firestore syncing, and StoreKit / RevenueCat Token packs.
 
+---
+
+## 🎨 Visual Showcase
+
+<p align="center">
+  <img src="docs/app-store/2026-09-12/promotional/01-lantern-cat-emerald.png" width="48%" alt="Lantern Cat - Emerald Studio" />
+  <img src="docs/app-store/2026-09-12/promotional/02-blue-dragon-lavender.png" width="48%" alt="Blue Dragon - Lavender Studio" />
+</p>
+<p align="center">
+  <img src="docs/app-store/2026-09-12/promotional/03-tropical-island-emerald.png" width="48%" alt="Tropical Island - 3D Diorama" />
+  <img src="docs/app-store/2026-09-12/promotional/04-panda-chef-lavender.png" width="48%" alt="Panda Chef - Multimodal Concept" />
+</p>
+
+---
+
+## 📱 Native iOS Experience (iPhone & iPad)
+
+Designed from the ground up for iOS 17+, 3D Craft gives creators a studio-grade environment right in their pocket.
+
+<p align="center">
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/01-discover.png" width="23%" alt="Discover 3D Assets" />
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/02-model.png" width="23%" alt="3D Model Orbit Inspection" />
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/03-lighting.png" width="23%" alt="Custom Studio Lighting" />
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/04-concept.png" width="23%" alt="Multimodal Concept Generation" />
+</p>
+<p align="center">
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/05-game-brief.png" width="31%" alt="Interactive Game Brief" />
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/06-objects.png" width="31%" alt="Props & Environments" />
+  <img src="docs/app-store/2026-09-12/screenshots/iphone-6.9/07-lavender.png" width="31%" alt="Lavender Theme" />
+</p>
+
+---
+
+## 🐲 Themed Mascot Waiting Loops
+
+3D reconstruction can take between 15 and 45 seconds. 3D Craft replaces boring loading spinners with themed, procedural mascot loops:
+
+<p align="center">
+  <img src="ios/CraftStudio/Resources/Mascot/mascot-dragon-poster.jpg" width="48%" alt="Cloud Dragon Mascot Loop" />
+  <img src="ios/CraftStudio/Resources/Mascot/mascot-panda-poster.jpg" width="48%" alt="Panda Chef Mascot Loop" />
+</p>
+
+---
+
+## 🎮 Play Your Asset & Game Handoff
+
+Why stop at looking at your 3D models? 3D Craft lets you play with them immediately:
+- **Lanternfall**: Bundled 3D action game with boss battles, responsive touch controls, and dynamic night lighting.
+- **AI Game Engine Handoff**: Exports clean game design briefs and models formatted specifically for **Claude Code**, **ChatGPT**, or custom game development scripts.
+
+<p align="center">
+  <img src="docs/lanternfall/gameplay-native.png" width="48%" alt="Lanternfall 3D Gameplay" />
+  <img src="docs/design/game-handoff/iphone-handoff.png" width="48%" alt="Game Engine Builder Handoff" />
+</p>
+
+---
+
+## 🏛️ Built-in 3D Gallery & Inspiration
+
+Browse pre-loaded assets, character concepts, game props, and community creations:
+
+<p align="center">
+  <img src="public/gallery/cloud-dragon.jpg" width="18%" alt="Cloud Dragon" />
+  <img src="public/gallery/panda-chef.jpg" width="18%" alt="Panda Chef" />
+  <img src="public/gallery/moss-robot.jpg" width="18%" alt="Moss Robot" />
+  <img src="public/gallery/star-skiff.jpg" width="18%" alt="Star Skiff" />
+  <img src="public/gallery/moon-fox.jpg" width="18%" alt="Moon Fox" />
+</p>
+
+---
+
+## 🔬 How It Works: The Concept-to-Mesh Pipeline
+
+```
+ User Input (Text / Photo / Reference)
+                │
+                ▼
+  [Step 1: Multimodal Prompt Planning]
+      Gemini 3.8 Flash / OpenAI Codex
+  Analyzes silhouette, symmetry, style & textures (~5s)
+                │
+                ▼
+  [Step 2: Studio Asset Concept Rendering]
+      Gemini 3 Pro Image (Imagen 3)
+  Produces a background-free, shadow-neutral studio plate (~15s)
+                │
+                ▼
+  [Step 3: 3D Geometry & PBR Reconstruction]
+      TRELLIS.2 (Gaussians + Mesh) / Hunyuan3D-2.1 (PBR) / Rodin Gen-2
+  Generates watertight topology, normals, roughness & albedo (~30s)
+                │
+                ▼
+  [Step 4: Real-time Inspection & Delivery]
+      • Native iOS SceneKit / Three.js Viewport
+      • 20s Live Sync to mobile & web clients
+      • GLB Export / Mini-game Integration
+```
+
+---
+
+## ⚡ Quickstart
+
+### 1. Web Studio (Frontend Only)
+Run the complete web studio in preview mode without needing local GPU weights:
 ```bash
-export FAL_KEY=...     # from fal.ai/dashboard/keys
+npm install
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### 2. Local Inference Server (FastAPI)
+To generate real meshes locally on your machine (supports Apple Silicon MPS & NVIDIA CUDA):
+```bash
+# Set up Python virtual environment and dependencies
+./scripts/setup.sh --local
+
+# Download Hunyuan3D shape weights (~7.5 GB)
+python scripts/fetch_weights.py
+
+# Launch the FastAPI backend
 npm run server
 ```
 
-That is the whole setup. Every engine switches to `provider=api` automatically, and
-the GENERATE button shows the real dollar cost of the run on hover before you click.
+Run `npm run doctor` to diagnose GPU hardware, acceleration drivers, and dependencies.
 
-| engine | fal endpoint | per generation |
-|---|---|---|
-| **TRELLIS.2** | `fal-ai/trellis` | **$0.02** |
-| **Hunyuan3D-2.1** | `fal-ai/hunyuan3d/v2` | $0.16 · $0.48 textured |
-| **Rodin Gen-2** | `fal-ai/hyper3d/rodin` | $0.40 |
-
-`FAL_KEY` is read by the Python server only — the browser never sees it, which is
-what fal's docs require. Never put it in Vite env vars.
+### 3. Native iOS App (Xcode)
+```bash
+cd ios
+xcodegen generate
+open CraftStudio.xcodeproj
+```
+Select your connected iPhone or a simulator target and click **Run**.
 
 ---
 
-## The concept pass
+## ☁️ Recommended Cloud Setup: fal.ai & Gemini
 
-Image-to-3D inherits every flaw of its input. A cluttered background becomes
-geometry, a cropped limb becomes a hole in the mesh, and hard shadows bake into the
-albedo where no relighting will ever remove them. So a photo does not go straight to
-the reconstructor:
-
-```
-your photo + a few words
-        │
-        ├─► Gemini writes the full image prompt      gemini-3.8-flash    ~7s
-        ├─► Gemini renders a clean studio asset      gemini-3-pro-image  ~17s
-        └─► TRELLIS / Hunyuan / Rodin reconstruct it fal.ai              ~30s
-```
+For lightning-fast generation without needing a multi-gigabyte local GPU setup:
 
 ```bash
-export GEMINI_API_KEY=...    # aistudio.google.com/apikey
+export FAL_KEY=your_fal_api_key          # fal.ai/dashboard/keys
+export GEMINI_API_KEY=your_gemini_key    # aistudio.google.com/apikey
 npm run server
 ```
 
-The four stages are drawn as a node board under the generator, each separately
-retryable — a bad mesh re-runs the mesh, not the render you already paid for. Runs
-persist to `server/runs/<id>/run.json`, so a refresh mid-run loses nothing.
+The backend automatically switches to cloud mode. Generation runs in seconds and costs pennies per model.
 
-Two consequences worth knowing:
+---
 
-- **Text-to-3D works now.** With no image, Gemini draws one from the words, and the
-  reconstructor takes it from there. Both engines are image-conditioned; this is the
-  image.
-- **Re-prompting an asset means re-running the concept.** TRELLIS and Hunyuan read
-  the *image*, not the prompt — feeding the same picture back with different words
-  changes almost nothing. The workbench routes re-prompts for pipeline assets back
-  through Gemini, which is what makes the wording reach the geometry.
+## 🔑 Developer API & Agent Integrations
 
-Like `FAL_KEY`, `GEMINI_API_KEY` is server-side only. Never give it a `VITE_` prefix:
-Vite inlines `VITE_*` into the browser bundle and publishes it to everyone who loads
-the page.
+3D Craft 2.0 exposes a complete REST API for external developers and autonomous AI agents:
 
-## What runs where
+### Authenticating with API Keys
+Generate account-owned API keys (`craft_live_...`) in the web studio or iOS app under **Profile → API access**.
 
-Each engine picks a provider automatically
-(`RODIN_PROVIDER=auto|api|local|space`; `auto` prefers fal, then native, then Space).
+```bash
+# One-step Prompt to 3D Generation:
+curl -X POST https://3d-craft.web.app/api/v1/creations \
+  -H "Authorization: Bearer craft_live_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "A friendly mechanical frog with brass gears and emerald eyes",
+    "engine": "trellis"
+  }'
+```
 
-| | fal API | native (local GPU) | hosted Space |
+### Agent Integration Features:
+- **Permanent Delete Guard**: Requires an explicit `"Allow permanent deletes"` toggle in Profile before destructive operations are permitted.
+- **Repeat-Safe Keys**: Idempotency headers prevent accidental double billing.
+- **Live Sync**: Any project created via API appears in your mobile app within ~20 seconds automatically.
+
+---
+
+## ⚖️ 3D Engines Comparison
+
+| Feature | Microsoft TRELLIS.2 | Tencent Hunyuan3D-2.1 | Hyper3D Rodin Gen-2 |
 |---|---|---|---|
-| **Hunyuan3D-2.1 shape** | ✅ | CUDA, **Apple MPS**, CPU | ✅ |
-| **Hunyuan3D-2.1 PBR paint** | ✅ | CUDA only — needs the custom rasterizer | ✅ |
-| **TRELLIS.2** | ✅ | CUDA only — spconv / nvdiffrast / diff-gaussian-rasterization | ✅ |
-| **Rodin Gen-2** | ✅ | — no open release | — |
-
-Without a `FAL_KEY` on an Apple Silicon Mac you still get **Hunyuan3D-2.1 geometry
-natively and unlimited**, and TRELLIS.2 through its Space. Native MPS is slow but
-real — an Extreme-Low run on an M5 Pro takes ~6 min and returns a watertight
-~270k-face mesh. The effort dropdown reads its estimates from the server, so they
-always match whatever the engine is actually running on.
-
-### Hosted Spaces need a token
-
-The Space fallback runs on ZeroGPU. Anonymous quota is small, and Hunyuan's
-`/generation_all` asks for a 270 s GPU slot anonymous callers cannot get at all:
-
-```bash
-export HF_TOKEN=hf_...
-```
-
-A free token covers TRELLIS.2; Hunyuan's texturing path wants a PRO-tier slot. This
-is a fallback — prefer `FAL_KEY`.
+| **Speed** | ⚡ Fastest (~15s) | ⏱️ Moderate (~45s) | ⏱️ Studio Grade (~60s) |
+| **PBR Maps** | Albedo / Vertex color | Real Normal, Roughness, Metallic | PBR texture maps |
+| **Apple Silicon (MPS)** | Space / Cloud only | Native MPS supported | Cloud API only |
+| **Output Formats** | GLB, 3D Gaussians (PLY) | GLB, OBJ | GLB |
+| **Cost (fal.ai)** | **$0.02** / generation | $0.16 (mesh) · $0.48 (textured) | $0.40 / generation |
 
 ---
 
-## Comparing the two engines
+## 📂 Repository Structure
 
-The **A/B** toggle beside the engine switcher runs one input through the selected
-engine *and* a rival of your choosing (`vs …` cycles it), then opens them side by side —
-same shading, same lighting, same turntable, with face counts, texture resolution and
-file size under each. With a fal key that includes Rodin, so you can answer the only
-question that matters: is Rodin at $0.40 actually 20× better than TRELLIS at $0.02
-**for your assets**?
-
-Rules of thumb so far:
-
-- **Hunyuan3D-2.1** is the only one of the two that outputs real PBR maps, and its
-  shape model is the one that runs natively outside CUDA.
-- **TRELLIS.2** is faster, multi-image native (pose-free), and additionally emits 3D
-  Gaussians alongside the mesh.
+```
+3d-craft/
+├── ios/                      # Native iOS client (SwiftUI, iOS 17+)
+│   ├── CraftStudio/          # View architecture, SceneKit viewer, motion tokens
+│   │   ├── Sources/          # Swift application source files
+│   │   └── Resources/        # Mascots, icons, bundled models
+│   └── project.yml           # XcodeGen specification
+├── src/                      # Web studio frontend (React 18, Vite, Three.js)
+│   ├── components/           # Generator card, 3D viewport, workbench
+│   └── pages/                # Gallery, Showcase, API Keys manager
+├── server/                   # Backend API (Python FastAPI)
+│   ├── app.py                # Core routes & job queues
+│   ├── api_keys.py           # API key generation, auth, and deletion scopes
+│   ├── engines/              # TRELLIS.2, Hunyuan3D-2.1, and Rodin adapters
+│   └── storage/              # Local asset cache and run files
+├── games/                    # Godot mini-games and game-ready asset templates
+├── docs/                     # Specifications, product guides, and screenshots
+└── scripts/                  # Setup automation, model fetchers, doctor checks
+```
 
 ---
 
-## Working alongside an image/animation agent
+## 📄 Licenses
 
-The two halves share this repo and hand off through one folder:
-
-| side | produces | consumes |
-|---|---|---|
-| image / animation | concept art, turnarounds, hero renders → `server/inbox/` | — |
-| **this studio** | 3D meshes → `server/storage/` | `server/inbox/` |
-
-Drop `.png` / `.jpg` / `.webp` into `server/inbox/` and they show up behind the
-**Sample images** button in the input card, one click from a generation. A
-`_front` / `_back` / `_left` / `_right` suffix on the filename is read as the view
-direction, so a multi-view set arrives pre-tagged — which measurably improves the
-back side on both engines.
-
-`GET /api/inbox` lists what is there; the folder is gitignored, so large reference
-sets never bloat the repo.
-
-## Layout
-
-```
-src/
-  components/generator/   the 3D Craft generator card — mode rail, input card, effort tiers
-  components/workbench/   three.js viewport, single-asset workbench, A/B compare
-  store/StudioContext.tsx generation state machine (real backend + preview fallback)
-server/
-  app.py                  FastAPI: /api/health, /api/generate, /api/jobs, /api/assets
-  engines/hunyuan.py      Hunyuan3D-2.1 — native MPS/CUDA + Space provider
-  engines/trellis.py      TRELLIS.2 — native CUDA + Space provider
-  engines/rodin.py        Hyper3D Rodin — API only, via fal
-  engines/fal_api.py      shared fal provider: upload, subscribe, download
-  inbox/                  hand-off folder for reference images (gitignored)
-  engines/hybrid.py       TRELLIS geometry piped into Hunyuan paint
-scripts/
-  setup.sh                venv, torch, dependencies
-  fetch_weights.py        clones upstream repos, pulls weights
-  doctor.py               capability report
-```
-
-## Environment
-
-| variable | meaning |
-|---|---|
-| `HF_TOKEN` | Hugging Face token — raises ZeroGPU quota and download limits |
-| `FAL_KEY` | fal.ai key — enables the `api` provider and the Rodin engine |
-| `GEMINI_API_KEY` | Google AI Studio key — enables the concept pass |
-| `RODIN_GEMINI_TEXT_MODEL` | prompt writer (default `gemini-3.8-flash`) |
-| `RODIN_GEMINI_IMAGE_MODEL` | concept renderer (default `gemini-3-pro-image`) |
-| `RODIN_PROVIDER` | `auto` (default), `api`, `local`, or `space` |
-| `RODIN_WEIGHTS` | weights directory (default `server/weights`) |
-| `RODIN_MPS_DTYPE` | `float32` to force the slower, higher-precision MPS path |
-| `RODIN_PORT` | API port (default 8000) |
-| `VITE_API_BASE` | where the frontend looks for the API |
-
-## Games
-
-Open **Game** on the studio page to play five local Godot scenes. **Lanternfall / 灯影夜行** adds a newly generated cat adventurer, a moonlit town, auto-combat, experience upgrades, dash and a timed boss encounter. English and Chinese share the same language switch.
-
-See [Lanternfall provenance and verification](docs/lanternfall/README.md). Rebuild browser resources with `npm run game:build` before `npm run build`; `npm run game:test` runs native gameplay checks.
-
-## Docs
-
-- [Local deployment](docs/LOCAL_DEPLOYMENT.md) — install, providers, Apple Silicon notes, API reference
-- [The two engines](docs/MODELS_GUIDE.md) — how each model works and when to reach for it
-- [Firebase schema](docs/FIREBASE.md) — the target collections, rules and indexes for when the store moves off localhost
-
-## Licences
-
-Hunyuan3D-2.1 is released under the Tencent Hunyuan Non-Commercial licence; TRELLIS
-under MIT. Check both before shipping anything commercial.
-
-From any completed model's 3D viewer, **Play in game** lets you choose a compatible scene and play with that exact asset. See [model handoff, supported formats, and verification](docs/PLAY_YOUR_ASSET.md).
+- **Microsoft TRELLIS.2**: MIT License.
+- **Tencent Hunyuan3D-2.1**: Tencent Hunyuan Non-Commercial License.
+- **3D Craft Core & iOS Client**: Proprietary / All Rights Reserved.
