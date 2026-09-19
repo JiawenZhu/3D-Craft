@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUpRight, Box, LogOut, RefreshCw, Smartphone, Sparkles }
 import { auth, logoutUser, onAuthStateChanged, type User, db } from '../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { AuthModal } from '../components/auth/AuthModal';
+import { API_ACCESS_PATH } from './apiAccessPath';
 import { LegalFooter } from './LegalPages';
 import publicCatalog from '../../public/gallery/catalog.json';
 import { libraryGroups, type Creation } from '../lib/creationLibrary';
@@ -131,6 +132,7 @@ export function Showcase() {
           <a href="#explore">Characters & Objects</a>
           <a href="#how">How it works</a>
           <a href="#library">User Created</a>
+          {user && <a href={API_ACCESS_PATH}>API access</a>}
           {user ? (
             <button onClick={() => void logoutUser()}>
               <LogOut size={16} />

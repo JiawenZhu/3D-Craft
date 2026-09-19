@@ -58,7 +58,7 @@ class CloudConcepts:
         uid_for('firebase:'+uid)
         if self.db.collection('accountDeletions').document(uid).get(transaction=tx).exists:raise HTTPException(403,'Account deletion is in progress.')
 
-    def create(self,owner,project_id,body,concept_id=None):
+    def create(self,owner,project_id,body,concept_id=None,environment=None,auto_model=None):
         uid=uid_for(owner);self.active(uid);started=self.now()
         jid='cj-'+hashlib.sha256((uid+':'+body.idempotencyKey).encode()).hexdigest()
         public,private=self.refs(uid,jid);project_ref=self.projects.ref(uid,'studioProjects',project_id)
@@ -88,8 +88,11 @@ class CloudConcepts:
             mode='refine' if concept_id else 'reference' if body.preserveReference else 'angles'
             estimate=provider.quote(self.now(),body.count);cost=estimate['maxTokens']
             if body.maxTokens<cost:raise HTTPException(409,'Refresh the concept price and confirm again.')
-            context=self.billing.private(uid,'billingContext').get(transaction=tx).to_dict() or {}
-            sandbox=context.get('environment')=='SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX')=='1'
+            if environment is not None:
+                sandbox = (environment == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1')
+            else:
+                context = self.billing.private(uid, 'billingContext').get(transaction=tx).to_dict() or {}
+                sandbox = context.get('environment') == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1'
             wallet_name='sandboxWallet' if sandbox else 'wallet';wallet_ref=self.billing.private(uid,wallet_name)
             before=wallet_ref.get(transaction=tx).to_dict() or {}
             after,allocation=reserve({**before,'environment':'SANDBOX' if sandbox else 'PRODUCTION'},cost,self.now())
@@ -98,11 +101,12 @@ class CloudConcepts:
                 status='queued',stage='analyzing_reference',progress=0,message='Preparing your concept',concepts=[],assets=[],
                 reserved=cost,charged=0,createdAt=self.now(),error=None,imageModel=provider.MODEL,imageProvider='google',
                 sourcePrompt=words,selectedImageUrl=('gs://'+BUCKET+'/'+source) if source else None)
+            if auto_model:data['autoModel']={'engine':auto_model['engine']}
             tx.create(public,data)
             tx.create(private,dict(signature=signature,phase='plan_ready',options=options,estimate=estimate,
                 allocation=allocation,walletName=wallet_name,projectId=project_id,source=source,selected=selected,mode=mode,
                 words=words,style=body.style or project.get('style','Stylized'),name=project.get('name','Concept'),
-                ids=ids,index=0,outputs=[],createdAt=self.now(),deadline=self.now()+DEADLINE,leaseUntil=0))
+                ids=ids,index=0,outputs=[],createdAt=self.now(),deadline=self.now()+DEADLINE,leaseUntil=0,autoModel=auto_model))
             tx.set(wallet_ref,after,merge=True)
             expired=max(0,int(before.get('subscriptionAvailable',0))-int(after.get('subscriptionAvailable',0))-allocation['subscription'])
             if expired:tx.create(wallet_ref.collection('entries').document(jid+':expiry'),dict(id=jid+':expiry',amount=-expired,kind='subscription_expiry',createdAt=self.now()))

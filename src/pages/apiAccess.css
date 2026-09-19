@@ -1,0 +1,47 @@
+/* Account → API access. Uses the showcase palette. */
+.api-page .showcase-nav nav a{display:flex;align-items:center;gap:6px}
+.api-main{max-width:760px;margin:auto;padding:30px 6% 80px}
+.api-main h1{font-size:clamp(34px,4.6vw,52px);line-height:1.1;letter-spacing:-2px;margin:18px 0}
+.api-main h2{font-size:24px;letter-spacing:-.6px;margin:0 0 16px}
+.api-lede{font-size:16px;line-height:1.75;color:#557566;margin-bottom:28px}
+.api-account{font-size:14px;color:#5f7d6f;margin-bottom:14px}
+.api-keys{display:flex;flex-direction:column;gap:18px}
+.api-card,.api-reveal{background:white;border:1px solid #dbe8df;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.api-connect{margin-top:28px}
+.api-card h3,.api-reveal h3{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:650;margin:0}
+.api-reveal{background:#fffbea;border-color:#ecd68a}
+.api-reveal p{margin:0;line-height:1.6;font-size:14px}
+.api-secret{display:flex;gap:8px}
+.api-secret input{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;padding:12px 14px;border:1px solid #d9c479;border-radius:12px;background:white}
+.api-secret button,.api-ghost,.api-confirm button{display:inline-flex;align-items:center;gap:6px;border:1px solid #aac9bd;border-radius:30px;padding:9px 16px;font-size:13px;background:white;white-space:nowrap}
+.api-primary{align-self:flex-start;background:#206853;color:white;border-radius:30px;padding:12px 24px;font-size:14px;font-weight:600}
+.api-page button:disabled{opacity:.5;cursor:not-allowed}
+.api-field{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600;border:0;padding:0;margin:0}
+.api-field legend{margin-bottom:8px}
+.api-field>input{font-weight:400;font-size:15px;padding:11px 14px;border:1px solid #c8dcce;border-radius:12px}
+.api-segments{display:inline-flex;gap:6px;background:#e2ede6;padding:5px;border-radius:30px;align-self:flex-start}
+.api-segments button{padding:7px 16px;border-radius:24px;font-size:13px}
+.api-segments button.active{background:white;box-shadow:0 2px 8px #174c3e14}
+.api-check{display:flex;align-items:center;gap:8px;font-weight:400;font-size:14px}
+.api-check code,.api-connect code{font-size:12px;color:#5b7a6c}
+.api-scopes{display:flex;flex-direction:column;gap:8px;padding-left:24px}
+.api-note{margin:0;font-size:13px;line-height:1.6;color:#6b8577;font-weight:400}
+.api-error{margin:0;padding:12px 16px;border-radius:14px;background:#fdecec;color:#9b2c2c;font-size:14px}
+.api-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.api-list li{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:14px 0;border-top:1px solid #eef3ef}
+.api-list li:first-child{border-top:0}
+.api-list li>div:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.api-list li.revoked,.api-list li.expired{opacity:.6}
+.api-list small{color:#6b8577;font-size:12px}
+.api-prefix{font-size:12px;color:#355d4f}
+.api-badge{display:inline-block;font-size:11px;font-weight:600;border-radius:20px;padding:2px 8px;margin-left:6px;background:#e0f1e8;color:#206853}
+.api-badge.revoked{background:#f1e4e4;color:#8a3a3a}.api-badge.expired{background:#eee;color:#666}
+.api-confirm{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;max-width:320px;font-size:13px}
+.api-confirm .api-danger{background:#b3261e;color:white;border-color:#b3261e}
+.api-connect dl{display:grid;grid-template-columns:140px 1fr;gap:10px 16px;margin:0;font-size:14px}
+.api-connect dt{font-weight:600}.api-connect dd{margin:0;word-break:break-all}
+.api-connect dd a{display:inline-flex;align-items:center;gap:4px;text-decoration:underline}
+.api-connect pre{background:#0f2e25;color:#d8f1e6;border-radius:14px;padding:16px;font-size:12.5px;overflow-x:auto;margin:0}
+.api-clients{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.6}
+.api-clients a{text-decoration:underline}
+@media(max-width:760px){.api-connect dl{grid-template-columns:1fr;gap:2px}.api-connect dd{margin-bottom:10px}.api-list li{flex-direction:column}.api-confirm{justify-content:flex-start}}

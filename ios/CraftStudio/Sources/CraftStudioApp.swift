@@ -56,7 +56,7 @@ import StoreKitTest
              Task { await account.verifyAppleAuthorization() }
          }
          .onChange(of: scenePhase) { _, phase in
-             if phase == .active { Task { await account.verifyAppleAuthorization() } }
+             if phase == .active { Task { await account.verifyAppleAuthorization(); await store.refreshOutsideChanges() } }
          }
          .onChange(of: account.uid) { _, newUid in
              Task {

@@ -597,6 +597,7 @@ struct ProfileView: View {
     @State private var aiAccountOpen = false
     @State private var showCustomerCenter = false
     @State private var deletingAccount = false
+    @State private var apiAccessOpen = false
     @State private var scrollY: CGFloat = 0
     @State private var rowCount = 0
 
@@ -633,6 +634,7 @@ struct ProfileView: View {
         .sheet(isPresented: $editingProfile) { ProfileEditorView() }
         .sheet(isPresented: $aiAccountOpen) { AIAccountView() }
         .sheet(isPresented: $deletingAccount) { AccountDeletionView() }
+        .sheet(isPresented: $apiAccessOpen) { APIAccessView() }
         .presentCustomerCenter(isPresented: $showCustomerCenter)
     }
 
@@ -745,6 +747,14 @@ struct ProfileView: View {
 
             navigationRow("creditcard", store.t("Membership & Subscriptions", "订阅与会员服务")) {
                 showCustomerCenter = true
+            }
+
+            if account.uid != nil {
+                Divider().opacity(0.4)
+
+                navigationRow("key.horizontal", store.t("API access", "API 访问")) {
+                    apiAccessOpen = true
+                }.accessibilityIdentifier("profile.apiAccess")
             }
         }
         .font(.subheadline)

@@ -60,3 +60,30 @@ ios/.build-test/
 *.ipa
 *.xcdistributionlogs/
 docs/app-store/*.zip
+
+# Antigravity CLI and Agent integrations (prevent upload to GitHub / App builds)
+.antigravity/
+.gemini/
+agy*
+*antigravity*
+AGENTS.md
+
+# Claude Code CLI runtime, worktrees, sessions, configs, and instructions
+CLAUDE.md
+.claude/worktrees/
+.claude/sessions/
+.claude/file-history/
+.claude/shell-snapshots/
+.claude/paste-cache/
+.claude/telemetry/
+.claude/skills/antigravity/
+.claude/*.local.json
+.claude.json
+claude.json
+
+# Codex CLI runtime, session state, memories, worktrees, and configs
+.codex/
+.codex*
+CODEX.md
+codex.json
+.codexrc

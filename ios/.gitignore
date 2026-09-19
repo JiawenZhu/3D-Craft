@@ -6,3 +6,23 @@ build/
 *.ipa
 *.xcdistributionlogs/
 .DS_Store
+
+# Antigravity CLI and Agent integrations (prevent upload to App Store / GitHub)
+.antigravity/
+.gemini/
+agy*
+*antigravity*
+AGENTS.md
+
+# Claude Code configs and artifacts (prevent upload to App Store / GitHub)
+.claude/
+CLAUDE.md
+.claude*
+claude*
+
+# Codex CLI runtime, session state, memories, worktrees, and configs
+.codex/
+.codex*
+CODEX.md
+codex.json
+.codexrc

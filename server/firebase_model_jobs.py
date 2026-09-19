@@ -94,7 +94,7 @@ class CloudModelJobs:
         if self.db.collection('accountDeletions').document(uid).get(transaction=tx).exists:
             raise HTTPException(403,'This account is being deleted.')
 
-    def create(self, owner, concept_id, body):
+    def create(self, owner, concept_id, body, environment=None):
         started = self.now()
         provider.headers()  # Fail before reserving if the service has no key.
         uid = uid_for(owner)
@@ -139,13 +139,19 @@ class CloudModelJobs:
             estimate = model_quote(body.engine,views=len(views),effort=body.effort)
             cost = estimate['usageWithServiceFee']['credits']
             if cost is None: raise HTTPException(422,'This model has no verified price.')
-            context = self.billing.private(uid,'billingContext').get(transaction=tx).to_dict() or {}
-            environment = context.get('environment','PRODUCTION')
-            if environment!='SANDBOX' or os.getenv('CRAFT_REVENUECAT_SANDBOX')!='1': environment='PRODUCTION'
-            wallet_name = 'sandboxWallet' if environment=='SANDBOX' else 'wallet'
-            wallet_ref = self.billing.private(uid,wallet_name)
+            if environment is not None:
+                effective_env = environment
+                if effective_env != 'SANDBOX' or os.getenv('CRAFT_REVENUECAT_SANDBOX') != '1':
+                    effective_env = 'PRODUCTION'
+            else:
+                context = self.billing.private(uid, 'billingContext').get(transaction=tx).to_dict() or {}
+                effective_env = context.get('environment', 'PRODUCTION')
+                if effective_env != 'SANDBOX' or os.getenv('CRAFT_REVENUECAT_SANDBOX') != '1':
+                    effective_env = 'PRODUCTION'
+            wallet_name = 'sandboxWallet' if effective_env == 'SANDBOX' else 'wallet'
+            wallet_ref = self.billing.private(uid, wallet_name)
             before = wallet_ref.get(transaction=tx).to_dict() or {}
-            after, allocation = reserve({**before,'environment':environment},cost,self.now())
+            after, allocation = reserve({**before, 'environment': effective_env}, cost, self.now())
             if self.now()-started > 120:
                 raise HTTPException(503,'The request took too long. Please retry.')
             data = dict(id=jid,ownerId=uid,projectId=concept['projectId'],kind='model',status='queued',

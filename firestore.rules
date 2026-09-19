@@ -70,5 +70,13 @@ service cloud.firestore {
     match /communityModeration/{document=**} {
       allow read, write: if false;
     }
+
+    // Account API keys are strictly managed by the Cloud API. Direct client reads and writes are denied.
+    match /apiKeys/{keyHash} {
+      allow read, write: if false;
+    }
+    match /rateQuotas/{keyHash} {
+      allow read, write: if false;
+    }
   }
 }

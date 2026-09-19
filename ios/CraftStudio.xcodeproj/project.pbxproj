@@ -27,6 +27,7 @@
 		377A55B058C6544EFFF96469 /* race.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 24F77FA2D9BCA8FEED2FDB1E /* race.jpg */; };
 		39EDE6DAF5D5709D1495DFD6 /* CraftCameraFraming.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */; };
 		407DE26A92359818BDB9B93A /* SourceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26628F1910C9A1D05DC0CB /* SourceSelectionTests.swift */; };
+		409D67EDB581F540DB922499 /* CraftAPIKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCA171F35F3EFACBC8B935A /* CraftAPIKeys.swift */; };
 		40B537736194B36FBE29F839 /* ReviewFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD19FEBCF8275E61E7E9F92 /* ReviewFlowTests.swift */; };
 		44AC5736545B169EEAB77706 /* AIAccountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2910CF4103D2633730BB4ED0 /* AIAccountTests.swift */; };
 		46C1EBB5590587B6DABDDE72 /* MascotLoopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0C9F7C15DEC98ABE303DBC /* MascotLoopTests.swift */; };
@@ -85,6 +86,7 @@
 		9D340D8ECA0F9CF0D3AAEBA4 /* AIAccountReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C64A5D4FBB83CD9A9121E2E /* AIAccountReviewTests.swift */; };
 		9E3DC26C41439E725D41B1C4 /* CreatorComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A625AF1F1BA30507A5F737E0 /* CreatorComponents.swift */; };
 		9EABBA8DEF831BF282476CB1 /* SourceFlowReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A556B9A0B662FC4C5A2E62 /* SourceFlowReviewTests.swift */; };
+		9F2F13F91B1CF6FA0D7C8FD0 /* APIKeysTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B4769F23D4C7996618E967 /* APIKeysTests.swift */; };
 		9F656DBCD78A9FF1DEB8FC40 /* ModelGenerationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854C56E8AA6DB32FD24F5BE7 /* ModelGenerationSheet.swift */; };
 		A4321C09A76F4F8C7752F703 /* lantern-explorer.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 23D515057582D9A492CDA9BC /* lantern-explorer.jpg */; };
 		A7887EE4F414587708CD4339 /* PhotoReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F25B3DD9C7295EE9809B9A /* PhotoReviewView.swift */; };
@@ -232,8 +234,10 @@
 		8A29B5A8963EF959D6061C22 /* CloudWelcomeReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudWelcomeReviewTests.swift; sourceTree = "<group>"; };
 		8F1CF6C1EB50E3CE5FD913FB /* CreatorPlansView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPlansView.swift; sourceTree = "<group>"; };
 		8F9429FEEB4D144CFDDC1830 /* GameHandoffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHandoffView.swift; sourceTree = "<group>"; };
+		8FCA171F35F3EFACBC8B935A /* CraftAPIKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAPIKeys.swift; sourceTree = "<group>"; };
 		9236B8D35BDAE3827D6B9B4A /* CraftWebAuthAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftWebAuthAttempt.swift; sourceTree = "<group>"; };
 		9275583410F75CB0425A81AB /* LightingAdjustmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightingAdjustmentView.swift; sourceTree = "<group>"; };
+		93B4769F23D4C7996618E967 /* APIKeysTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeysTests.swift; sourceTree = "<group>"; };
 		941D5B6DBBCE89C963430CE2 /* CraftImageCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftImageCacheTests.swift; sourceTree = "<group>"; };
 		9699F526FA8BBBA36C3AB11D /* GalleryHomeGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryHomeGrid.swift; sourceTree = "<group>"; };
 		97B7EB9C027483AA5737435A /* WebAuthAttemptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthAttemptTests.swift; sourceTree = "<group>"; };
@@ -334,6 +338,7 @@
 			children = (
 				2910CF4103D2633730BB4ED0 /* AIAccountTests.swift */,
 				6DD12739F12BD52A6D1B0A6C /* AIPrivacyTests.swift */,
+				93B4769F23D4C7996618E967 /* APIKeysTests.swift */,
 				F602B15AB3A366EB3E4167E1 /* CameraFramingTests.swift */,
 				244C08CBAEF250121D0BB8FD /* ConceptModelActivityTests.swift */,
 				941D5B6DBBCE89C963430CE2 /* CraftImageCacheTests.swift */,
@@ -396,6 +401,7 @@
 				010418F04AD92F50C47D6E62 /* CraftAccount.swift */,
 				856CD944F244ADF9F3A007E4 /* CraftAIAccount.swift */,
 				FAF3E32EEDFAB92C71A3EC2F /* CraftAIPrivacy.swift */,
+				8FCA171F35F3EFACBC8B935A /* CraftAPIKeys.swift */,
 				0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */,
 				18966410BDC38C36863BBE17 /* CraftAppleSignIn.swift */,
 				FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */,
@@ -681,6 +687,7 @@
 				79FCB6F1D32A75140D1C1F00 /* ConceptProjectView.swift in Sources */,
 				AC057B681025C02A6AE8C2CC /* CraftAIAccount.swift in Sources */,
 				62A4DD4C7EED90CA2D71EA97 /* CraftAIPrivacy.swift in Sources */,
+				409D67EDB581F540DB922499 /* CraftAPIKeys.swift in Sources */,
 				EB67BA907E8918CF6FE558D4 /* CraftAccount.swift in Sources */,
 				97DA39F1432E79FC39680682 /* CraftAppearance.swift in Sources */,
 				2CFD71AA12AC0895B71DF6B0 /* CraftAppleSignIn.swift in Sources */,
@@ -727,6 +734,7 @@
 			files = (
 				44AC5736545B169EEAB77706 /* AIAccountTests.swift in Sources */,
 				B6EFB8B7F21FF0B3050576C1 /* AIPrivacyTests.swift in Sources */,
+				9F2F13F91B1CF6FA0D7C8FD0 /* APIKeysTests.swift in Sources */,
 				C489C5F5D169057DF07A8DAB /* CameraFramingTests.swift in Sources */,
 				8FB0A0D5EE2BA79BA139403E /* ConceptModelActivityTests.swift in Sources */,
 				FB9CCEB881C44D9124D4582E /* CraftImageCacheTests.swift in Sources */,
@@ -830,7 +838,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -898,7 +906,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

@@ -16,11 +16,13 @@ def firebase_app():
             app = firebase_admin.initialize_app(options={'projectId': 'forma-studio-2026'}, name='craft-identity')
     return app
 
-def verify_token(token):
+def verify_token(token, check_revoked=False):
     from firebase_admin import auth
-    return auth.verify_id_token(token, app=firebase_app(), check_revoked=False)
+    return auth.verify_id_token(token, app=firebase_app(), check_revoked=check_revoked)
 
 def require_claims(authorization: str = Header(default='')):
+    if authorization.startswith('Bearer craft_live_'):
+        raise HTTPException(403, 'API keys are only accepted on /api/v1 pipeline endpoints. This endpoint requires account sign-in.')
     if not authorization.startswith('Bearer ') or not authorization[7:]:
         raise HTTPException(401, 'Sign in to your 3D Craft account to continue.')
     try:

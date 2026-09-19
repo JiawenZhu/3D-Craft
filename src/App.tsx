@@ -2,6 +2,8 @@ import { LegalPage, isLegalPath } from './pages/LegalPages';
 import { Showcase } from './pages/Showcase';
 import { MobileAuthBridge, isMobileAuthPath } from './pages/MobileAuthBridge';
 import { lazy, Suspense } from 'react';
+import { isApiAccessPath } from './pages/apiAccessPath';
+const ApiAccess = lazy(() => import('./pages/ApiAccess').then(module => ({ default: module.ApiAccess })));
 const GameHub = lazy(() => import('./components/games/GameHub').then(module => ({ default: module.GameHub })));
 
 // The creation workspace remains in LegacyStudioApp.tsx for a future release.
@@ -9,6 +11,7 @@ const GameHub = lazy(() => import('./components/games/GameHub').then(module => (
 export const App = () => {
   if (isMobileAuthPath(window.location.pathname)) return <MobileAuthBridge />;
   if (isLegalPath(window.location.pathname)) return <LegalPage />;
+  if (isApiAccessPath(window.location.pathname)) return <Suspense fallback={<p role="status">Loading your account…</p>}><ApiAccess /></Suspense>;
   if (window.location.pathname === '/play') return <Suspense fallback={<p role="status">Loading games…</p>}><GameHub /></Suspense>;
   return <Showcase />;
 };

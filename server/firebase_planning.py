@@ -119,7 +119,7 @@ class CloudPlanning:
         if not data: raise HTTPException(404,'Suggestion not found in this account.')
         return visible(data)
 
-    def create(self,owner,cid,body):
+    def create(self,owner,cid,body,environment=None):
         uid=uid_for(owner);started=self.now()
         jid='pj-'+hashlib.sha256((uid+':'+body.idempotencyKey).encode()).hexdigest()
         ref=self.ref(uid,jid)
@@ -132,13 +132,21 @@ class CloudPlanning:
             if prior:
                 if prior['signature']!=signature: raise HTTPException(409,'This request already belongs to a different suggestion.')
                 return visible(prior)
-            concept=self.projects.ref(uid,'studioConcepts',cid).get(transaction=tx).to_dict()
-            if not concept or concept.get('ownerId')!=uid: raise HTTPException(404,'Image not found in this account.')
-            path=image_path(uid,concept.get('imageUrl'))
+            if cid in ('standalone', 'none', 'text', '_') or not cid:
+                path = None
+                if not body.prompt.strip():
+                    raise HTTPException(422, 'Provide a prompt description for standalone planning.')
+            else:
+                concept=self.projects.ref(uid,'studioConcepts',cid).get(transaction=tx).to_dict()
+                if not concept or concept.get('ownerId')!=uid: raise HTTPException(404,'Image not found in this account.')
+                path=image_path(uid,concept.get('imageUrl'))
             estimate=provider.quote(self.now());cost=estimate['maxTokens']
             if body.maxTokens < cost: raise HTTPException(409,'The planning price changed. Refresh the price before continuing.')
-            context=self.billing.private(uid,'billingContext').get(transaction=tx).to_dict() or {}
-            sandbox=context.get('environment')=='SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX')=='1'
+            if environment is not None:
+                sandbox = (environment == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1')
+            else:
+                context = self.billing.private(uid, 'billingContext').get(transaction=tx).to_dict() or {}
+                sandbox = context.get('environment') == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1'
             wallet_name='sandboxWallet' if sandbox else 'wallet'
             wallet_ref=self.billing.private(uid,wallet_name)
             before=wallet_ref.get(transaction=tx).to_dict() or {}
@@ -155,7 +163,7 @@ class CloudPlanning:
             return visible(data)
         return transact(self.db,create)
 
-    def create_chat(self,owner,project_id,body):
+    def create_chat(self,owner,project_id,body,environment=None):
         uid=uid_for(owner);started=self.now()
         if not body.text.strip():raise HTTPException(422,'Write a message first.')
         jid='pj-'+hashlib.sha256((uid+':'+body.clientId).encode()).hexdigest()
@@ -188,8 +196,11 @@ class CloudPlanning:
             history,brief=bounded_history(list(reversed(previous)),body.text.strip())
             estimate=provider.quote(self.now(),'chat');cost=estimate['maxTokens']
             if body.maxTokens<cost:raise HTTPException(409,'The chat price changed. Refresh the price before sending.')
-            context=self.billing.private(uid,'billingContext').get(transaction=tx).to_dict() or {}
-            sandbox=context.get('environment')=='SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX')=='1'
+            if environment is not None:
+                sandbox = (environment == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1')
+            else:
+                context = self.billing.private(uid, 'billingContext').get(transaction=tx).to_dict() or {}
+                sandbox = context.get('environment') == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1'
             wallet_name='sandboxWallet' if sandbox else 'wallet';wallet_ref=self.billing.private(uid,wallet_name)
             before=wallet_ref.get(transaction=tx).to_dict() or {}
             after,allocation=reserve({**before,'environment':'SANDBOX' if sandbox else 'PRODUCTION'},cost,self.now())

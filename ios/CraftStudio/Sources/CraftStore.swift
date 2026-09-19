@@ -338,12 +338,21 @@ struct PendingGeneration: Codable, Equatable {
     private func refreshCreationState() async throws {
         guard !creationRefreshing, let uid = CraftAccount.shared.uid else { return }
         creationRefreshing = true; defer { creationRefreshing = false }
-        let raw = try await request("/jobs") as? [[String: Any]] ?? []
+        let listed = try await request("/jobs") as? [[String: Any]]
+        let raw = listed ?? []
         guard CraftAccount.shared.uid == uid else { return }
         completionTracker.watching.formUnion(jobs.filter { $0.kind == "model" && $0.isActive }.map(\.id))
         let activeIDs = Set(jobs.filter(\.isActive).map(\.id))
         rawJobSnapshot = raw
         for value in raw { acceptJob(CraftJob(value, base: apiBase)) }
+        if listed != nil {
+            // Work deleted elsewhere (for example through an API key) leaves the
+            // app too. A job submitted in the last minute is kept in case this
+            // list was read just before the server recorded it.
+            let serverIDs = Set(raw.compactMap { $0["id"] as? String })
+            let recent = Date().timeIntervalSince1970 - 60
+            jobs.removeAll { !serverIDs.contains($0.id) && !($0.isActive && ($0.createdAt ?? 0) > recent) }
+        }
         try resolvePending(from: jobs)
         if jobs.contains(where: { activeIDs.contains($0.id) && !$0.isActive }) {
             Task { await refreshCloudCreations() }
@@ -451,6 +460,15 @@ struct PendingGeneration: Codable, Equatable {
         } catch { /* Keep the current cloud snapshot during transient failures. */ }
     }
     private var lastCloudSync = Date.distantPast
+    /// Creations made or deleted outside the app (API keys, another device)
+    /// appear within this interval while the app is open.
+    private var lastIdleRefresh = Date()
+    func refreshOutsideChanges() async {
+        guard connected, CraftAccount.shared.uid != nil else { return }
+        lastIdleRefresh = Date()
+        do { try await refreshCreationState() } catch { connectionFailed(error); return }
+        await refreshCloudCreations()
+    }
     private var cloudSyncing = false
     func refresh() async {
         guard let accountUID = CraftAccount.shared.uid else { return }
@@ -484,7 +502,7 @@ struct PendingGeneration: Codable, Equatable {
             catch { self.connectionNotice = self.t("Website library sync is pending. Your creations are saved here.","网站作品同步待完成，作品已保存在这里。") }
         }
     }
-    private func startPolling(){guard polling == nil else{return};polling=Task{[weak self] in while !Task.isCancelled {try?await Task.sleep(nanoseconds:3_000_000_000);guard let self else{return};if !self.connected{if !self.connectionNeedsSignIn && !self.connectionNeedsSetup && Date() >= self.nextConnectionAttempt {await self.connect()}}else if self.pendingGeneration != nil{await self.reconcilePending()}else if self.jobs.contains(where:{$0.isActive}) || self.projects.contains(where:{$0.turns.contains(where:{$0.isActive})}){do { try await self.refreshCreationState() } catch { self.connectionFailed(error) }}}}}
+    private func startPolling(){guard polling == nil else{return};polling=Task{[weak self] in while !Task.isCancelled {try?await Task.sleep(nanoseconds:3_000_000_000);guard let self else{return};if !self.connected{if !self.connectionNeedsSignIn && !self.connectionNeedsSetup && Date() >= self.nextConnectionAttempt {await self.connect()}}else if self.pendingGeneration != nil{await self.reconcilePending()}else if self.jobs.contains(where:{$0.isActive}) || self.projects.contains(where:{$0.turns.contains(where:{$0.isActive})}){do { try await self.refreshCreationState() } catch { self.connectionFailed(error) }}else if Date().timeIntervalSince(self.lastIdleRefresh) >= 20{await self.refreshOutsideChanges()}}}}
     func createConcepts(count:Int,originalOnly:Bool=false) async ->String? {
         guard !busy else{return nil};guard connected else{error=t("Please sign in or check your connection.","请先登录或检查网络连接。");return nil}
         guard !draftPrompt.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || draftImage != nil else{error=t("Add a photo or describe your idea.","请添加照片或描述你的想法。");return nil}

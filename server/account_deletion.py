@@ -164,6 +164,10 @@ def erase_account(studio, uid):
                     studio.db.recursive_delete(doc.reference)
     step('publicContentDeleted', remove_public_content)
     step('privateDataDeleted', lambda: studio.db.recursive_delete(studio.db.collection('users').document(uid)))
+    def remove_api_keys():
+        from .api_keys import delete_keys_for_user
+        delete_keys_for_user(studio.db, uid)
+    step('apiKeysDeleted', remove_api_keys)
     def remove_identity():
         try: auth.delete_user(uid, app=app)
         except auth.UserNotFoundError: pass
