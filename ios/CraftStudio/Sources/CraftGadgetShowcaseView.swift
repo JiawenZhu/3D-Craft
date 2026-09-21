@@ -492,7 +492,12 @@ public struct CraftGadgetShowcaseView: View {
                 heroImage = await CraftGadgetCenter.shared.extractHeroKeyframe(from: localVideoURL)
             }
             if heroImage == nil, let thumbURL = asset.thumbURL {
-                heroImage = await CraftGadgetCenter.shared.downloadImage(from: thumbURL)
+                if let data = await CraftImageCache.shared.data(for: thumbURL) {
+                    heroImage = UIImage(data: data)
+                }
+                if heroImage == nil {
+                    heroImage = await CraftGadgetCenter.shared.downloadImage(from: thumbURL)
+                }
             }
 
             let data = CraftGadgetData(

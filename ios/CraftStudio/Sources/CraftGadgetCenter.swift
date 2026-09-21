@@ -198,13 +198,19 @@ public final class CraftGadgetCenter: @unchecked Sendable {
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         generator.maximumSize = CGSize(width: 800, height: 800)
-        let time = CMTime(seconds: 0.5, preferredTimescale: 600)
-        do {
-            let (cgImage, _) = try await generator.image(at: time)
-            return UIImage(cgImage: cgImage)
-        } catch {
-            return nil
+        generator.requestedTimeToleranceBefore = .positiveInfinity
+        generator.requestedTimeToleranceAfter = .positiveInfinity
+        let times = [
+            CMTime(seconds: 0.1, preferredTimescale: 600),
+            .zero,
+            CMTime(seconds: 0.5, preferredTimescale: 600)
+        ]
+        for time in times {
+            if let (cgImage, _) = try? await generator.image(at: time) {
+                return UIImage(cgImage: cgImage)
+            }
         }
+        return nil
     }
     #endif
 
@@ -227,24 +233,47 @@ public final class CraftGadgetCenter: @unchecked Sendable {
 
     private func keychainSave(key: String, data: Data) {
         #if canImport(Security)
-        var query: [String: Any] = [
+        var baseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
-            kSecAttrService as String: keychainService,
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            kSecAttrService as String: keychainService
         ]
         #if !targetEnvironment(simulator)
-        query[kSecAttrAccessGroup as String] = keychainAccessGroup
+        baseQuery[kSecAttrAccessGroup as String] = keychainAccessGroup
         #endif
 
-        SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
-        if status != errSecSuccess {
-            var fallback = query
-            fallback.removeValue(forKey: kSecAttrAccessGroup as String)
-            SecItemDelete(fallback as CFDictionary)
-            SecItemAdd(fallback as CFDictionary, nil)
+        // 1. Delete existing item with search query ONLY (SecItemDelete fails if kSecValueData is present!)
+        SecItemDelete(baseQuery as CFDictionary)
+
+        // 2. Add new item
+        var addQuery = baseQuery
+        addQuery[kSecValueData as String] = data
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            let updateAttrs: [String: Any] = [
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            ]
+            SecItemUpdate(baseQuery as CFDictionary, updateAttrs as CFDictionary)
+        } else if status != errSecSuccess {
+            // Fallback without access group (e.g. for simulator)
+            var simQuery = baseQuery
+            simQuery.removeValue(forKey: kSecAttrAccessGroup as String)
+            SecItemDelete(simQuery as CFDictionary)
+            simQuery[kSecValueData as String] = data
+            simQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+            let simStatus = SecItemAdd(simQuery as CFDictionary, nil)
+            if simStatus == errSecDuplicateItem {
+                var simUpdate = baseQuery
+                simUpdate.removeValue(forKey: kSecAttrAccessGroup as String)
+                let updateAttrs: [String: Any] = [
+                    kSecValueData as String: data,
+                    kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+                ]
+                SecItemUpdate(simUpdate as CFDictionary, updateAttrs as CFDictionary)
+            }
         }
         #endif
     }

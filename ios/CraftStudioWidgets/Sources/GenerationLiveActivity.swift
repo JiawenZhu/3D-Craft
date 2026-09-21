@@ -283,13 +283,11 @@ struct CharacterGadgetEntry: TimelineEntry {
 
 struct CharacterGadgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> CharacterGadgetEntry {
-        let bundle = Bundle(for: WidgetBundleToken.self)
-        let image = UIImage(named: "fire-dragon", in: bundle, with: nil)
-            ?? UIImage(named: "mascot-dragon-model-1", in: bundle, with: nil)
-            ?? UIImage(named: "mascot-dragon-model-1")
+        let gadget = CraftGadgetCenter.shared.activeGadget()
+        let image = CraftGadgetCenter.shared.loadHeroImage(for: gadget)
         return CharacterGadgetEntry(
             date: .now,
-            gadget: .defaultDragon,
+            gadget: gadget,
             heroImage: image
         )
     }
@@ -304,8 +302,7 @@ struct CharacterGadgetProvider: TimelineProvider {
         let gadget = CraftGadgetCenter.shared.activeGadget()
         let image = CraftGadgetCenter.shared.loadHeroImage(for: gadget)
         let entry = CharacterGadgetEntry(date: .now, gadget: gadget, heroImage: image)
-        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 2, to: .now) ?? .now.addingTimeInterval(7200)
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+        let timeline = Timeline(entries: [entry], policy: .atEnd)
         completion(timeline)
     }
 }
