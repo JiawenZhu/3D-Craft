@@ -235,7 +235,7 @@ struct CraftSignInView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     HStack(spacing: 16) {
-                        Image("PaywallExplorer").resizable().scaledToFit()
+                        Image(appearance == .lavender ? "PaywallDragon" : "PaywallExplorer").resizable().scaledToFit()
                             .frame(width: 88, height: 108).clipShape(RoundedRectangle(cornerRadius: 18)).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 8) {
                             Text(store.t("YOUR NEXT IDEA STARTS HERE", "从一个想法开始"))

@@ -41,15 +41,16 @@ QUEUE = 'craft-model-jobs'
 class AnimationRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     idempotencyKey: str = Field(min_length=8, max_length=120)
+    model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5'
     motion: str | None = Field(default=None, max_length=600)
-    resolution: Literal['480p', '720p'] = '480p'
-    duration: Literal['4', '6'] = '4'
+    resolution: Literal['480p', '720p', '768p'] = '480p'
+    duration: Literal['4', '5', '6'] = '4'
     aspect: Literal['1:1', '16:9', '9:16'] = '1:1'
     maxTokens: int = Field(strict=True, ge=1, le=1000)
 
 
 def quote_for(body) -> dict:
-    return animation_quote(body.resolution, int(body.duration), body.aspect)
+    return animation_quote(body.resolution, int(body.duration), body.aspect, getattr(body, 'model', 'seedance-2.5'))
 
 
 def enqueue(uid, jid):
@@ -136,7 +137,8 @@ class CloudAnimations:
                         cost=cost, reserved=cost, charged=0, createdAt=self.now(), error=None,
                         selectedConceptId=concept_id, selectedImageUrl=concept['imageUrl'],
                         providerEstimate=estimate,
-                        animationSettings=dict(resolution=body.resolution, duration=body.duration,
+                        animationSettings=dict(model=getattr(body, 'model', 'seedance-2.5'),
+                                               resolution=body.resolution, duration=body.duration,
                                                aspect=body.aspect, motion=(body.motion or '').strip()))
             tx.create(public, data)
             tx.create(private, dict(signature=signature, phase='preparing', createdAt=self.now(),
@@ -317,8 +319,10 @@ class CloudAnimations:
                     blob.download_to_filename(str(target), if_generation_match=blob.generation, timeout=120, retry=None)
                     url = fal_client.upload_file(target, lifecycle=StorageSettings(expires_in=7200))
                 options = data['options']
+                model_name = options.get('model', 'seedance-2.5')
+                endpoint = provider.endpoint_for(model_name)
                 arguments = provider.arguments(url, options.get('motion'), options['resolution'],
-                                               options['duration'], options['aspect'])
+                                               options['duration'], options['aspect'], model=model_name)
                 if not self.advance(uid, jid, token, phase, dict(phase='prepared', arguments=arguments),
                                     dict(status='running', stage='animating', progress=10,
                                          message='Bringing your character to life')):
@@ -331,7 +335,9 @@ class CloudAnimations:
                 phase = 'submitting'
                 callback = ('https://3d-craft.web.app/api/animations/callback/' + quote(uid, safe='')
                             + '/' + jid + '/' + data['callbackToken'])
-                rid = provider.submit(provider.ENDPOINT, data['arguments'], callback)
+                model_name = data.get('options', {}).get('model', 'seedance-2.5')
+                endpoint = provider.endpoint_for(model_name)
+                rid = provider.submit(endpoint, data['arguments'], callback)
                 self.request_received(uid, jid, rid)
                 data['requestId'] = rid
                 phase = 'submitted'
@@ -343,7 +349,9 @@ class CloudAnimations:
                 if data.get('providerFailed'):
                     return {'status': self.finish(uid, jid, token,
                                                   error='The animation service could not complete this character. Your reserved Tokens have been released.')}
-                result = provider.status(provider.ENDPOINT, data['requestId'])
+                model_name = data.get('options', {}).get('model', 'seedance-2.5')
+                endpoint = provider.endpoint_for(model_name)
+                result = provider.status(endpoint, data['requestId'])
                 if result is None:
                     raise HTTPException(503, 'The animation is still rendering.')
                 with tempfile.TemporaryDirectory() as folder:
@@ -351,7 +359,7 @@ class CloudAnimations:
                     provider.download_video(result, str(target))
                     try:
                         width, height, seconds = provider.measure(str(target))
-                        usage = animation_usage(width, height, seconds)
+                        usage = animation_usage(width, height, seconds, model=model_name)
                     except (ValueError, OSError):
                         usage = None  # Unreadable header: fall back to the authorized quote.
                     blob = self.studio.bucket.blob(f'users/{uid}/animations/{jid}.mp4')

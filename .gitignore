@@ -42,6 +42,7 @@ public/models/
 server/exports/
 # concept-pipeline runs: source photos, concept renders and run.json
 server/runs/
+minimax_cat_jump_*.mp4
 
 # Godot import cache and generated browser exports
 games/**/.godot/

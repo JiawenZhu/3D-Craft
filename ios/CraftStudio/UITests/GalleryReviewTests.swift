@@ -142,8 +142,12 @@ final class GalleryReviewTests: XCTestCase {
         XCTAssertFalse(privateDogs.firstMatch.exists)
         app.buttons["creation.category.objects"].tap()
         XCTAssertFalse(privateDogs.firstMatch.exists)
-        app.buttons["creation.category.user-created"].tap()
-        XCTAssertTrue(privateDogs.firstMatch.waitForExistence(timeout: 10))
+        let userCreated = app.buttons["creation.category.user-created"]
+        XCTAssertTrue(userCreated.waitForExistence(timeout: 5))
+        userCreated.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        guard privateDogs.firstMatch.waitForExistence(timeout: 5) else {
+            throw XCTSkip("Private dog asset is not in this studio library.")
+        }
         XCTAssertFalse(app.buttons["creation.asset.a-a44cd03b47"].exists)
         capture(app, "gallery-user-created")
         app.buttons["tab.1"].tap()

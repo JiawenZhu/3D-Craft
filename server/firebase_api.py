@@ -203,16 +203,22 @@ def animations_ready():
 
 
 @app.get('/api/mobile/animations/quote')
-def mobile_animation_quote(resolution: Literal['480p','720p']='480p', duration: Literal['4','6']='4',
-                           aspect: Literal['1:1','16:9','9:16']='1:1', account=Depends(owner)):
-    quote = pricing.animation_quote(resolution, int(duration), aspect)
+def mobile_animation_quote(resolution: Literal['480p', '720p', '768p'] = '480p',
+                           duration: Literal['4', '5', '6'] = '4',
+                           aspect: Literal['1:1', '16:9', '9:16'] = '1:1',
+                           model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5',
+                           account=Depends(owner)):
+    quote = pricing.animation_quote(resolution, int(duration), aspect, model)
     return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animations_ready()}
 
 
 @app.get('/api/v1/animations/quote')
-def v1_animation_quote(resolution: Literal['480p','720p']='480p', duration: Literal['4','6']='4',
-                       aspect: Literal['1:1','16:9','9:16']='1:1', account=Depends(v1_owner)):
-    quote = pricing.animation_quote(resolution, int(duration), aspect)
+def v1_animation_quote(resolution: Literal['480p', '720p', '768p'] = '480p',
+                       duration: Literal['4', '5', '6'] = '4',
+                       aspect: Literal['1:1', '16:9', '9:16'] = '1:1',
+                       model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5',
+                       account=Depends(v1_owner)):
+    quote = pricing.animation_quote(resolution, int(duration), aspect, model)
     return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animations_ready()}
 
 

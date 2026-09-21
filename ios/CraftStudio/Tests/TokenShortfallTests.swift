@@ -27,4 +27,18 @@ final class TokenShortfallTests: XCTestCase {
         XCTAssertTrue(CraftPaywallRoute.startOnTokenPacks(hasPlan: true))
         XCTAssertFalse(CraftPaywallRoute.startOnTokenPacks(hasPlan: false))
     }
+
+    @MainActor
+    func testMiniMaxAnimationCostFollowsRodinBenchmark() async {
+        let store = CraftStore()
+        let miniMax480Cost = await store.animationCost(model: "minimax-h3", resolution: "480p", duration: "5")
+        let miniMax768Cost = await store.animationCost(model: "minimax-h3", resolution: "768p", duration: "5")
+        let seedance480Cost = await store.animationCost(model: "seedance-2.5", resolution: "480p", duration: "4")
+        let seedance720Cost = await store.animationCost(model: "seedance-2.5", resolution: "720p", duration: "4")
+
+        XCTAssertEqual(miniMax480Cost, 29)
+        XCTAssertEqual(miniMax768Cost, 35)
+        XCTAssertEqual(seedance480Cost, 98)
+        XCTAssertEqual(seedance720Cost, 220)
+    }
 }

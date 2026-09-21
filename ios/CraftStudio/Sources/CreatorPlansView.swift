@@ -42,8 +42,9 @@ struct CreatorPlansView: View {
     @EnvironmentObject private var billing: BillingManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var topups = false
-    @State private var selectedID = "craft.creator.monthly.v1"
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+    @State private var topups: Bool
+    @State private var selectedID: String
     @State private var purchasing = false
     @State private var message: String?
     @State private var failed = false
@@ -51,10 +52,19 @@ struct CreatorPlansView: View {
     @State private var routed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    init(startOnTopups: Bool = false) {
+        self._topups = State(initialValue: startOnTopups)
+        self._selectedID = State(initialValue: startOnTopups ? "craft.credits.small.v1" : "craft.creator.monthly.v1")
+    }
+
     private let catalog = CreatorPlanCatalog.bundled
-    private let green = CraftAppearance.emerald.ink
-    private let mint = CraftAppearance.emerald.fill
-    private let canvas = Color(red: 244/255, green: 250/255, blue: 247/255)
+    private var green: Color { appearance.ink }
+    private var mint: Color { appearance.fill }
+    private var canvas: Color {
+        appearance == .lavender
+            ? Color(red: 248/255, green: 242/255, blue: 254/255)
+            : Color(red: 244/255, green: 250/255, blue: 247/255)
+    }
     private func t(_ en: String, _ zh: String) -> String { store.t(en, zh) }
     private var credits: Int {
         if topups { return catalog?.topups?.first { $0.id == selectedID }?.credits ?? 0 }
@@ -131,12 +141,14 @@ struct CreatorPlansView: View {
         .task {
             // Someone who already subscribes needs Tokens now, not another
             // plan; someone with no plan is usually better off starting there.
-            if !routed, store.shortfall != nil {
+            if !routed {
                 routed = true
-                let wantsTopup = CraftPaywallRoute.startOnTokenPacks(hasPlan: billing.hasCreatorEntitlement)
-                topups = wantsTopup
-                selectedID = wantsTopup ? (catalog?.topups?.first?.id ?? "craft.credits.small.v1")
-                                        : "craft.creator.monthly.v1"
+                if !topups, store.shortfall != nil {
+                    let wantsTopup = CraftPaywallRoute.startOnTokenPacks(hasPlan: billing.hasCreatorEntitlement)
+                    topups = wantsTopup
+                    selectedID = wantsTopup ? (catalog?.topups?.first?.id ?? "craft.credits.small.v1")
+                                            : "craft.creator.monthly.v1"
+                }
             }
             await billing.loadProducts()
             if let uid = CraftAccount.shared.uid {
@@ -144,6 +156,16 @@ struct CreatorPlansView: View {
                 try? await billing.reconcileWallet(store: store, force: true)
             }
         }
+    }
+
+    private var heroImageName: String {
+        appearance == .lavender ? "PaywallDragon" : "PaywallExplorer"
+    }
+
+    private var heroAccessibilityLabel: String {
+        appearance == .lavender
+            ? t("Cloud Dragon, a 3D Craft character", "3D Craft 云朵飞龙角色")
+            : t("Lantern Explorer, a 3D Craft character", "3D Craft 提灯探险猫角色")
     }
 
     private func hero(height: CGFloat) -> some View {
@@ -163,10 +185,10 @@ struct CreatorPlansView: View {
             ZStack {
                 Ellipse().fill(mint.opacity(0.16)).frame(width: height * 1.35, height: height * 0.86).rotationEffect(.degrees(-16))
                 Ellipse().stroke(green.opacity(0.12), lineWidth: 1).frame(width: height * 1.55, height: height * 0.9).rotationEffect(.degrees(-16))
-                Image("PaywallExplorer").resizable().scaledToFit()
+                Image(heroImageName).resizable().scaledToFit()
                     .blendMode(.multiply)
                     .mask(RadialGradient(stops: [.init(color: .white, location: 0.72), .init(color: .clear, location: 1)], center: .center, startRadius: 0, endRadius: height * 0.7))
-                    .accessibilityLabel(t("Lantern Explorer, a 3D Craft character", "3D Craft 提灯探险猫角色"))
+                    .accessibilityLabel(heroAccessibilityLabel)
             }.frame(height: height)
             Text(t("Your ideas. Ready for 3D.", "创造角色、概念图与 3D 模型。"))
                 .font(.subheadline).foregroundStyle(green.opacity(0.8)).multilineTextAlignment(.center)

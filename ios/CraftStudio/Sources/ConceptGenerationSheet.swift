@@ -6,7 +6,26 @@ struct ConceptGenerationSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Binding var count: Int
-    let onGenerate: (Int) -> Void
+    @State var prompt: String
+    @State private var showShortfallModal = false
+    @State private var shortfallNeeded = 0
+    @State private var showTokenPacks = false
+    @State private var selectedBackground: StudioBackground = .grey
+    let onGenerate: (Int, String) -> Void
+
+    init(count: Binding<Int>, initialPrompt: String = "", onGenerate: @escaping (Int, String) -> Void) {
+        self._count = count
+        self._prompt = State(initialValue: initialPrompt)
+        self._selectedBackground = State(initialValue: StudioBackground.detect(in: initialPrompt))
+        self.onGenerate = onGenerate
+    }
+
+    init(count: Binding<Int>, onGenerate: @escaping (Int) -> Void) {
+        self._count = count
+        self._prompt = State(initialValue: "")
+        self._selectedBackground = State(initialValue: .grey)
+        self.onGenerate = { count, _ in onGenerate(count) }
+    }
 
     var body: some View {
         ScrollView {
@@ -57,6 +76,58 @@ struct ConceptGenerationSheet: View {
                 }
                 .accessibilityHidden(true)
 
+                if !prompt.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Label(store.t("Creative Prompt", "创意设定 / Prompt"), systemImage: "sparkles.rectangle.stack")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(appearance.ink)
+                            Spacer()
+                            Text(store.t("Editable", "可自定义调整"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        // Studio background environment selector
+                        HStack(spacing: 8) {
+                            Text(store.t("Background:", "摄影棚背景："))
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            ForEach(StudioBackground.allCases) { bg in
+                                Button {
+                                    selectedBackground = bg
+                                    prompt = StudioBackground.applying(bg, to: prompt, chinese: store.isChinese)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Circle()
+                                            .fill(bg == .grey ? Color(red: 0.44, green: 0.45, blue: 0.48) : (bg == .white ? Color.white : Color.black))
+                                            .frame(width: 10, height: 10)
+                                            .overlay(Circle().stroke(Color.primary.opacity(0.2), lineWidth: 0.8))
+                                        Text(bg.shortTitle(chinese: store.isChinese))
+                                            .font(.caption2.weight(selectedBackground == bg ? .semibold : .regular))
+                                    }
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 5)
+                                    .background(selectedBackground == bg ? appearance.washStrong : appearance.washSoft, in: Capsule())
+                                    .overlay(Capsule().strokeBorder(selectedBackground == bg ? appearance.fill : Color.clear, lineWidth: 1.2))
+                                }
+                                .buttonStyle(CraftPressStyle(scale: 0.96))
+                                .foregroundStyle(appearance.ink)
+                            }
+                        }
+                        .padding(.vertical, 2)
+
+                        TextField(store.t("Add your custom prompt or details here...", "在此输入或调整你的专属 Prompt、配饰、颜色或场景..."), text: $prompt, axis: .vertical)
+                            .lineLimit(2...5)
+                            .font(.subheadline)
+                            .padding(12)
+                            .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(appearance.washStrong, lineWidth: 1))
+                        Text(store.t("We will generate concepts with the selected studio background.", "我们将根据此 Prompt 及指定背景生成高品质概念图。"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+
                 HStack {
                     Text(store.t("Maximum", "最多预留")).foregroundStyle(.secondary)
                     Spacer()
@@ -78,7 +149,16 @@ struct ConceptGenerationSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Button { onGenerate(count) } label: {
+                Button {
+                    let cost = store.conceptTokenCost(count: count)
+                    let available = store.wallet.available + store.wallet.freeConceptTokens
+                    if available < cost {
+                        shortfallNeeded = cost
+                        showShortfallModal = true
+                        return
+                    }
+                    onGenerate(count, prompt.trimmingCharacters(in: .whitespacesAndNewlines))
+                } label: {
                     Label(store.t("Generate concepts", "生成概念图"), systemImage: "sparkles")
                         .frame(maxWidth: .infinity)
                 }
@@ -90,11 +170,21 @@ struct ConceptGenerationSheet: View {
         }
         .foregroundStyle(appearance.ink)
         .background { StudioAtmosphere(intensity: 0.65) }
-        .presentationDetents([.height(510), .large])
+        .presentationDetents([.fraction(0.85), .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(32)
         .task { await store.refreshImageModelCatalog() }
         .craftFeedback(.optionSelect, trigger: count)
+        .sheet(isPresented: $showShortfallModal) {
+            TokenShortfallModalView(needed: shortfallNeeded, available: store.wallet.available + store.wallet.freeConceptTokens) {
+                showTokenPacks = true
+            }
+            .craftAmbientHost()
+        }
+        .sheet(isPresented: $showTokenPacks) {
+            CreatorPlansView(startOnTopups: true)
+                .craftAmbientHost()
+        }
     }
 
     private func countButton(delta: Int) -> some View {
@@ -106,6 +196,7 @@ struct ConceptGenerationSheet: View {
             Image(systemName: delta < 0 ? "minus" : "plus")
                 .font(.title3.weight(.semibold))
                 .frame(width: 54, height: 54)
+                .contentShape(Circle())
                 .background(appearance.washStrong, in: Circle())
         }
         .buttonStyle(CraftPressStyle(scale: 0.90))

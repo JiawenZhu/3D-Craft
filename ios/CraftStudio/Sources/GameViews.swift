@@ -117,13 +117,20 @@ struct GameChooserView: View {
 
     private var assetCard: some View {
         HStack(spacing: 14) {
-            CraftThumbnailImage(url: asset.thumbURL, inset: 6)
-                .frame(width: 76, height: 84)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            if asset.isAnimated, let url = asset.animationURL {
+                CraftAnimationLoop(url: url, id: asset.id, posterURL: asset.thumbURL, cornerRadius: 16)
+                    .frame(width: 76, height: 84)
+            } else {
+                CraftThumbnailImage(url: asset.thumbURL, inset: 6)
+                    .frame(width: 76, height: 84)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(asset.name).font(.headline).lineLimit(2)
-                Text(store.t("Your selected 3D asset", "你当前选择的 3D 资产")).font(.caption).foregroundStyle(accent)
+                Text(store.t(asset.isAnimated ? "Your animated character" : "Your selected 3D asset",
+                             asset.isAnimated ? "你选择的动画角色" : "你当前选择的 3D 资产"))
+                    .font(.caption).foregroundStyle(accent)
             }
             Spacer(minLength: 0)
         }
@@ -261,10 +268,14 @@ struct GameChooserView: View {
         do {
             guard let base = URL(string: store.webBase), ["127.0.0.1", "localhost", "::1", "[::1]"].contains(base.host ?? ""),
                   ["http", "https"].contains(base.scheme ?? ""), base.user == nil, base.password == nil else { throw GameLaunchError.invalidServer }
-            let raw = asset.id == "bundled-lantern" ? "/models/lantern_cat.glb" : asset.modelUrl
+            let raw = (asset.id == "bundled-lantern" || asset.modelUrl == nil) ? "/models/lantern_cat.glb" : asset.modelUrl
             guard let raw, let model = URL(string: raw, relativeTo: base)?.absoluteURL,
                   !model.isFileURL, ["127.0.0.1", "localhost", "::1", "[::1]"].contains(model.host ?? "") else { throw GameLaunchError.invalidModel }
             var info: [String: Any] = ["id": asset.id, "name": asset.name, "url": model.absoluteString, "kind": kind, "yaw": yaw]
+            if asset.isAnimated {
+                info["isAnimated"] = true
+                if let anim = asset.animationUrl { info["animationUrl"] = anim }
+            }
             let preview = asset.id == "bundled-lantern" ? "/images/explore/lantern_cat.png" : (asset.thumbDisplayUrl ?? asset.thumbUrl)
             if let raw = preview, let thumb = URL(string: raw, relativeTo: base)?.absoluteURL,
                ["127.0.0.1", "localhost", "::1", "[::1]"].contains(thumb.host ?? "") { info["thumbUrl"] = thumb.absoluteString }

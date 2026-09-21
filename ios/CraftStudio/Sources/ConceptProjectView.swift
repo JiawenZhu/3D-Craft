@@ -111,8 +111,9 @@ struct ConceptProjectView: View {
                 ForEach(jobs.flatMap(\.assets)) { asset in
                     Button { store.path.append(.asset(asset)) } label: {
                         HStack {
-                            Image(systemName: "cube.fill").foregroundStyle(appearance.ink)
-                            Text(store.t("Open finished 3D asset", "查看已完成的 3D 资产"))
+                            Image(systemName: asset.isAnimated ? "film.stack" : "cube.fill").foregroundStyle(appearance.ink)
+                            Text(store.t(asset.isAnimated ? "Open character animation" : "Open finished 3D asset",
+                                         asset.isAnimated ? "查看角色动画" : "查看已完成的 3D 资产"))
                             Spacer()
                             Image(systemName: "arrow.up.right")
                                 .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
@@ -238,12 +239,12 @@ struct ConceptProjectView: View {
             }
         }
         .sheet(item: $animateSource) { source in
-            AnimationGenerationSheet(concept: source, chinese: store.isChinese) { motion, resolution, duration in
+            AnimationGenerationSheet(concept: source, chinese: store.isChinese) { model, motion, resolution, duration in
                 animateSource = nil
                 centeredConceptID = source.id
                 submittingConceptID = source.id
                 Task {
-                    await store.generateAnimation(source, motion: motion, resolution: resolution, duration: duration)
+                    await store.generateAnimation(source, model: model, motion: motion, resolution: resolution, duration: duration)
                     submittingConceptID = nil
                 }
             }

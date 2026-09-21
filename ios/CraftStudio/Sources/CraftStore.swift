@@ -243,6 +243,7 @@ struct PendingGeneration: Codable, Equatable {
     /// What a blocked creation needed, so the paywall can explain itself and
     /// open on the page that actually helps.
     @Published var shortfall: CraftShortfall?
+    @Published var showShortfallModal = false
     /// True when a creation is running but iOS Live Activities are switched off
     /// for this app, so the Lock Screen and Dynamic Island stay empty.
     @Published var liveActivitiesOff = false
@@ -252,7 +253,8 @@ struct PendingGeneration: Codable, Equatable {
     func askForTokens(needed: Int, what: String) {
         let have = wallet.available + wallet.freeConceptTokens
         shortfall = CraftShortfall(needed: needed, available: have, what: what)
-        showPaywall = true
+        CraftHaptics.notifyTokenShortfall()
+        showShortfallModal = true
     }
     @Published var draftPrompt=UserDefaults.standard.string(forKey:"craftDraftPrompt") ?? "" {didSet{UserDefaults.standard.set(draftPrompt,forKey:"craftDraftPrompt")}}
     @Published var draftStyle=UserDefaults.standard.string(forKey:"craftDraftStyle") ?? "Stylized" {didSet{UserDefaults.standard.set(draftStyle,forKey:"craftDraftStyle")}}
@@ -269,6 +271,8 @@ struct PendingGeneration: Codable, Equatable {
     @Published var selectedTab=0
     private var token:String?
     @Published var submittingModelID: String?
+    @Published var submittingAnimationID: String?
+    @Published var focusComposerTrigger = 0
     private var creationRefreshing = false
     private var rawProjectSnapshot: [[String: Any]] = []
     private var rawJobSnapshot: [[String: Any]] = []
@@ -374,12 +378,16 @@ struct PendingGeneration: Codable, Equatable {
     }
 
     func acceptJob(_ job: CraftJob) {
+        let wasActive = jobs.first(where: { $0.id == job.id })?.isActive == true
         if let index = jobs.firstIndex(where: { $0.id == job.id }) {
             // A delayed running response cannot overwrite a terminal snapshot.
             if !jobs[index].isActive && job.isActive { return }
             jobs[index] = job
         } else { jobs.insert(job, at: 0) }
         completedModelCards.append(contentsOf: completionTracker.receive(jobs))
+        if wasActive && job.status == "done" && ["model", "concepts", "animation"].contains(job.kind) {
+            CraftHaptics.notifyCreationComplete()
+        }
         syncLiveActivities()
     }
 
@@ -402,6 +410,10 @@ struct PendingGeneration: Codable, Equatable {
             jobs.removeAll { !serverIDs.contains($0.id) && !($0.isActive && ($0.createdAt ?? 0) > recent) }
         }
         try resolvePending(from: jobs)
+        let newlyFinished = jobs.filter { activeIDs.contains($0.id) && $0.status == "done" && ["model", "concepts", "animation"].contains($0.kind) }
+        if !newlyFinished.isEmpty {
+            CraftHaptics.notifyCreationComplete()
+        }
         if jobs.contains(where: { activeIDs.contains($0.id) && !$0.isActive }) {
             Task { await refreshCloudCreations() }
         }
@@ -417,7 +429,7 @@ struct PendingGeneration: Codable, Equatable {
         connectionSucceeded()
     }
     private func prepareGeneration(path:String,projectID:String,payload:[String:Any],draftFingerprint:String?=nil) async throws ->Bool {
-        if let provider = CraftAIProvider.recipient(path: path, method: "POST"), let uid = CraftAccount.shared.uid {
+        if let provider = CraftAIProvider.recipient(path: path, method: "POST"), let uid = CraftAccount.shared.uid, !isLocalHost {
             try await CraftAIPrivacy.authorize(provider, uid: uid, chinese: isChinese)
         }
         if let pending=pendingGeneration {
@@ -786,11 +798,18 @@ struct PendingGeneration: Codable, Equatable {
     @Published private var conceptQuotes: [String: Int] = [:]
     private var conceptQuoteExpiry: Double = 0
     private var conceptQuoteUID: String?
+    private var isLocalHost: Bool {
+        let host = URL(string: apiBase)?.host?.lowercased() ?? ""
+        return ["127.0.0.1", "localhost"].contains(host) || host.hasSuffix(".local")
+    }
     var conceptPriceReady: Bool {
-        conceptQuoteUID == CraftAccount.shared.uid && conceptQuoteUID != nil && conceptQuoteExpiry > Date().timeIntervalSince1970 && conceptQuotes.count == 4 && selectedImageModel?.available == true
+        if isLocalHost { return true }
+        return conceptQuoteUID == CraftAccount.shared.uid && conceptQuoteUID != nil && conceptQuoteExpiry > Date().timeIntervalSince1970 && conceptQuotes.count == 4 && selectedImageModel?.available == true
     }
     func conceptTokenCost(count: Int) -> Int {
-        imageModelID == "codex-gpt-image-2" ? 0 : conceptQuotes[String(count)] ?? (count * 31 + (count > 1 ? 4 : 2))
+        if let quote = conceptQuotes[String(count)] { return quote }
+        if isLocalHost { return count * 15 }
+        return imageModelID == "codex-gpt-image-2" ? 0 : (count * 31 + (count > 1 ? 4 : 2))
     }
     func conceptPriceSummary(count: Int) -> String {
         var lines: [String] = []
@@ -922,23 +941,40 @@ struct PendingGeneration: Codable, Equatable {
         do{guard try await prepareGeneration(path:"/concepts/\(concept.id)/model",projectID:concept.projectId,payload:Self.modelPayload(engine:engine,quality:quality,effort:effort,conceptIds:conceptIds,modelPrompt:modelPrompt)) else{return};_=try await submitPending();startPolling()}catch{handleGenerationError(error)}
     }
     /// Token cost of one character animation, quoted by the server.
-    func animationCost(resolution: String = "480p", duration: String = "4") async -> Int? {
-        let path = "/animations/quote?resolution=\(resolution)&duration=\(duration)&aspect=1:1"
-        guard let quote = try? await request(path) as? [String: Any] else { return nil }
+    func animationCost(model: String = "minimax-h3", resolution: String = "480p", duration: String = "5") async -> Int? {
+        if isLocalHost {
+            if model == "minimax-h3" {
+                return resolution == "768p" || resolution == "720p" ? 35 : 29
+            } else {
+                if resolution == "720p" {
+                    return duration == "6" ? 329 : 220
+                } else {
+                    return duration == "6" ? 147 : 98
+                }
+            }
+        }
+        let path = "/animations/quote?model=\(model)&resolution=\(resolution)&duration=\(duration)&aspect=1:1"
+        guard let quote = try? await request(path) as? [String: Any] else {
+            if model == "minimax-h3" {
+                return resolution == "768p" || resolution == "720p" ? 35 : 29
+            } else {
+                return resolution == "720p" ? (duration == "6" ? 329 : 220) : (duration == "6" ? 147 : 98)
+            }
+        }
         guard (quote["available"] as? Bool) != false else { return nil }
         return quote["maxTokens"] as? Int
     }
 
-    func generateAnimation(_ concept: CraftConcept, motion: String, resolution: String, duration: String) async {
+    func generateAnimation(_ concept: CraftConcept, model: String = "minimax-h3", motion: String, resolution: String, duration: String) async {
         guard !busy else { error = t("Please wait for the current request to finish, then try again.", "请等待当前请求完成后重试。"); return }
-        guard let cost = await animationCost(resolution: resolution, duration: duration) else {
+        guard let cost = await animationCost(model: model, resolution: resolution, duration: duration) else {
             error = t("Character animation is unavailable right now.", "角色动画暂时不可用。"); return
         }
         guard wallet.available >= cost else {
             askForTokens(needed: cost, what: t("this animation", "这段动画")); return
         }
-        busy = true; defer { busy = false }
-        var payload: [String: Any] = ["resolution": resolution, "duration": duration, "aspect": "1:1", "maxTokens": cost]
+        busy = true; submittingAnimationID = concept.id; defer { busy = false; submittingAnimationID = nil }
+        var payload: [String: Any] = ["model": model, "resolution": resolution, "duration": duration, "aspect": "1:1", "maxTokens": cost]
         if !motion.isEmpty { payload["motion"] = motion }
         do {
             guard try await prepareGeneration(path: "/concepts/\(concept.id)/animation",
@@ -1004,7 +1040,7 @@ struct PendingGeneration: Codable, Equatable {
     }
     private func request(_ path:String,method:String="GET",body:[String:Any]?=nil,data:Data?=nil,contentType:String="application/json",allowAnonymous:Bool=false) async throws ->Any {
         let requestUID=CraftAccount.shared.uid
-        if let provider = CraftAIProvider.recipient(path: path, method: method), let requestUID {
+        if let provider = CraftAIProvider.recipient(path: path, method: method), let requestUID, !isLocalHost {
             try await CraftAIPrivacy.authorize(provider, uid: requestUID, chinese: isChinese)
             guard CraftAccount.shared.uid == requestUID else { throw CancellationError() }
         }

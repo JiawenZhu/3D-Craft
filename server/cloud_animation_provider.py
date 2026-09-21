@@ -19,13 +19,23 @@ from fastapi import HTTPException
 # `firebase_animations` and the callback route reach them through this module.
 from .cloud_model_provider import headers, status, submit, verify_callback
 
-__all__ = ['ENDPOINT', 'RESOLUTIONS', 'DURATIONS', 'MAX_BYTES', 'arguments', 'describe',
+__all__ = ['ENDPOINT', 'MINIMAX_ENDPOINT', 'SEEDANCE_ENDPOINT', 'RESOLUTIONS', 'DURATIONS',
+           'SEEDANCE_RESOLUTIONS', 'SEEDANCE_DURATIONS', 'MINIMAX_RESOLUTIONS', 'MINIMAX_DURATIONS',
+           'MAX_BYTES', 'endpoint_for', 'arguments', 'describe',
            'download_video', 'measure', 'validate_mp4', 'video_url',
            'headers', 'status', 'submit', 'verify_callback']
 
-ENDPOINT = os.getenv('CRAFT_ANIMATION_ENDPOINT', 'bytedance/seedance-2.5/image-to-video')
-RESOLUTIONS = ('480p', '720p')
-DURATIONS = ('4', '6')
+SEEDANCE_ENDPOINT = os.getenv('CRAFT_ANIMATION_ENDPOINT', 'bytedance/seedance-2.5/image-to-video')
+MINIMAX_ENDPOINT = os.getenv('CRAFT_MINIMAX_ENDPOINT', 'minimax/h3/image-to-video')
+ENDPOINT = SEEDANCE_ENDPOINT
+
+SEEDANCE_RESOLUTIONS = ('480p', '720p')
+SEEDANCE_DURATIONS = ('4', '6')
+MINIMAX_RESOLUTIONS = ('480p', '768p', '720p')
+MINIMAX_DURATIONS = ('5',)
+
+RESOLUTIONS = ('480p', '720p', '768p')
+DURATIONS = ('4', '5', '6')
 MAX_BYTES = 40 * 1024 * 1024
 
 # Seedance keeps the character but drifts if the shot is not pinned down. These
@@ -43,10 +53,25 @@ def describe(motion: str | None) -> str:
     return text[:600] + LOOP_RULES
 
 
-def arguments(image_url: str, motion: str | None, resolution: str, duration: str, aspect: str) -> dict:
-    if resolution not in RESOLUTIONS:
+def endpoint_for(model: str = 'seedance-2.5') -> str:
+    if str(model).startswith('minimax'):
+        return MINIMAX_ENDPOINT
+    return SEEDANCE_ENDPOINT
+
+
+def arguments(image_url: str, motion: str | None, resolution: str, duration: str, aspect: str,
+              model: str = 'seedance-2.5') -> dict:
+    if str(model).startswith('minimax'):
+        if resolution not in MINIMAX_RESOLUTIONS:
+            raise HTTPException(422, 'Choose a supported animation quality.')
+        canon_res = '768p' if resolution in ('768p', '720p') else '480p'
+        return {'prompt': describe(motion), 'image_url': image_url,
+                'resolution': canon_res, 'duration': 5,
+                'prompt_expansion_mode': 'disabled'}
+
+    if resolution not in SEEDANCE_RESOLUTIONS:
         raise HTTPException(422, 'Choose a supported animation quality.')
-    if duration not in DURATIONS:
+    if duration not in SEEDANCE_DURATIONS:
         raise HTTPException(422, 'Choose a supported animation length.')
     return {'image_url': image_url, 'end_image_url': image_url, 'prompt': describe(motion),
             'resolution': resolution, 'duration': duration, 'aspect_ratio': aspect,

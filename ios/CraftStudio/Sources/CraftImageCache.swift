@@ -57,13 +57,20 @@ actor CraftImageCache {
                 try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: file.path)
                 return data
             }
-            guard let original = try? await loader(url),
-                  let source = CGImageSourceCreateWithData(original as CFData, nil),
-                  let preview = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                    kCGImageSourceCreateThumbnailFromImageAlways: true,
-                    kCGImageSourceCreateThumbnailWithTransform: true,
-                    kCGImageSourceThumbnailMaxPixelSize: 1024
-                  ] as CFDictionary), let data = UIImage(cgImage: preview).pngData() else { return nil }
+            guard let original = try? await loader(url) else { return nil }
+            var dataToCache: Data?
+            if let source = CGImageSourceCreateWithData(original as CFData, nil),
+               let preview = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: 1024
+               ] as CFDictionary),
+               let png = UIImage(cgImage: preview).pngData() {
+                dataToCache = png
+            } else if UIImage(data: original) != nil {
+                dataToCache = original
+            }
+            guard let data = dataToCache else { return nil }
             guard !Task.isCancelled else { return nil }
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try? data.write(to: file, options: .atomic)
@@ -100,9 +107,21 @@ struct CraftCachedImage: View {
     }
     var body: some View {
         Group {
-            if let image { Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode) }
-            else if failed { Image(systemName: "photo").foregroundStyle(.secondary) }
-            else { ProgressView() }
+            if let image {
+                Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
+            } else if failed {
+                VStack(spacing: 8) {
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .font(.title2)
+                    Text("Image unavailable")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
         .task(id: url) {
             guard let url else { failed = true; return }

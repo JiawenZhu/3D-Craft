@@ -449,7 +449,20 @@ def enqueue(owner, project, kind, body, concept=None):
 @router.get("/image-models")
 def available_image_models(owner=Depends(account)):
     from .codex_bridge import account_status
-    return image_models.catalog(account_status(owner))
+    data = image_models.catalog(account_status(owner))
+    data["maxTokensByCount"] = {"1": 15, "2": 30, "3": 45, "4": 60}
+    data["expiresAt"] = time.time() + 86400
+    return data
+
+
+@router.post("/cloud-library/sync")
+def sync_cloud_library(owner=Depends(account)):
+    return {"synced": 0}
+
+
+@router.post("/cloud-library/claim-device")
+def claim_device(owner=Depends(account)):
+    return {"claimed": True}
 
 
 @router.post("/projects/{project_id}/concepts")

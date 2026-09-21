@@ -25,8 +25,10 @@ struct PaywallView: View {
     private var accent: LinearGradient { appearance.gradient }
     private var selectedProduct: Product? { billing.products.first { $0.id == selectedID } }
 
+    var startOnTopups: Bool = false
+
     var body: some View {
-        CreatorPlansView().preferredColorScheme(.light)
+        CreatorPlansView(startOnTopups: startOnTopups).preferredColorScheme(.light)
     }
 
     // MARK: - The free testing card (the primary path in this build)

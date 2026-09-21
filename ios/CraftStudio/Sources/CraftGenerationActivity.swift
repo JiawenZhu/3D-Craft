@@ -23,13 +23,13 @@ public enum CraftActivityPhase: String, Codable, Hashable, Sendable {
     /// The same rule the in-app journey uses: a queued job only waits.
     public static func of(status: String, kind: String) -> CraftActivityPhase {
         if status == "queued" { return .thinking }
-        return kind == "model" ? .model : .concept
+        return (kind == "model" || kind == "animation") ? .model : .concept
     }
 }
 
 public struct CraftGenerationAttributes: Codable, Hashable, Sendable {
     public var jobId: String
-    public var kind: String          // "model" or "concepts"
+    public var kind: String          // "model", "concepts", or "animation"
     public var projectId: String
     public var projectName: String
     public var mascot: CraftActivityMascot
@@ -73,18 +73,24 @@ extension CraftGenerationAttributes: ActivityAttributes {
 public enum CraftActivityText {
     public static func headline(_ state: CraftGenerationAttributes.State, kind: String, chinese: Bool) -> String {
         if state.failed { return chinese ? "这次创作没有完成" : "This creation didn’t finish" }
-        if state.finished { return kind == "model" ? (chinese ? "你的 3D 作品已就绪" : "Your 3D creation is ready")
-                                                   : (chinese ? "你的概念图已就绪" : "Your concepts are ready") }
+        if state.finished {
+            if kind == "model" { return chinese ? "你的 3D 作品已就绪" : "Your 3D creation is ready" }
+            if kind == "animation" { return chinese ? "你的角色动画已就绪" : "Your character animation is ready" }
+            return chinese ? "你的概念图已就绪" : "Your concepts are ready"
+        }
         switch state.phase {
         case .thinking: return chinese ? "灵感已进入队列，我们会持续更新进度。" : "Your idea is in line. We’ll keep you updated."
-        case .model:    return chinese ? "正在让灵感成为三维……" : "Finding shape in your idea…"
+        case .model:    return kind == "animation"
+                            ? (chinese ? "正在为你的角色生成动作循环……" : "Generating motion loop for your character…")
+                            : (chinese ? "正在让灵感成为三维……" : "Finding shape in your idea…")
         case .concept:  return chinese ? "一点点想象，正在成为作品……" : "A little imagination, coming to life…"
         }
     }
 
     public static func title(kind: String, chinese: Bool) -> String {
-        kind == "model" ? (chinese ? "从你的图片到 3D" : "From your image to 3D")
-                        : (chinese ? "让灵感逐渐成形" : "An idea taking shape")
+        if kind == "model" { return chinese ? "从你的图片到 3D" : "From your image to 3D" }
+        if kind == "animation" { return chinese ? "制作角色动画" : "Bringing your character to life" }
+        return chinese ? "让灵感逐渐成形" : "An idea taking shape"
     }
 
     /// A short, plain stage label. The job's own stage words are internal, so

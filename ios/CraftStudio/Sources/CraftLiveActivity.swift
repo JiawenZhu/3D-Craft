@@ -47,7 +47,7 @@ final class CraftLiveActivityCenter: ObservableObject {
     func sync(jobs: [CraftJob], projectName: @escaping (String) -> String, emerald: Bool, chinese: Bool) {
         #if canImport(ActivityKit)
         guard #available(iOS 16.2, *), available else { return }
-        for job in jobs where job.kind == "model" || job.kind == "concepts" {
+        for job in jobs where job.kind == "model" || job.kind == "concepts" || job.kind == "animation" {
             if job.isActive {
                 start(job, projectName: projectName(job.projectId), emerald: emerald, chinese: chinese)
                 update(job)
