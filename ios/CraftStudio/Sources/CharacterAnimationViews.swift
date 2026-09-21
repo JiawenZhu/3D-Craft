@@ -107,33 +107,42 @@ struct AnimatedCharacterDetailView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "square.stack.3d.up.fill")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [Color(red: 1.0, green: 0.48, blue: 0.28), Color(red: 1.0, green: 0.32, blue: 0.36)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                Text(store.t("Add to Desktop Gadget", "设为桌面组件"))
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .font(.system(size: 16, weight: .bold))
                                     .foregroundStyle(.white)
+
+                                Text(store.t("Add to Desktop Gadget", "设为桌面组件"))
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.85))
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.white.opacity(0.08))
+                            .padding(.vertical, 15)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 1.0, green: 0.44, blue: 0.24),
+                                        Color(red: 0.98, green: 0.24, blue: 0.42)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .strokeBorder(
                                         LinearGradient(
-                                            colors: [Color(red: 1.0, green: 0.48, blue: 0.28).opacity(0.6), Color.white.opacity(0.15)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
+                                            colors: [Color.white.opacity(0.55), Color.white.opacity(0.12)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
                                         ),
                                         lineWidth: 1
                                     )
                             )
+                            .shadow(color: Color(red: 1.0, green: 0.35, blue: 0.30).opacity(0.35), radius: 10, x: 0, y: 5)
                         }
                         .buttonStyle(CraftPressStyle(scale: 0.96))
                         .accessibilityIdentifier("animation.gadget")
