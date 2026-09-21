@@ -251,35 +251,13 @@ public struct CraftGadgetShowcaseView: View {
     // MARK: - Small Widget (Circled Icon 2)
 
     private var smallWidgetView: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
+            Color(red: 0.08, green: 0.08, blue: 0.11)
             // Video / Image stage
             widgetMediaLayer
-
-            // Gradient scrim at bottom for text readability
-            LinearGradient(
-                colors: [.clear, Color.black.opacity(0.8)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
-
-            // Information tag
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 6, height: 6)
-                    Text("4s Loop")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(.ultraThinMaterial, in: Capsule())
-
-                Text(asset.name)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-            }
-            .padding(12)
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
         }
         .frame(width: 158, height: 158)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
