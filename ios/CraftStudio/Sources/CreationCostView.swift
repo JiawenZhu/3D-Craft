@@ -124,8 +124,11 @@ struct CreationCostView: View {
                     }
                 }
             }.frame(height: 7).accessibilityHidden(true)
-            spendRow(store.t("Concepts & refinements", "概念图与修改"), icon: "photo.on.rectangle", value: usage.spent(model: false))
-            spendRow(store.t("3D models", "3D 模型"), icon: "cube.transparent", value: usage.spent(model: true))
+            spendRow(store.t("Concepts & refinements", "概念图与修改"), icon: "photo.on.rectangle", value: usage.spent(kind: "concepts"))
+            spendRow(store.t("3D models", "3D 模型"), icon: "cube.transparent", value: usage.spent(kind: "model"))
+            if usage.spent(kind: "animation") > 0 {
+                spendRow(store.t("Character animations", "角色动画"), icon: "film.stack", value: usage.spent(kind: "animation"))
+            }
             Divider().opacity(0.5)
             HStack {
                 Label(store.t("In progress · Reserved", "处理中 · 已预留"), systemImage: "clock")

@@ -39,21 +39,26 @@ struct LibraryView: View {
     }
     private var items: [LibraryGalleryItem] {
         let activeProjects = Set(store.jobs.filter(\.isActive).map(\.projectId))
-        let projects: [LibraryGalleryItem] = filter == .models || filter == .favorites ? [] : store.projects.map { project in
+        let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations || filter == .favorites) ? [] : store.projects.map { project in
             let concept = store.selectedConcept(in: project)
                 ?? project.concepts.first(where: { $0.isOriginal != true })
                 ?? project.concepts.first
             let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
             return .project(project, imageURL: url, active: activeProjects.contains(project.id))
         }
-        let models: [LibraryGalleryItem] = filter == .concepts ? [] : privateAssets
-            .filter { filter != .favorites || favorites.contains($0.id) }
+        let assets: [LibraryGalleryItem] = filter == .concepts ? [] : privateAssets
+            .filter { asset in
+                if filter == .models && asset.isAnimated { return false }
+                if filter == .animations && !asset.isAnimated { return false }
+                if filter == .favorites && !favorites.contains(asset.id) { return false }
+                return true
+            }
             .map { .asset($0, favorite: favorites.contains($0.id)) }
         // Mix the two real collections without pretending they share timestamps.
         var combined: [LibraryGalleryItem] = []
-        for index in 0..<max(projects.count, models.count) {
+        for index in 0..<max(projects.count, assets.count) {
             if index < projects.count { combined.append(projects[index]) }
-            if index < models.count { combined.append(models[index]) }
+            if index < assets.count { combined.append(assets[index]) }
         }
         var seen = Set<String>()
         let matching = combined.filter {
@@ -113,7 +118,11 @@ struct LibraryView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            Button { searching = false; store.selectedTab = 0 } label: {
+            Button {
+                searching = false
+                store.selectedTab = 0
+                store.focusComposerTrigger += 1
+            } label: {
                 Image(systemName: "plus")
                     .font(.title3.weight(.medium))
                     .foregroundStyle(appearance.ink)
@@ -195,10 +204,12 @@ struct LibraryView: View {
             title: !searchText.isEmpty ? store.t("No matching creations", "没有匹配的作品")
                 : filter == .favorites ? store.t("Keep your favorites here", "把喜欢的作品留在这里")
                 : filter == .models ? store.t("Your next dimension awaits", "下一维度，等你创造")
+                : filter == .animations ? store.t("Bring your characters to life", "让你的角色动起来")
                 : store.t("A home for your imagination", "给你的想象一个家"),
             message: !searchText.isEmpty ? store.t("Try a different name or clear your filters.", "试试其他名称，或清除筛选。")
                 : filter == .favorites ? store.t("Tap the heart in a model's details to save it here.", "在模型信息中点按爱心，即可收藏到这里。")
                 : filter == .models ? store.t("Open one of your concepts to bring it into 3D.", "打开你的概念图，让它成为 3D 模型。")
+                : filter == .animations ? store.t("Open one of your concepts and tap Animate to generate a looping character animation.", "打开你的概念图，点击“生成动画”即可生成无缝循环角色动画。")
                 : store.t("Your concept projects and finished 3D models will appear here. Start with a photo or a few words.", "你的概念项目和 3D 模型会保存在这里。先用照片或几句话开始创作。"),
             actionTitle: searchingOrFiltered ? store.t("Show all creations", "查看全部作品") : store.t("Start creating", "开始创作"),
             action: {
@@ -267,7 +278,10 @@ struct AssetDetailView: View {
                     title
                 }
                 stage.id("studio.lightingPreview")
-                if !lightingControls { details }
+                if !lightingControls {
+                    details
+                    Color.clear.frame(height: lightingExpanded ? 260 : 120).id("studio.details.bottom")
+                }
             }
             .padding(.horizontal, 22).padding(.vertical, 12)
             .frame(maxWidth: 650).frame(maxWidth: .infinity)
@@ -275,6 +289,13 @@ struct AssetDetailView: View {
         }
         .onChange(of: lightingControls) { _, opened in
             if opened { proxy.scrollTo("studio.lightingPreview", anchor: .top) }
+        }
+        .onChange(of: lightingExpanded) { _, expanded in
+            if expanded {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    proxy.scrollTo("studio.details.bottom", anchor: .bottom)
+                }
+            }
         }
         .onPreferenceChange(CraftScrollOffsetKey.self) { value in
             let stepped = (value / 4).rounded() * 4
@@ -430,63 +451,100 @@ struct AssetDetailView: View {
     }
 
     private var details: some View {
-        DisclosureGroup(store.t("Lighting & model details", "灯光与模型信息"), isExpanded: $lightingExpanded) {
-            VStack(alignment: .leading, spacing: 14) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(CraftLightingPreset.allCases) { preset in
-                            let on = lighting == preset
-                            Button {
-                                withAnimation(CraftMotion.gated(.snap, reduceMotion)) { lighting = preset }
-                            } label: {
-                                Text(preset.title(chinese: store.isChinese))
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(on ? appearance.ink : .primary)
-                                    .padding(.horizontal, 16).padding(.vertical, 11)
-                                    .background {
-                                        if on {
-                                            Capsule().fill(appearance.washStrong)
-                                                .matchedGeometryEffect(id: "lightingChip", in: lightingChip)
-                                        } else {
-                                            Capsule().fill(CraftTheme.panel)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    lightingExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Label(store.t("Lighting & model details", "灯光与模型信息"), systemImage: "slider.horizontal.2.square")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(appearance.ink)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(appearance.ink.opacity(0.75))
+                        .rotationEffect(.degrees(lightingExpanded ? 180 : 0))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(CraftPressStyle(scale: 0.98))
+            .accessibilityIdentifier("studio.lightingToggle")
+
+            if lightingExpanded {
+                VStack(alignment: .leading, spacing: 14) {
+                    Divider().opacity(0.4)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(CraftLightingPreset.allCases) { preset in
+                                let on = lighting == preset
+                                Button {
+                                    withAnimation(CraftMotion.gated(.snap, reduceMotion)) { lighting = preset }
+                                } label: {
+                                    Text(preset.title(chinese: store.isChinese))
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(on ? appearance.ink : .primary)
+                                        .padding(.horizontal, 16).padding(.vertical, 11)
+                                        .background {
+                                            if on {
+                                                Capsule().fill(appearance.washStrong)
+                                                    .matchedGeometryEffect(id: "lightingChip", in: lightingChip)
+                                            } else {
+                                                Capsule().fill(CraftTheme.panel)
+                                            }
                                         }
-                                    }
+                                }
+                                .buttonStyle(CraftPressStyle())
+                                .accessibilityIdentifier("lighting." + preset.rawValue)
+                                .accessibilityAddTraits(on ? .isSelected : [])
                             }
-                            .buttonStyle(CraftPressStyle())
-                            .accessibilityIdentifier("lighting." + preset.rawValue)
-                            .accessibilityAddTraits(on ? .isSelected : [])
+                        }
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 2)
+                    }
+                    .scrollClipDisabled()
+
+                    HStack {
+                        Label("\(asset.faces.formatted())", systemImage: "triangle")
+                        Spacer()
+                        Text(String(format: "%.1f MB · GLB", asset.fileSizeMb))
+                    }.font(.caption).foregroundStyle(.secondary)
+
+                    Button {
+                        var ids = Set(favoriteIDs.split(separator: ",").map(String.init))
+                        if isFavorite { ids.remove(asset.id); favoriteOffCount += 1 }
+                        else { ids.insert(asset.id); favoriteOnCount += 1 }
+                        favoriteIDs = ids.sorted().joined(separator: ",")
+                    } label: {
+                        Label {
+                            Text(store.t("Favorite", "收藏"))
+                        } icon: {
+                            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
+                                .foregroundStyle(isFavorite ? appearance.ink : .secondary)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .buttonStyle(CraftPressStyle())
                 }
-                .scrollClipDisabled()
-
-                HStack {
-                    Label("\(asset.faces.formatted())", systemImage: "triangle")
-                    Spacer()
-                    Text(String(format: "%.1f MB · GLB", asset.fileSizeMb))
-                }.font(.caption).foregroundStyle(.secondary)
-
-                Button {
-                    var ids = Set(favoriteIDs.split(separator: ",").map(String.init))
-                    if isFavorite { ids.remove(asset.id); favoriteOffCount += 1 }
-                    else { ids.insert(asset.id); favoriteOnCount += 1 }
-                    favoriteIDs = ids.sorted().joined(separator: ",")
-                } label: {
-                    Label {
-                        Text(store.t("Favorite", "收藏"))
-                    } icon: {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
-                            .foregroundStyle(isFavorite ? appearance.ink : .secondary)
-                    }
-                }
-                .buttonStyle(CraftPressStyle())
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.97, anchor: .top)),
+                    removal: .opacity.combined(with: .move(edge: .top))
+                ))
             }
-            .padding(.top, 14)
         }
-        .font(.subheadline)
-        .tint(appearance.ink)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(appearance.fill.opacity(lightingExpanded ? 0.35 : 0.15), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(lightingExpanded ? 0.08 : 0.03), radius: 10, y: 4)
+        .id("studio.details")
         .craftEntrance(9, style: .fade)
     }
 
@@ -598,6 +656,7 @@ struct ProfileView: View {
     @State private var showCustomerCenter = false
     @State private var deletingAccount = false
     @State private var apiAccessOpen = false
+    @State private var showIntroduction = false
     @State private var scrollY: CGFloat = 0
     @State private var rowCount = 0
 
@@ -635,6 +694,12 @@ struct ProfileView: View {
         .sheet(isPresented: $aiAccountOpen) { AIAccountView() }
         .sheet(isPresented: $deletingAccount) { AccountDeletionView() }
         .sheet(isPresented: $apiAccessOpen) { APIAccessView() }
+        .fullScreenCover(isPresented: $showIntroduction) {
+            CraftIntroductionView {
+                showIntroduction = false
+            }
+            .environmentObject(store)
+        }
         .presentCustomerCenter(isPresented: $showCustomerCenter)
     }
 
@@ -730,6 +795,13 @@ struct ProfileView: View {
             .accessibilityIdentifier("languageChinese")
             .frame(minHeight: 52)
             .onChange(of: store.isChinese) { _, _ in rowCount += 1 }
+
+            Divider().opacity(0.4)
+
+            navigationRow("sparkles.tv", store.t("Product Tour & Features", "产品介绍与功能演示")) {
+                showIntroduction = true
+            }
+            .accessibilityIdentifier("profile.introTour")
 
             Divider().opacity(0.4)
 

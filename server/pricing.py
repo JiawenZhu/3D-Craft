@@ -57,6 +57,10 @@ def catalog(today=None):
             "按输出像素计费：480p/720p 每 1,000 tokens $0.0214，tokens = 宽 x 高 x 秒 x 24 / 1024。"
             "正方形 4 秒 480p 角色循环约 $0.46；16:9 720p 4 秒约 $1.85。不生成音频。",
             fal + "bytedance/seedance-2.5/image-to-video", perThousandTokensUsd=.0214),
+        "minimax-h3-i2v": row("MiniMax Hailuo 02 · Image to video", "video", None,
+            "Flat rate: 480p $0.25 (5s), 768p $0.30 (5s). Exceptional facial expression fidelity and accessory rigidity.",
+            "按次固定计费：480p $0.25（5秒），768p $0.30（5秒）。面部表情生动自然，配饰物理结构稳定。",
+            fal + "minimax/h3/image-to-video", rate480pUsd=.25, rate768pUsd=.30),
         "codex-gpt-image-2": row("GPT Image 2 · ChatGPT account", "account", 0,
             "0 app credits. Uses your own ChatGPT plan; its account limits apply. Only studio-provided generation is charged.",
             "0 App 积分。使用你自己的 ChatGPT 订阅额度，受账户限制；仅工作室提供的生成服务扣费。"),
@@ -100,18 +104,25 @@ def catalog(today=None):
 HEADROOM = 1.03
 ANIMATION_SIZES = {("480p","1:1"):(640,640), ("480p","16:9"):(854,480), ("480p","9:16"):(480,854),
                    ("720p","1:1"):(960,960), ("720p","16:9"):(1280,720), ("720p","9:16"):(720,1280)}
+MINIMAX_RATES = {"480p": 0.25, "768p": 0.30, "720p": 0.30}
+MINIMAX_SIZES = {("480p", "1:1"): (480, 480), ("768p", "1:1"): (768, 768), ("720p", "1:1"): (768, 768)}
 
 
-def animation_usage(width, height, seconds):
-    """Cost of a clip that already exists, from fal's own token formula.
+def animation_usage(width, height, seconds, model="seedance-2.5-i2v"):
+    """Cost of a clip that already exists.
 
-    fal bills Seedance on output pixels: tokens = w x h x seconds x 24 / 1024,
-    at a published price per 1,000 tokens. Measuring the delivered file means a
-    person pays for what the provider actually produced. The Token scale is the
-    same one every other creation uses, anchored on Rodin at $0.40 = 46 Tokens.
+    For Seedance, fal bills on output pixels: tokens = w x h x seconds x 24 / 1024.
+    For MiniMax Hailuo 02, flat rate applies ($0.25 for 480p, $0.30 for 768p/720p).
     """
-    model = catalog()["models"]["seedance-2.5-i2v"]
-    rate = model.get("perThousandTokensUsd")
+    if str(model).startswith("minimax"):
+        is_hd = max(width or 0, height or 0) > 512
+        total = 0.30 if is_hd else 0.25
+        return {"providerTokens": None, "width": width, "height": height,
+                "seconds": round(seconds, 3), "totalUsd": total,
+                "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": f"{total:.2f}"}])}
+
+    model_info = catalog()["models"]["seedance-2.5-i2v"]
+    rate = model_info.get("perThousandTokensUsd")
     if rate is None or not width or not height or seconds <= 0:
         return {"providerTokens": None, "totalUsd": None,
                 "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": None}])}
@@ -122,12 +133,30 @@ def animation_usage(width, height, seconds):
             "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": f"{total:.6f}"}])}
 
 
-def animation_quote(resolution="480p", duration=4, aspect="1:1"):
-    """Provider cost and Tokens for one Seedance character loop."""
+def animation_quote(resolution="480p", duration=4, aspect="1:1", model="seedance-2.5"):
+    """Provider cost and Tokens for one character loop (Seedance 2.5 or MiniMax Hailuo 02)."""
+    if str(model).startswith("minimax"):
+        canon_res = "768p" if resolution in ("768p", "720p") else resolution
+        rate = MINIMAX_RATES.get(canon_res)
+        size = MINIMAX_SIZES.get((canon_res, aspect))
+        if rate is None or size is None:
+            usage = usage_quote([{"id": "animation", "providerUsd": None}])
+            return {"currency": "USD", "kind": "provider_cost_estimate", "model": "minimax-h3-i2v",
+                    "resolution": resolution, "aspect": aspect, "seconds": 5, "totalUsd": None,
+                    "note": "Price pending verification", "verifiedAt": VERIFIED_AT, "usageWithServiceFee": usage}
+        width, height = size
+        minimax_info = catalog()["models"]["minimax-h3-i2v"]
+        usage = usage_quote([{"id": "animation", "providerUsd": f"{rate:.2f}"}])
+        return {"currency": "USD", "kind": "provider_cost_estimate", "model": "minimax-h3-i2v",
+                "resolution": canon_res, "aspect": aspect, "seconds": 5, "width": width, "height": height,
+                "providerTokens": None, "totalUsd": rate,
+                "note": minimax_info["note"], "verifiedAt": VERIFIED_AT,
+                "usageWithServiceFee": usage}
+
     size = ANIMATION_SIZES.get((resolution, aspect))
     seconds = int(duration)
-    model = catalog()["models"]["seedance-2.5-i2v"]
-    rate = model.get("perThousandTokensUsd")
+    model_info = catalog()["models"]["seedance-2.5-i2v"]
+    rate = model_info.get("perThousandTokensUsd")
     if size is None or seconds < 1 or rate is None:
         usage = usage_quote([{"id": "animation", "providerUsd": None}])
         return {"currency":"USD", "kind":"provider_cost_estimate", "model":"seedance-2.5-i2v",
@@ -137,11 +166,11 @@ def animation_quote(resolution="480p", duration=4, aspect="1:1"):
     # Delivered clips run a little past the requested length (4 s comes back as
     # about 4.04 s), and the charge is capped at what was authorized, so the
     # quote carries a small headroom instead of quietly absorbing the excess.
-    actual = animation_usage(width, height, seconds * HEADROOM)
+    actual = animation_usage(width, height, seconds * HEADROOM, model="seedance-2.5-i2v")
     return {"currency":"USD", "kind":"provider_cost_estimate", "model":"seedance-2.5-i2v",
             "resolution":resolution, "aspect":aspect, "seconds":seconds, "width":width, "height":height,
             "providerTokens":actual["providerTokens"], "totalUsd":actual["totalUsd"],
-            "note":model["note"], "verifiedAt":VERIFIED_AT,
+            "note":model_info["note"], "verifiedAt":VERIFIED_AT,
             "usageWithServiceFee":actual["usageWithServiceFee"]}
 
 

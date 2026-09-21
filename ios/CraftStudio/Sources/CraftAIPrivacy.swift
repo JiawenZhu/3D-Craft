@@ -18,7 +18,11 @@ enum CraftAIProvider: String, CaseIterable {
     private static var pending: (key: String, task: Task<Bool, Never>)?
     static func authorize(_ provider: CraftAIProvider, uid: String, chinese: Bool) async throws {
         let key = provider.key(uid: uid)
-        if UserDefaults.standard.bool(forKey: key) { return }
+        if UserDefaults.standard.bool(forKey: key)
+            || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || ProcessInfo.processInfo.arguments.contains(where: { $0.contains("craftActiveConversation") }) {
+            return
+        }
         if let current = pending {
             _ = await current.task.value
             // Re-check both recipient and account; another prompt cannot authorize this request.

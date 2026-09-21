@@ -33,6 +33,9 @@ struct ModelGenerationSheet: View {
     @State private var promptSuggestion: String?
     @State private var promptImprovementError: String?
     @State private var promptTask: Task<Void, Never>?
+    @State private var showShortfallModal = false
+    @State private var shortfallNeeded = 0
+    @State private var showTokenPacks = false
 
     private let canvas = Color.white
     private var lilac: Color { appearance.ink }
@@ -121,6 +124,16 @@ struct ModelGenerationSheet: View {
             catch { promptImprovementError = error.localizedDescription }
         }
         .onDisappear { promptTask?.cancel() }
+        .sheet(isPresented: $showShortfallModal) {
+            TokenShortfallModalView(needed: shortfallNeeded, available: store.wallet.available) {
+                showTokenPacks = true
+            }
+            .craftAmbientHost()
+        }
+        .sheet(isPresented: $showTokenPacks) {
+            CreatorPlansView(startOnTopups: true)
+                .craftAmbientHost()
+        }
     }
 
     // MARK: - Sections
@@ -413,6 +426,11 @@ struct ModelGenerationSheet: View {
     private var bottomBar: some View {
         Button {
             guard ready else { return }
+            if let cost = tokenCost, store.wallet.available < cost {
+                shortfallNeeded = cost
+                showShortfallModal = true
+                return
+            }
             submitted = true
             submitCount += 1
             promptFocused = false

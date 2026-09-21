@@ -147,4 +147,5 @@ struct CraftSpendSummary {
     var reserved: Int { jobs.filter(\.isActive).reduce(0) { $0 + max(0, $1.reservedTokens ?? 0) } }
     var unrecorded: Int { jobs.filter { $0.chargedTokens == nil }.count }
     func spent(model: Bool) -> Int { jobs.filter { ($0.kind == "model") == model }.reduce(0) { $0 + max(0, $1.chargedTokens ?? 0) } }
+    func spent(kind: String) -> Int { jobs.filter { $0.kind == kind }.reduce(0) { $0 + max(0, $1.chargedTokens ?? 0) } }
 }

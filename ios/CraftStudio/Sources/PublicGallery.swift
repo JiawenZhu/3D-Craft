@@ -27,8 +27,10 @@ struct PublicDiscoveryView: View {
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .emerald
     @EnvironmentObject var store: CraftStore
     @State private var category: GalleryHomeCategory = .characters
+    @State private var categoryCount = 0
     @State private var signIn = false
     @State private var community = false
+    @State private var showIntroduction = false
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -49,8 +51,18 @@ struct PublicDiscoveryView: View {
                             Text(store.t("Discover a character. Imagine an adventure.", "发现一个角色，开启一场冒险。"))
                                 .font(.subheadline).foregroundStyle(.secondary)
                         }
-                        Image("PaywallExplorer").resizable().scaledToFit().frame(width: 110, height: 150).clipShape(RoundedRectangle(cornerRadius: 20)).accessibilityHidden(true)
+                        Image(appearance == .lavender ? "PaywallDragon" : "PaywallExplorer").resizable().scaledToFit().frame(width: 110, height: 150).clipShape(RoundedRectangle(cornerRadius: 20)).accessibilityHidden(true)
                     }.padding(20).background(appearance.wash, in: RoundedRectangle(cornerRadius: 28))
+                    Button { showIntroduction = true } label: {
+                        HStack {
+                            Image(systemName: "sparkles.tv").font(.title2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(store.t("Explore 3D Craft Features", "探索 3D Craft 全新功能")).font(.headline)
+                                Text(store.t("See 3D models, AI video loops, and game worlds", "体验 3D 重构、AI 循环动画与游戏世界")).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(); Image(systemName: "play.circle.fill").font(.title3)
+                        }.padding(18).background(CraftTheme.card, in: RoundedRectangle(cornerRadius: 22))
+                    }.buttonStyle(CraftPressStyle()).foregroundStyle(appearance.ink)
                     Button { community = true } label: {
                         HStack {
                             Image(systemName: "gamecontroller.fill").font(.title2)
@@ -64,6 +76,7 @@ struct PublicDiscoveryView: View {
                     HStack {
                         ForEach(GalleryHomeCategory.allCases) { item in
                             Button(item.title(chinese: store.isChinese)) {
+                                categoryCount += 1
                                 if item == .userCreated { signIn = true } else { category = item }
                             }.buttonStyle(.bordered).tint(category == item ? appearance.ink : appearance.ink.opacity(0.65))
                         }
@@ -78,6 +91,7 @@ struct PublicDiscoveryView: View {
                 if case .asset(let asset) = store.path.last { AssetDetailView(asset: asset) }
             }
             .background { StudioAtmosphere() }
+            .craftFeedback(.optionSelect, trigger: categoryCount)
         }.craftAmbientHost()
          .tint(appearance.ink)
          .sheet(isPresented: $signIn) { CraftSignInView() }
@@ -86,6 +100,12 @@ struct PublicDiscoveryView: View {
                  HStack { Spacer(); Button(store.t("Done", "完成")) { community=false }.padding() }
                  CommunityGamesView()
              }.tint(appearance.ink)
+         }
+         .fullScreenCover(isPresented: $showIntroduction) {
+             CraftIntroductionView {
+                 showIntroduction = false
+             }
+             .environmentObject(store)
          }
     }
 }

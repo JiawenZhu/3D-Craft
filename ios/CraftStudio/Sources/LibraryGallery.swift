@@ -1,13 +1,14 @@
 import SwiftUI
 
 enum LibraryGalleryFilter: String, CaseIterable, Identifiable {
-    case all, concepts, models, favorites
+    case all, concepts, models, animations, favorites
     var id: String { rawValue }
     func title(chinese: Bool) -> String {
         switch self {
         case .all: return chinese ? "全部" : "All"
         case .concepts: return chinese ? "概念图" : "Concepts"
         case .models: return chinese ? "3D 模型" : "3D models"
+        case .animations: return chinese ? "动画" : "Animations"
         case .favorites: return chinese ? "收藏" : "Favorites"
         }
     }
@@ -42,7 +43,8 @@ enum LibraryGalleryItem: Identifiable {
             let count = project.concepts.filter { $0.isOriginal != true }.count
             return count == 0 ? (chinese ? "创作项目" : "Concept project")
                 : (chinese ? "\(count) 张概念图" : "\(count) " + (count == 1 ? "concept" : "concepts"))
-        case .asset: return chinese ? "3D 模型" : "3D model"
+        case .asset(let asset, _):
+            return asset.isAnimated ? (chinese ? "动画" : "Animation") : (chinese ? "3D 模型" : "3D model")
         }
     }
 }
@@ -93,12 +95,18 @@ private struct LibraryGalleryCard: View {
                     }
                 }
                 .overlay(alignment: .bottomLeading) {
-                    Text(item.caption(chinese: chinese))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(appearance.ink)
-                        .padding(.horizontal, 9).padding(.vertical, 5)
-                        .background(.regularMaterial, in: Capsule())
-                        .padding(8)
+                    HStack(spacing: 4) {
+                        if case .asset(let asset, _) = item {
+                            Image(systemName: asset.isAnimated ? "film.fill" : "cube.fill")
+                                .font(.system(size: 8))
+                        }
+                        Text(item.caption(chinese: chinese))
+                    }
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(appearance.ink)
+                    .padding(.horizontal, 9).padding(.vertical, 5)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(8)
                 }
                 .overlay(alignment: .topTrailing) {
                     switch item {

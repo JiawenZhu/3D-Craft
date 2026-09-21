@@ -105,8 +105,10 @@ VIEWS = [('Front · 0°','front','directly in front, zero azimuth'),
 
 def view_prompt(words,index,mode,style):
     if mode in ('reference','refine'):
-        return ("Create ONE complete concept image using the attached reference. Follow the user's changes; preserve all unmentioned identity, face, proportions, pose, camera, colors, clothing and accessories. "
-            "Do not force a cartoon style or invent accessories. Show the complete subject on a simple pale background with soft neutral lighting. No grid, text or watermark. Explicit changes take priority. "
+        return ("Create ONE complete concept image using the attached reference. User instructions and requested changes take absolute top priority. "
+            "Any modification to pose, posture (such as standing upright on two hind legs / bipedal stance vs quadrupedal walking on all fours), clothing, armor, expression or accessories strictly overrides the reference image. "
+            "Preserve all unmentioned identity, face, proportions, materials, colors and details. Do not force a cartoon style or invent accessories. "
+            "Show the complete subject on a simple pale background with soft neutral lighting. No grid, text or watermark. "
             + ('Preserve the reference camera angle. ' if mode=='refine' else '')+'User instructions: '+words)
     return (f'Subject: {words}\nRequested style: {style}\n'
         f'TURNAROUND CAMERA CONTRACT: camera {VIEWS[index][2]}, at eye level. '

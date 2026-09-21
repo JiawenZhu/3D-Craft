@@ -85,7 +85,7 @@ class CloudConcepts:
             if (concept_id or body.preserveReference) and not source:raise HTTPException(422,'Choose a reference image first.')
             words=body.prompt.strip() or project.get('creativeBrief') or project.get('prompt','')
             if not words and not source:raise HTTPException(422,'Describe your idea or choose a reference.')
-            mode='refine' if concept_id else 'reference' if body.preserveReference else 'angles'
+            mode='refine' if concept_id else 'reference' if (body.preserveReference or body.referenceId) else 'angles'
             estimate=provider.quote(self.now(),body.count);cost=estimate['maxTokens']
             if body.maxTokens<cost:raise HTTPException(409,'Refresh the concept price and confirm again.')
             if environment is not None:

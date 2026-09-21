@@ -140,4 +140,24 @@ final class CraftModelTests:XCTestCase {
 
     func testRelativeAssetURLKeepsMobileHost(){XCTAssertEqual(resolved("/files/mobile/cat.glb",base:"http://127.0.0.1:8001"),"http://127.0.0.1:8001/files/mobile/cat.glb")}
     func testAbsoluteModelURLIsPreserved(){XCTAssertEqual(resolved("https://example.com/a.glb",base:"http://127.0.0.1:8001"),"https://example.com/a.glb")}
+
+    func testLibraryGalleryFiltersSeparate3DModelsAndAnimations() {
+        XCTAssertEqual(LibraryGalleryFilter.allCases.map(\.rawValue), ["all", "concepts", "models", "animations", "favorites"])
+        XCTAssertEqual(LibraryGalleryFilter.animations.title(chinese: false), "Animations")
+        XCTAssertEqual(LibraryGalleryFilter.animations.title(chinese: true), "动画")
+        XCTAssertEqual(LibraryGalleryFilter.models.title(chinese: false), "3D models")
+        XCTAssertEqual(LibraryGalleryFilter.models.title(chinese: true), "3D 模型")
+
+        let modelAsset = CraftAsset(id: "m-1", name: "Dragon 3D", modelUrl: "https://example.com/dragon.glb")
+        var animAsset = CraftAsset(id: "a-1", name: "Dragon Jump")
+        animAsset.animationUrl = "https://example.com/dragon.mp4"
+
+        let modelItem = LibraryGalleryItem.asset(modelAsset, favorite: false)
+        let animItem = LibraryGalleryItem.asset(animAsset, favorite: false)
+
+        XCTAssertEqual(modelItem.caption(chinese: false), "3D model")
+        XCTAssertEqual(modelItem.caption(chinese: true), "3D 模型")
+        XCTAssertEqual(animItem.caption(chinese: false), "Animation")
+        XCTAssertEqual(animItem.caption(chinese: true), "动画")
+    }
 }

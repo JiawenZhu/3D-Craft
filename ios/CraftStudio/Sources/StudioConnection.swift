@@ -6,6 +6,10 @@ enum StudioConnection {
     static let cloudURL = "https://3d-craft.web.app"
 
     static func initial(saved: String?, configured: String?, simulator: Bool) -> String {
-        cloudURL
+        if let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-craftAPI"),
+           idx + 1 < ProcessInfo.processInfo.arguments.count {
+            return ProcessInfo.processInfo.arguments[idx + 1]
+        }
+        return cloudURL
     }
 }

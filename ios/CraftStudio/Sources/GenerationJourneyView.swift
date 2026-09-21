@@ -35,6 +35,7 @@ struct GenerationJourneyView: View {
     private let coral = Color(red: 0.65, green: 0.19, blue: 0.12)
     private var lilac: Color { appearance.ink }
     private var modelJob: Bool { job.kind.lowercased() == "model" }
+    private var animationJob: Bool { job.kind.lowercased() == "animation" }
     private var running: Bool { job.status.lowercased() == "running" }
     private var done: Bool { ["done", "completed", "succeeded"].contains(job.status.lowercased()) }
     private var failed: Bool { ["failed", "error"].contains(job.status.lowercased()) }
@@ -45,10 +46,10 @@ struct GenerationJourneyView: View {
     private func t(_ en: String, _ zh: String) -> String { chinese ? zh : en }
 
     private var activeStep: Int {
-        if done { return modelJob ? 3 : 2 }
+        if done { return (modelJob || animationJob) ? 3 : 2 }
         let detail = (stage ?? job.message).lowercased()
-        if modelJob {
-            if job.status == "queued" || detail.contains("preparing reference") || detail == "queued" { return 1 }
+        if modelJob || animationJob {
+            if job.status == "queued" || detail.contains("preparing") || detail == "queued" { return 1 }
             return 2
         }
         if detail == "analyzing_reference" { return 1 }
@@ -58,7 +59,7 @@ struct GenerationJourneyView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            if modelJob && job.isActive { PlayWhileCreatingCard(job: job) }
+            if (modelJob || animationJob) && job.isActive { PlayWhileCreatingCard(job: job) }
             header
             if job.isActive { activityPreview }
             if job.isActive && store.liveActivitiesOff { lockScreenHint }
@@ -86,6 +87,7 @@ struct GenerationJourneyView: View {
         .craftFeedback(.jobStarted, trigger: startTick)
         .craftFeedback(.stepAdvance, trigger: activeStep)
         .craftFeedback(.jobSucceeded, trigger: done)
+        .onChange(of: done) { _, isDone in if isDone { CraftHaptics.notifyCreationComplete() } }
         .craftFeedback(.jobFailed, trigger: failed)
         .craftFeedback(.jobWarning, trigger: partial)
         .accessibilityIdentifier("generationJourney")
@@ -142,12 +144,13 @@ struct GenerationJourneyView: View {
                 // The mascot is the activity indicator. A queued job only waits,
                 // so it thinks; a running job draws concepts or sculpts in 3D.
                 // The source images remain in the pipeline nodes below.
-                CraftMascotLoop(phase: job.status == "queued" ? .thinking : modelJob ? .model : .concept,
+                CraftMascotLoop(phase: job.status == "queued" ? .thinking : (modelJob || animationJob ? .model : .concept),
                                 size: 164, active: job.isActive)
             }
             .frame(maxWidth: .infinity).frame(height: 196)
             .accessibilityHidden(true)
             Text(job.status == "queued" ? t("Your idea is in line. We’ll keep you updated.", "灵感已进入队列，我们会持续更新进度。")
+                 : animationJob ? t("Generating motion loop for your character…", "正在为你的角色生成动作循环……")
                  : modelJob ? t("Finding shape in your idea…", "正在让灵感成为三维……")
                  : t("A little imagination, coming to life…", "一点点想象，正在成为作品……"))
                 .font(.subheadline.weight(.medium)).foregroundStyle(lilac)
@@ -163,8 +166,9 @@ struct GenerationJourneyView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(t("YOUR CREATION JOURNEY", "你的创作旅程"))
                     .font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(lilac)
-                titleReveal(modelJob ? t("From your image to 3D", "从你的图片到 3D")
-                                     : t("An idea taking shape", "让灵感逐渐成形"))
+                titleReveal(animationJob ? t("Bringing your character to life", "让你的角色动起来")
+                            : modelJob ? t("From your image to 3D", "从你的图片到 3D")
+                            : t("An idea taking shape", "让灵感逐渐成形"))
             }
             Spacer(minLength: 8)
             statusChip
@@ -230,7 +234,7 @@ struct GenerationJourneyView: View {
     // MARK: - Nodes
 
     private func completed(_ index: Int) -> Bool {
-        if !modelJob && index == 3 { return false }
+        if !modelJob && !animationJob && index == 3 { return false }
         return done ? index <= activeStep : index < activeStep
     }
 
@@ -298,15 +302,15 @@ struct GenerationJourneyView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if index == 0 {
-                referenceImage(modelJob ? (selectedConceptURL ?? sourceURL) : sourceURL)
+                referenceImage(modelJob || animationJob ? (selectedConceptURL ?? sourceURL) : sourceURL)
             }
-            if index == 1, !modelJob, let coreConcept,
+            if index == 1, !modelJob, !animationJob, let coreConcept,
                !coreConcept.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(coreConcept).font(.caption).foregroundStyle(Color.primary.opacity(0.85))
                     .padding(11).frame(maxWidth: .infinity, alignment: .leading)
                     .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            if index == 2, !modelJob, let selectedConceptURL { referenceImage(selectedConceptURL) }
+            if index == 2, !modelJob, !animationJob, let selectedConceptURL { referenceImage(selectedConceptURL) }
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -417,14 +421,22 @@ struct GenerationJourneyView: View {
     }
 
     private func icon(_ index: Int) -> String {
+        if animationJob { return ["photo", "clock", "film", "checkmark.seal"][index] }
         if modelJob { return ["photo", "clock", "cube.transparent", "checkmark.seal"][index] }
         return [sourceURL == nil ? "text.alignleft" : "photo", "text.badge.star", "sparkles", "cube.transparent"][index]
     }
     private func title(_ index: Int) -> String {
+        if animationJob { return [t("Selected concept", "已选概念图"), t("Prepare & queue", "准备与排队"), t("Motion loop generation", "动作循环生成"), t("Animated character", "动画角色就绪")][index] }
         if modelJob { return [t("Selected concept", "已选概念图"), t("Prepare & queue", "准备与排队"), t("3D reconstruction", "三维重建"), t("Your asset", "你的资产")][index] }
         return [t("Your reference", "你的参考"), t("Shape the prompt", "整理创作描述"), t("Create concepts", "生成概念图"), t("Make it 3D", "生成 3D")][index]
     }
     private func detail(_ index: Int) -> String {
+        if animationJob {
+            return [t("The chosen image guides this animation.", "使用你选中的图片指导本次动画生成。"),
+                    t("Prepare reference frame and allocate generation quota.", "准备起始帧并分配生成资源。"),
+                    t("Synthesize seamless loop motion with Seedance.", "使用 Seedance 合成无缝循环动作。"),
+                    done ? t("Ready to play in games or share.", "可以在游戏中试玩或分享。") : t("Available after animation completes.", "动画生成完成后即可使用。")][index]
+        }
         if modelJob {
             return [t("The chosen image guides this reconstruction.", "使用你选中的图片指导本次重建。"),
                     t("Prepare the reference and wait for the model service.", "准备参考图并等待模型服务。"),

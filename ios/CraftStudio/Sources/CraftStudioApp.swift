@@ -31,22 +31,59 @@ import StoreKitTest
         }
     }()
     #endif
+    @AppStorage("hasSeenIntroductionV2") private var hasSeenIntroduction: Bool = false
+    @State private var showIntroduction = false
+
+    init() {
+        var domain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+        for key in Array(domain.keys) {
+            if key == "craftConceptCount" || key.contains("craftActiveConversation") {
+                if let val = domain.removeValue(forKey: key) {
+                    if let intVal = Int("\(val)") {
+                        UserDefaults.standard.set(intVal, forKey: key)
+                    } else {
+                        UserDefaults.standard.set(val, forKey: key)
+                    }
+                }
+            }
+        }
+        UserDefaults.standard.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+    }
+
     var body: some Scene { WindowGroup {
         Group {
             #if DEBUG && targetEnvironment(simulator)
-            if ProcessInfo.processInfo.arguments.contains("--preview-paywall") { PaywallView() }
+            if ProcessInfo.processInfo.arguments.contains("--preview-intro") { CraftIntroductionView(onFinish: {}) }
+            else if ProcessInfo.processInfo.arguments.contains("--preview-paywall") { PaywallView() }
             else if ProcessInfo.processInfo.arguments.contains("--preview-community") { NavigationStack { CommunityGamesView() }.craftAmbientHost() }
             else if ProcessInfo.processInfo.arguments.contains("--preview-model-prompt") {
                 ModelGenerationSheet(concept: CraftConcept(["id":"preview","projectId":"preview","name":"Lantern Explorer",
                     "imageUrl":Bundle.main.url(forResource:"lantern_cat",withExtension:"jpg")?.absoluteString ?? ""],base:""), chinese:store.isChinese) { _,_,_,_,_ in }
             }
-            else if account.uid == nil { PublicDiscoveryView() }
-            else { CraftRoot().id(account.uid) }
+            else if account.uid == nil && !ProcessInfo.processInfo.arguments.contains(where: { $0.contains("craftActiveConversation") }) { PublicDiscoveryView() }
+            else { CraftRoot().id(account.uid ?? "review") }
             #else
             if account.uid == nil { PublicDiscoveryView() }
             else { CraftRoot().id(account.uid) }
             #endif
         }.environmentObject(store).environmentObject(billing).preferredColorScheme(.light)
+         .fullScreenCover(isPresented: $showIntroduction) {
+             CraftIntroductionView {
+                 hasSeenIntroduction = true
+                 showIntroduction = false
+             }
+             .environmentObject(store)
+             .environmentObject(billing)
+         }
+         .task {
+             let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+                 || ProcessInfo.processInfo.arguments.contains("-hasSeenIntroductionV2")
+                 || ProcessInfo.processInfo.arguments.contains(where: { $0.contains("craftActiveConversation") })
+             if !hasSeenIntroduction && !isTesting {
+                 try? await Task.sleep(nanoseconds: 300_000_000)
+                 showIntroduction = true
+             }
+         }
          .alert(store.t("Account deletion requested", "账户删除请求已受理"), isPresented: $account.deletionRequested) {
              Button(store.t("OK", "好"), role: .cancel) {}
          } message: {
@@ -131,10 +168,18 @@ struct CraftRoot: View {
         }
         .animation(CraftMotion.gated(.glide, reduceMotion), value: store.completedModelCards.first?.id)
         .animation(CraftMotion.gated(.glide, reduceMotion), value: store.connectionNotice)
+        .sheet(isPresented: $store.showShortfallModal) {
+            if let shortfall = store.shortfall {
+                TokenShortfallModalView(needed: shortfall.needed, available: shortfall.available) {
+                    store.showPaywall = true
+                }
+                .craftAmbientHost()
+            }
+        }
         .sheet(isPresented: $store.showPaywall, onDismiss: {
             store.shortfall = nil
             store.presentPurchasedWallet()
-        }) { PaywallView().craftAmbientHost() }
+        }) { PaywallView(startOnTopups: store.shortfall != nil).craftAmbientHost() }
         .onChange(of: store.purchaseToPresent?.id) { _, id in
             guard id != nil else { return }
             if store.showPaywall {
@@ -237,6 +282,7 @@ struct CraftRoot: View {
     @State private var attachCount = 0
     @State private var removeCount = 0
     @State private var tileCount = 0
+    @State private var categoryCount = 0
 
     private var hasReference: Bool { store.draftImage != nil }
     private var armed: Bool {
@@ -289,9 +335,11 @@ struct CraftRoot: View {
         .craftFeedback(.referenceAttached, trigger: attachCount)
         .craftFeedback(.referenceRemoved, trigger: removeCount)
         .craftFeedback(.lightTap, trigger: tileCount)
+        .craftFeedback(.optionSelect, trigger: categoryCount)
         .sheet(isPresented: $confirm) {
-            ConceptGenerationSheet(count: $count) { selectedCount in
+            ConceptGenerationSheet(count: $count, initialPrompt: store.draftPrompt) { selectedCount, editedPrompt in
                 confirm = false
+                if !editedPrompt.isEmpty { store.draftPrompt = editedPrompt }
                 Task { if let id = await store.createConcepts(count: selectedCount) { submitCount += 1; store.draftPrompt = ""; store.saveDraftImage(nil); store.activeConversationID = id } }
             }
         }
@@ -313,6 +361,9 @@ struct CraftRoot: View {
             .craftAmbientHost()
         }
         .sheet(isPresented: $settings) { creationSettings }
+        .onChange(of: store.focusComposerTrigger) { _, _ in
+            promptFocused = true
+        }
     }
 
     private var header: some View {
@@ -336,6 +387,7 @@ struct CraftRoot: View {
                 HStack(spacing: 7) {
                     ForEach(GalleryHomeCategory.allCases) { item in
                         Button {
+                            categoryCount += 1
                             withAnimation(CraftMotion.gated(.fade, reduceMotion)) { category = item }
                         } label: {
                             Text(item.title(chinese: store.isChinese))
@@ -398,12 +450,21 @@ struct CraftRoot: View {
             HStack(alignment: .bottom, spacing: 9) {
                 HStack(alignment: .center, spacing: 5) {
                     attachmentMenu
-                    TextField(store.t("Describe or upload an idea", "描述或上传一个灵感"), text: $store.draftPrompt, axis: .vertical)
-                        .font(.subheadline)
-                        .lineLimit(1...4)
-                        .focused($promptFocused)
-                        .accessibilityIdentifier("creation.prompt")
-                        .padding(.vertical, 10)
+                    ZStack(alignment: .leading) {
+                        if store.draftPrompt.isEmpty {
+                            CraftPromptTypewriterView(chinese: store.isChinese) { selectedPrompt in
+                                store.draftPrompt = selectedPrompt
+                                promptFocused = true
+                            }
+                            .padding(.leading, 2)
+                        }
+                        TextField("", text: $store.draftPrompt, axis: .vertical)
+                            .font(.subheadline)
+                            .lineLimit(1...4)
+                            .focused($promptFocused)
+                            .accessibilityIdentifier("creation.prompt")
+                    }
+                    .padding(.vertical, 10)
                     Button {
                         promptFocused = false
                         tapCount += 1

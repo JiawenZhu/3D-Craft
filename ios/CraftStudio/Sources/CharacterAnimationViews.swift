@@ -124,15 +124,19 @@ struct AnimatedCharacterDetailView: View {
 struct AnimationGenerationSheet: View {
     let concept: CraftConcept
     let chinese: Bool
-    let onGenerate: (String, String, String) -> Void   // motion, resolution, duration
+    let onGenerate: (String, String, String, String) -> Void   // model, motion, resolution, duration
     @EnvironmentObject private var store: CraftStore
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.dismiss) private var dismiss
+    @State private var model = "minimax-h3"
     @State private var motion = ""
     @State private var resolution = "480p"
-    @State private var duration = "4"
+    @State private var duration = "5"
     @State private var cost: Int?
     @State private var loading = true
+    @State private var showShortfallModal = false
+    @State private var shortfallNeeded = 0
+    @State private var showTokenPacks = false
 
     private func t(_ en: String, _ zh: String) -> String { chinese ? zh : en }
 
@@ -153,6 +157,17 @@ struct AnimationGenerationSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
+                        picker(t("Animation Model", "动画模型"), selection: $model,
+                               options: [("minimax-h3", t("MiniMax Hailuo 02", "MiniMax 海螺 02")),
+                                         ("seedance-2.5", t("Seedance 2.5", "Seedance 2.5"))],
+                               identifier: "animation.model")
+                        Text(model == "minimax-h3"
+                             ? t("Vivid expressions · Stable accessories · High value", "表情生动自然 · 配饰结构稳定 · 高性价比")
+                             : t("Fluid cloth physics · Dramatic jump hangtime", "流体布料质感 · 舒展跳跃滞空"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(t("What should it do?", "让它做什么？")).font(.subheadline.weight(.semibold))
                         TextField(t("Optional, e.g. it waves and smiles", "可选，例如：挥手微笑"), text: $motion, axis: .vertical)
                             .lineLimit(2...4).textFieldStyle(.roundedBorder)
@@ -162,11 +177,20 @@ struct AnimationGenerationSheet: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
 
+                    let durationOptions: [(String, String)] = model == "minimax-h3"
+                        ? [("5", t("5 seconds", "5 秒"))]
+                        : [("4", t("4 seconds", "4 秒")), ("6", t("6 seconds", "6 秒"))]
+
                     picker(t("Length", "时长"), selection: $duration,
-                           options: [("4", t("4 seconds", "4 秒")), ("6", t("6 seconds", "6 秒"))],
+                           options: durationOptions,
                            identifier: "animation.duration")
+
+                    let resolutionOptions: [(String, String)] = model == "minimax-h3"
+                        ? [("480p", t("Standard (480P)", "标清 (480P)")), ("768p", t("High (768P)", "高清 (768P)"))]
+                        : [("480p", t("Standard (480P)", "标准 (480P)")), ("720p", t("High (720P)", "高清 (720P)"))]
+
                     picker(t("Quality", "画质"), selection: $resolution,
-                           options: [("480p", t("Standard", "标准")), ("720p", t("High", "高清"))],
+                           options: resolutionOptions,
                            identifier: "animation.resolution")
 
                     costRow
@@ -182,7 +206,28 @@ struct AnimationGenerationSheet: View {
                 }
             }
             .safeAreaInset(edge: .bottom) { generateButton }
-            .task(id: resolution + duration) { await refreshCost() }
+            .onChange(of: model) { _, newModel in
+                if newModel == "minimax-h3" {
+                    duration = "5"
+                    if resolution == "720p" { resolution = "768p" }
+                    else if resolution != "480p" && resolution != "768p" { resolution = "480p" }
+                } else {
+                    if duration == "5" { duration = "4" }
+                    if resolution == "768p" { resolution = "720p" }
+                    else if resolution != "480p" && resolution != "720p" { resolution = "480p" }
+                }
+            }
+            .task(id: model + resolution + duration) { await refreshCost() }
+            .sheet(isPresented: $showShortfallModal) {
+                TokenShortfallModalView(needed: shortfallNeeded, available: store.wallet.available) {
+                    showTokenPacks = true
+                }
+                .craftAmbientHost()
+            }
+            .sheet(isPresented: $showTokenPacks) {
+                CreatorPlansView(startOnTopups: true)
+                    .craftAmbientHost()
+            }
         }
     }
 
@@ -215,8 +260,13 @@ struct AnimationGenerationSheet: View {
     private var generateButton: some View {
         VStack(spacing: 6) {
             Button {
-                guard let cost, store.wallet.available >= cost else { store.showPaywall = true; return }
-                onGenerate(motion.trimmingCharacters(in: .whitespacesAndNewlines), resolution, duration)
+                guard let cost else { return }
+                if store.wallet.available < cost {
+                    shortfallNeeded = cost
+                    showShortfallModal = true
+                    return
+                }
+                onGenerate(model, motion.trimmingCharacters(in: .whitespacesAndNewlines), resolution, duration)
                 dismiss()
             } label: {
                 Label(t("Generate animation", "生成动画"), systemImage: "sparkles")
@@ -226,8 +276,16 @@ struct AnimationGenerationSheet: View {
             .disabled(cost == nil || store.busy)
             .accessibilityIdentifier("animation.generate")
             if let cost, store.wallet.available < cost {
-                Text(t("You need \(cost) Tokens. Add Tokens to continue.", "需要 \(cost) 个 Token，请先补充。"))
-                    .font(.caption).foregroundStyle(.secondary)
+                Button {
+                    shortfallNeeded = cost
+                    showShortfallModal = true
+                } label: {
+                    Text(t("You need \(cost) Tokens. Tap to top up.", "需要 \(cost) 个 Token，请先补充。"))
+                        .font(.caption)
+                        .foregroundStyle(appearance.ink)
+                        .underline()
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 24).padding(.vertical, 12)
@@ -236,7 +294,7 @@ struct AnimationGenerationSheet: View {
 
     private func refreshCost() async {
         loading = true
-        cost = await store.animationCost(resolution: resolution, duration: duration)
+        cost = await store.animationCost(model: model, resolution: resolution, duration: duration)
         loading = false
     }
 }

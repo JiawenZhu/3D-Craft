@@ -36,6 +36,19 @@ class QuoteTests(unittest.TestCase):
         self.assertIsNone(unknown['totalUsd'])
         self.assertIsNone(unknown['usageWithServiceFee']['credits'])
 
+    def test_minimax_quotes_have_flat_tariffs_for_480p_and_768p(self):
+        sd480 = animation_quote('480p', 5, '1:1', model='minimax-h3')
+        sd768 = animation_quote('768p', 5, '1:1', model='minimax-h3')
+        sd720_alias = animation_quote('720p', 5, '1:1', model='minimax-h3')
+        self.assertEqual(sd480['totalUsd'], 0.25)
+        self.assertEqual(sd480['usageWithServiceFee']['credits'], 29)
+        self.assertEqual((sd480['width'], sd480['height']), (480, 480))
+        self.assertEqual(sd768['totalUsd'], 0.30)
+        self.assertEqual(sd768['usageWithServiceFee']['credits'], 35)
+        self.assertEqual((sd768['width'], sd768['height']), (768, 768))
+        self.assertEqual(sd720_alias['totalUsd'], 0.30)
+        self.assertEqual(sd720_alias['usageWithServiceFee']['credits'], 35)
+
 
 class ProviderTests(unittest.TestCase):
     def test_loop_settings_match_the_mascot_recipe(self):
@@ -48,6 +61,13 @@ class ProviderTests(unittest.TestCase):
 
     def test_empty_motion_gets_a_gentle_default(self):
         self.assertIn('blinks', provider.arguments('https://fal.media/i.jpg', '   ', '480p', '4', '1:1')['prompt'])
+
+    def test_minimax_arguments_format(self):
+        args = provider.arguments('https://fal.media/in.jpg', 'jumping cat', '768p', '5', '1:1', model='minimax-h3')
+        self.assertEqual(args['resolution'], '768p')
+        self.assertEqual(args['duration'], 5)
+        self.assertEqual(args['prompt_expansion_mode'], 'disabled')
+        self.assertEqual(provider.endpoint_for('minimax-h3'), provider.MINIMAX_ENDPOINT)
 
     def test_unsupported_settings_are_refused(self):
         with self.assertRaises(HTTPException):
