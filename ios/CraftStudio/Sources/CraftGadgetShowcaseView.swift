@@ -21,7 +21,7 @@ public struct CraftGadgetShowcaseView: View {
 
     private var warmGradient: LinearGradient {
         LinearGradient(
-            colors: [Color(red: 1.0, green: 0.48, blue: 0.28), Color(red: 1.0, green: 0.32, blue: 0.36)],
+            colors: [Color(red: 1.0, green: 0.56, blue: 0.42), Color(red: 1.0, green: 0.46, blue: 0.54)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -456,17 +456,21 @@ public struct CraftGadgetShowcaseView: View {
             HStack(spacing: 8) {
                 if isSaved {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(Color.green)
-                    Text(isChinese ? "已成功设为主屏幕组件！" : "Added to Desktop Gadgets!")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Text(isChinese ? "已成功设为主屏幕组件 (即将推出)" : "Added to Desktop Gadgets (Coming Soon)")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 } else {
                     Image(systemName: "plus.app.fill")
                         .font(.system(size: 16, weight: .bold))
-                    Text(isChinese ? "设为主屏幕组件" : "Set as Active Gadget")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Text(isChinese ? "设为主屏幕组件 (即将推出)" : "Set as Active Gadget (Coming Soon)")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -475,7 +479,7 @@ public struct CraftGadgetShowcaseView: View {
                 isSaved ? LinearGradient(colors: [Color.green.opacity(0.8), Color.teal.opacity(0.8)], startPoint: .leading, endPoint: .trailing) : warmGradient
             )
             .clipShape(Capsule())
-            .shadow(color: Color(red: 1.0, green: 0.32, blue: 0.36).opacity(isSaved ? 0.2 : 0.4), radius: 14, y: 6)
+            .shadow(color: Color(red: 1.0, green: 0.46, blue: 0.54).opacity(isSaved ? 0.2 : 0.35), radius: 14, y: 6)
         }
         .buttonStyle(CraftPressStyle(scale: 0.96))
     }
