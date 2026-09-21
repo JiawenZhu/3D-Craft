@@ -105,6 +105,10 @@ struct CraftLoopingVideo: UIViewRepresentable {
         if playing { player.play() } else { player.pause() }
     }
 
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: PlayerView, context: Context) -> CGSize? {
+        CGSize(width: proposal.width ?? 0, height: proposal.height ?? 0)
+    }
+
     static func dismantleUIView(_ view: PlayerView, coordinator: ()) {
         view.playerLayer.player?.pause()
         view.looper?.disableLooping()
@@ -122,8 +126,15 @@ struct CraftLoopingVideo: UIViewRepresentable {
             super.init(frame: frame)
             isUserInteractionEnabled = false
             backgroundColor = .clear
+            setContentHuggingPriority(.defaultLow, for: .horizontal)
+            setContentHuggingPriority(.defaultLow, for: .vertical)
+            setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         }
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+        override var intrinsicContentSize: CGSize {
+            CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
+        }
     }
 }
 

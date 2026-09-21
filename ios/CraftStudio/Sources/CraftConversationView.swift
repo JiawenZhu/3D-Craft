@@ -86,8 +86,9 @@ struct CraftConversationView: View {
                         Color.clear.frame(height: 1).id("conversation.bottom")
                     }
                     .padding(.horizontal, 16).padding(.top, 18).padding(.bottom, 16)
-                    .frame(maxWidth: 650).frame(maxWidth: .infinity)
+                    .frame(maxWidth: 650)
                 }
+                .frame(maxWidth: .infinity)
                 .refreshable { await store.refresh() }
                 .onChange(of: store.submittingModelID) { _, id in
                     if id != nil { withAnimation { proxy.scrollTo("model.submitting", anchor: .center) } }
@@ -114,6 +115,7 @@ struct CraftConversationView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity)
         .background { StudioAtmosphere(intensity: 0.75) }
         .safeAreaInset(edge: .bottom, spacing: 0) { composer }
         .toolbar(.hidden, for: .navigationBar)
@@ -224,7 +226,7 @@ struct CraftConversationView: View {
     private func turnView(_ turn: CraftChatTurn) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack { Spacer(minLength: 32); Text(turn.text).font(.body).padding(15)
-                .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 22)).textSelection(.enabled) }
+                .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 22)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
             if let reply = turn.reply {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("3D Craft", systemImage: "sparkles").font(.caption.weight(.semibold)).foregroundStyle(appearance.ink)
@@ -298,30 +300,32 @@ struct CraftConversationView: View {
                     }
 
                     // Studio background environment selector
-                    HStack(spacing: 8) {
-                        Text(store.t("Background:", "摄影棚背景："))
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.secondary)
-                        ForEach(StudioBackground.allCases) { bg in
-                            Button {
-                                selectedBackground = bg
-                                customPromptText = StudioBackground.applying(bg, to: customPromptText, chinese: store.isChinese)
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(bg == .grey ? Color(red: 0.44, green: 0.45, blue: 0.48) : (bg == .white ? Color.white : Color.black))
-                                        .frame(width: 8, height: 8)
-                                        .overlay(Circle().stroke(Color.primary.opacity(0.2), lineWidth: 0.6))
-                                    Text(bg.shortTitle(chinese: store.isChinese))
-                                        .font(.caption2.weight(selectedBackground == bg ? .semibold : .regular))
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Text(store.t("Background:", "摄影棚背景："))
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            ForEach(StudioBackground.allCases) { bg in
+                                Button {
+                                    selectedBackground = bg
+                                    customPromptText = StudioBackground.applying(bg, to: customPromptText, chinese: store.isChinese)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Circle()
+                                            .fill(bg == .grey ? Color(red: 0.44, green: 0.45, blue: 0.48) : (bg == .white ? Color.white : Color.black))
+                                            .frame(width: 8, height: 8)
+                                            .overlay(Circle().stroke(Color.primary.opacity(0.2), lineWidth: 0.6))
+                                        Text(bg.shortTitle(chinese: store.isChinese))
+                                            .font(.caption2.weight(selectedBackground == bg ? .semibold : .regular))
+                                    }
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 4)
+                                    .background(selectedBackground == bg ? appearance.washStrong : appearance.washSoft, in: Capsule())
+                                    .overlay(Capsule().strokeBorder(selectedBackground == bg ? appearance.fill : Color.clear, lineWidth: 1))
                                 }
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 4)
-                                .background(selectedBackground == bg ? appearance.washStrong : appearance.washSoft, in: Capsule())
-                                .overlay(Capsule().strokeBorder(selectedBackground == bg ? appearance.fill : Color.clear, lineWidth: 1))
+                                .buttonStyle(CraftPressStyle(scale: 0.96))
+                                .foregroundStyle(appearance.ink)
                             }
-                            .buttonStyle(CraftPressStyle(scale: 0.96))
-                            .foregroundStyle(appearance.ink)
                         }
                     }
 
@@ -553,7 +557,7 @@ struct CraftConversationView: View {
     private func jobView(_ job: CraftJob) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             if let prompt = job.sourcePrompt, !prompt.isEmpty {
-                HStack { Spacer(minLength: 32); Text(prompt).padding(15).background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 22)) }
+                HStack { Spacer(minLength: 32); Text(prompt).padding(15).background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 22)).fixedSize(horizontal: false, vertical: true) }
             }
             Label(store.t(job.kind == "model" ? "Your 3D creation" : (job.kind == "animation" ? "Your character animation" : "Your concepts"),
                           job.kind == "model" ? "你的 3D 作品" : (job.kind == "animation" ? "你的角色动画" : "你的概念图")),
@@ -616,7 +620,7 @@ struct CraftConversationView: View {
             }.padding(6).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 28))
                 .overlay(RoundedRectangle(cornerRadius: 28).strokeBorder(.white.opacity(0.8)))
         }.foregroundStyle(appearance.ink).padding(.horizontal, 14).padding(.vertical, 10)
-            .frame(maxWidth: 650).frame(maxWidth: .infinity).background(appearance.washSoft)
+            .frame(maxWidth: .infinity).background(appearance.washSoft)
     }
     private var settingsView: some View {
         NavigationStack {
@@ -694,7 +698,7 @@ private struct ConversationModelCard: View {
                 ModelViewport(modelURL: url, mode: mode, resetID: reset, chinese: store.isChinese, softStage: true, showsZoomControls: interacting)
                     .allowsHitTesting(interacting)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 460)
+                    .aspectRatio(1, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -739,7 +743,7 @@ private struct ConversationAnimationCard: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 460)
+            .aspectRatio(1, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)

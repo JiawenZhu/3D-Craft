@@ -1097,6 +1097,7 @@
 		02462515B22592B99948DB64 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CraftStudioWidgets/CraftStudioWidgets.entitlements;
 				INFOPLIST_FILE = CraftStudioWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "3D Craft";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1359,6 +1360,7 @@
 		C190B932ABF824A3F44DE38F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CraftStudioWidgets/CraftStudioWidgets.entitlements;
 				INFOPLIST_FILE = CraftStudioWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "3D Craft";
 				LD_RUNPATH_SEARCH_PATHS = (
