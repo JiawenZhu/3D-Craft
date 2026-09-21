@@ -32,6 +32,8 @@ targets:
       properties:
         com.apple.developer.applesignin: [Default]
         aps-environment: $(APS_ENVIRONMENT)
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)studio.craft.ios
     dependencies:
       - target: CraftStudioWidgets
       - package: GLTFKit2
@@ -94,6 +96,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: studio.craft.ios.widgets
         INFOPLIST_KEY_CFBundleDisplayName: 3D Craft
         SKIP_INSTALL: YES
+    entitlements:
+      path: CraftStudioWidgets/CraftStudioWidgets.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)studio.craft.ios
     info:
       path: CraftStudioWidgets/Info.plist
       properties:
