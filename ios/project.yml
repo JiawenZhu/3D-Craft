@@ -18,7 +18,7 @@ settings:
     DEVELOPMENT_TEAM: C265XC3RH7
     GENERATE_INFOPLIST_FILE: YES
     MARKETING_VERSION: '2.0.1'
-    CURRENT_PROJECT_VERSION: '2026091902'
+    CURRENT_PROJECT_VERSION: '2026092101'
 targets:
   CraftStudio:
     type: application
@@ -84,8 +84,9 @@ targets:
     platform: iOS
     sources:
       - CraftStudioWidgets/Sources
-      # The activity model is shared with the app so both encode the same state.
+      # The activity and gadget models are shared with the app so both encode the same state.
       - path: CraftStudio/Sources/CraftGenerationActivity.swift
+      - path: CraftStudio/Sources/CraftGadgetCenter.swift
       - path: CraftStudioWidgets/Resources
         buildPhase: resources
     settings:

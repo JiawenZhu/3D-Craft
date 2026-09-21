@@ -273,7 +273,281 @@ private struct CompactProgress: View {
     }
 }
 
+// MARK: - Character Gadget Widget (Desktop Widgets & Looping Showcase)
+
+struct CharacterGadgetEntry: TimelineEntry {
+    let date: Date
+    let gadget: CraftGadgetData
+    let heroImage: UIImage?
+}
+
+struct CharacterGadgetProvider: TimelineProvider {
+    func placeholder(in context: Context) -> CharacterGadgetEntry {
+        CharacterGadgetEntry(
+            date: .now,
+            gadget: .defaultDragon,
+            heroImage: UIImage(named: "mascot-dragon-model-1")
+        )
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (CharacterGadgetEntry) -> Void) {
+        let gadget = CraftGadgetCenter.shared.activeGadget()
+        let image = CraftGadgetCenter.shared.loadHeroImage(for: gadget)
+        completion(CharacterGadgetEntry(date: .now, gadget: gadget, heroImage: image))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<CharacterGadgetEntry>) -> Void) {
+        let gadget = CraftGadgetCenter.shared.activeGadget()
+        let image = CraftGadgetCenter.shared.loadHeroImage(for: gadget)
+        let entry = CharacterGadgetEntry(date: .now, gadget: gadget, heroImage: image)
+        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 2, to: .now) ?? .now.addingTimeInterval(7200)
+        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+        completion(timeline)
+    }
+}
+
+/// Native iOS Desktop Gadget (Widget) supporting Small (2x2), Medium (4x2), and Large (4x4)
+struct CharacterGadgetWidget: Widget {
+    let kind: String = "CharacterGadgetWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: CharacterGadgetProvider()) { entry in
+            CharacterGadgetView(entry: entry)
+                .containerBackground(Color(red: 0.08, green: 0.08, blue: 0.11), for: .widget)
+        }
+        .configurationDisplayName("3D Craft Gadget")
+        .description("Display your favorite 3D character animation loops on your Home Screen.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
+private struct CharacterGadgetView: View {
+    let entry: CharacterGadgetEntry
+    @Environment(\.widgetFamily) var family
+
+    var body: some View {
+        Group {
+            switch family {
+            case .systemSmall:
+                SmallGadgetView(entry: entry)
+            case .systemMedium:
+                MediumGadgetView(entry: entry)
+            case .systemLarge:
+                LargeGadgetView(entry: entry)
+            default:
+                SmallGadgetView(entry: entry)
+            }
+        }
+        .widgetURL(URL(string: "studio.craft.ios://animation/\(entry.gadget.id)"))
+    }
+}
+
+// MARK: - Small Widget (Circled Icon 2)
+private struct SmallGadgetView: View {
+    let entry: CharacterGadgetEntry
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            heroImageView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            LinearGradient(
+                colors: [.clear, Color.black.opacity(0.85)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.green).frame(width: 5, height: 5)
+                    Text("4s Loop")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.white.opacity(0.18), in: Capsule())
+
+                Text(entry.gadget.name)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+            .padding(10)
+        }
+    }
+
+    @ViewBuilder
+    private var heroImageView: some View {
+        if let uiImg = entry.heroImage {
+            Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Image("mascot-dragon-model-1", bundle: Bundle(for: WidgetBundleToken.self))
+                .resizable()
+                .scaledToFill()
+        }
+    }
+}
+
+// MARK: - Medium Widget (Circled Icon 5)
+private struct MediumGadgetView: View {
+    let entry: CharacterGadgetEntry
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
+                heroImageView
+                    .frame(width: 130, height: 130)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                HStack(spacing: 4) {
+                    Circle().fill(Color.green).frame(width: 5, height: 5)
+                    Text("Loop")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.black.opacity(0.6), in: Capsule())
+                .padding(6)
+            }
+            .padding(8)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(entry.gadget.name)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                Text(entry.gadget.modelName)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color(red: 1.0, green: 0.48, blue: 0.28))
+
+                Text("4-second seamless physics motion loop")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.white.opacity(0.65))
+                    .lineLimit(2)
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.forward.app.fill")
+                        .font(.system(size: 8))
+                    Text("Tap to inspect in 3D")
+                        .font(.system(size: 9, weight: .medium))
+                }
+                .foregroundStyle(Color.white.opacity(0.8))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color.white.opacity(0.08), in: Capsule())
+            }
+            .padding(.trailing, 10)
+            .padding(.vertical, 10)
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var heroImageView: some View {
+        if let uiImg = entry.heroImage {
+            Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Image("mascot-dragon-model-1", bundle: Bundle(for: WidgetBundleToken.self))
+                .resizable()
+                .scaledToFill()
+        }
+    }
+}
+
+// MARK: - Large Widget (Circled Icon 4)
+private struct LargeGadgetView: View {
+    let entry: CharacterGadgetEntry
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                heroImageView
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                HStack(spacing: 4) {
+                    Circle().fill(Color.green).frame(width: 5, height: 5)
+                    Text("4s Physics Loop")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color.black.opacity(0.6), in: Capsule())
+                .padding(8)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(entry.gadget.name)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text("3D Craft")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color(red: 1.0, green: 0.48, blue: 0.28))
+                }
+
+                HStack(spacing: 6) {
+                    tag(icon: "cube.fill", text: "PBR 3D")
+                    tag(icon: "repeat", text: "Looping")
+                    tag(icon: "gamecontroller.fill", text: "Playable")
+                }
+
+                Spacer(minLength: 2)
+
+                HStack {
+                    Label("Tap to inspect 360° in app", systemImage: "hand.draw")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.7))
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(8)
+    }
+
+    private func tag(icon: String, text: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon).font(.system(size: 8)).foregroundStyle(Color(red: 1.0, green: 0.48, blue: 0.28))
+            Text(text).font(.system(size: 8, weight: .medium)).foregroundStyle(Color.white.opacity(0.85))
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 4))
+    }
+
+    @ViewBuilder
+    private var heroImageView: some View {
+        if let uiImg = entry.heroImage {
+            Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Image("mascot-dragon-model-1", bundle: Bundle(for: WidgetBundleToken.self))
+                .resizable()
+                .scaledToFill()
+        }
+    }
+}
+
 @main
 struct CraftStudioWidgetsBundle: WidgetBundle {
-    var body: some Widget { GenerationLiveActivity() }
+    var body: some Widget {
+        GenerationLiveActivity()
+        CharacterGadgetWidget()
+    }
 }

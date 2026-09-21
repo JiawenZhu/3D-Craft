@@ -74,6 +74,7 @@ struct AnimatedCharacterDetailView: View {
     @StateObject private var file = CraftAnimationFile()
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showGadgetShowcase = false
 
     var body: some View {
         ScrollView {
@@ -93,11 +94,50 @@ struct AnimatedCharacterDetailView: View {
                     .multilineTextAlignment(.center)
 
                 if let local = file.localURL {
-                    ShareLink(item: local) {
-                        Label(store.t("Share or save this loop", "分享或保存动画"), systemImage: "square.and.arrow.up")
+                    VStack(spacing: 10) {
+                        ShareLink(item: local) {
+                            Label(store.t("Share or save this loop", "分享或保存动画"), systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(CraftPrimary(verticalPadding: 14, cornerRadius: 16))
+                        .accessibilityIdentifier("animation.share")
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            showGadgetShowcase = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.stack.3d.up.fill")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Color(red: 1.0, green: 0.48, blue: 0.28), Color(red: 1.0, green: 0.32, blue: 0.36)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                Text(store.t("Add to Desktop Gadget", "设为桌面组件"))
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: [Color(red: 1.0, green: 0.48, blue: 0.28).opacity(0.6), Color.white.opacity(0.15)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(CraftPressStyle(scale: 0.96))
+                        .accessibilityIdentifier("animation.gadget")
                     }
-                    .buttonStyle(CraftPrimary(verticalPadding: 14, cornerRadius: 16))
-                    .accessibilityIdentifier("animation.share")
                 } else if file.failed {
                     Text(store.t("This animation could not be loaded. Check your connection and try again.",
                                  "无法加载这段动画，请检查网络后重试。"))
@@ -115,6 +155,11 @@ struct AnimatedCharacterDetailView: View {
         .background { StudioAtmosphere() }
         .navigationTitle(store.t("Animated character", "动画角色"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showGadgetShowcase) {
+            CraftGadgetShowcaseView(asset: asset, localVideoURL: file.localURL) {
+                showGadgetShowcase = false
+            }
+        }
         .task { if let url = asset.animationURL { await file.load(url, id: asset.id) } }
     }
 }

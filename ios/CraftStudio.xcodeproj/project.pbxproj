@@ -10,6 +10,7 @@
 		031A94D190FA111914ECF753 /* mascot-dragon-thinking-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 4F3FFBAD330EB13A8985984C /* mascot-dragon-thinking-4.png */; };
 		059C070BAD6A2E9071390ADC /* CraftModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BE9224A1061FD95554C9E5 /* CraftModels.swift */; };
 		06F57008528F1E5640928372 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */; };
+		09F266C0678F0D85EB2E6C98 /* CraftGadgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B0EB83C388A8D1B55D6D75 /* CraftGadgetTests.swift */; };
 		0CC4DC9471945AE1924840CA /* arena.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7B6A40211882BF313693D52B /* arena.jpg */; };
 		0DC619E159700EBECDE78CE9 /* CraftPromptTypewriterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 773DF848DF483A9FF5CFBB7E /* CraftPromptTypewriterView.swift */; };
 		120E9F251F004147D1B11466 /* GenerationJourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A77B5C6CCB5C91B110E8901 /* GenerationJourneyView.swift */; };
@@ -17,6 +18,7 @@
 		1740F97992FA93BB15A23E79 /* mascot-dragon-thinking-small.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 3023D22B351C23ED6F18E134 /* mascot-dragon-thinking-small.mp4 */; };
 		18E50C62078229E367FAFAF8 /* AccountDeletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E12AB17C1356852F1992C /* AccountDeletionView.swift */; };
 		1987FC75287E4317D6A95781 /* mascot-panda-thinking-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 0EFBC4F2483E6802716EB6D2 /* mascot-panda-thinking-3.png */; };
+		1AA1C3CBAD19955A2A15C2A3 /* CraftGadgetCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CA54F122B4E6FADDBD0CD5 /* CraftGadgetCenter.swift */; };
 		1C2340F2143230D620AACB7F /* CraftLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBA134880B9AAA10539D01C /* CraftLiveActivity.swift */; };
 		1FD2F2929867109959E9068E /* ConceptImageInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40BF228D68A4BB21A558464 /* ConceptImageInspector.swift */; };
 		2092DA77027673DE016DE873 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E2D5FCD326990A4175C458A /* Assets.xcassets */; };
@@ -109,6 +111,7 @@
 		9628E63B51E345D595FCE6CA /* bunny-knight.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A0B6CC98DC0EA42793EE7A8B /* bunny-knight.jpg */; };
 		968BC3C36F780DF1D6AC9622 /* AIAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60BC3AAFAB283CD9A9363D8B /* AIAccountView.swift */; };
 		96E07A366C94EF2E87CE39DD /* CraftIntroductionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1E97EA7DFE12FFAEC3A3F3 /* CraftIntroductionView.swift */; };
+		971E0A344DCB1EFBD17E980F /* CraftGadgetCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CA54F122B4E6FADDBD0CD5 /* CraftGadgetCenter.swift */; };
 		97711B6D90DA7DF86A01D11C /* CreationPlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E4F1D51244B51676645E2F /* CreationPlayTests.swift */; };
 		97DA39F1432E79FC39680682 /* CraftAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4E4FF617310D0AA0025708 /* CraftAppearance.swift */; };
 		99A21F86B6BD53C4BE0E17A7 /* mascot-panda-concept-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 3571F8531AB9F0C60546D2F4 /* mascot-panda-concept-3.png */; };
@@ -118,6 +121,7 @@
 		9EABBA8DEF831BF282476CB1 /* SourceFlowReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A556B9A0B662FC4C5A2E62 /* SourceFlowReviewTests.swift */; };
 		9F2F13F91B1CF6FA0D7C8FD0 /* APIKeysTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B4769F23D4C7996618E967 /* APIKeysTests.swift */; };
 		9F656DBCD78A9FF1DEB8FC40 /* ModelGenerationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854C56E8AA6DB32FD24F5BE7 /* ModelGenerationSheet.swift */; };
+		A28CC0BC7CC2996B0F6BDF9D /* CraftGadgetShowcaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB37CC8214F8ADB2530FE3EC /* CraftGadgetShowcaseView.swift */; };
 		A4321C09A76F4F8C7752F703 /* lantern-explorer.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 23D515057582D9A492CDA9BC /* lantern-explorer.jpg */; };
 		A7887EE4F414587708CD4339 /* PhotoReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F25B3DD9C7295EE9809B9A /* PhotoReviewView.swift */; };
 		A81F4FF8963BFA921A6BF8A2 /* mascot-dragon-model-2.png in Resources */ = {isa = PBXBuildFile; fileRef = BB29B6E4A4004B4F81647D37 /* mascot-dragon-model-2.png */; };
@@ -229,6 +233,7 @@
 
 /* Begin PBXFileReference section */
 		010418F04AD92F50C47D6E62 /* CraftAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAccount.swift; sourceTree = "<group>"; };
+		05CA54F122B4E6FADDBD0CD5 /* CraftGadgetCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftGadgetCenter.swift; sourceTree = "<group>"; };
 		07B0B921E1D7AAF34F16ABE6 /* mascot-dragon-thinking-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-3.png"; sourceTree = "<group>"; };
 		08703E6CC5539D87DDA7BF7B /* mascot-dragon-poster.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "mascot-dragon-poster.jpg"; sourceTree = "<group>"; };
 		09A8A22DBDC00768AD10690B /* ConversationReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationReviewTests.swift; sourceTree = "<group>"; };
@@ -359,6 +364,7 @@
 		AF85F6CED6AC4C9C083D972A /* ProfileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditorView.swift; sourceTree = "<group>"; };
 		B32021A75DFE2FA6FF6CFB6E /* ImageModelReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageModelReviewTests.swift; sourceTree = "<group>"; };
 		BB29B6E4A4004B4F81647D37 /* mascot-dragon-model-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-model-2.png"; sourceTree = "<group>"; };
+		BB37CC8214F8ADB2530FE3EC /* CraftGadgetShowcaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftGadgetShowcaseView.swift; sourceTree = "<group>"; };
 		BB5D42DBFC93ED5E58016132 /* GenerationLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationLiveActivity.swift; sourceTree = "<group>"; };
 		BBCAC17AA50C20AF6967BB0A /* mascot-panda-concept-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-2.png"; sourceTree = "<group>"; };
 		BBD97AAD63B43F5E548ED33C /* mascot-panda-concept-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-panda-concept-6.png"; sourceTree = "<group>"; };
@@ -377,6 +383,7 @@
 		CB537D3C8D78BAFD8A486066 /* mascot-panda-concept.mp4 */ = {isa = PBXFileReference; path = "mascot-panda-concept.mp4"; sourceTree = "<group>"; };
 		CB8242C14A18639C3E73B660 /* waterfall-diorama.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "waterfall-diorama.jpg"; sourceTree = "<group>"; };
 		CC51C63E77D2E5DB1CA9FA23 /* starlight-robe.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "starlight-robe.jpg"; sourceTree = "<group>"; };
+		D1B0EB83C388A8D1B55D6D75 /* CraftGadgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftGadgetTests.swift; sourceTree = "<group>"; };
 		D38B4F7896DEC76109A6EA90 /* LibraryGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryGallery.swift; sourceTree = "<group>"; };
 		D4FF317D70B70FC3326E2DE0 /* CraftStudioTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CraftStudioTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D537D0E99719B3B4536DC88D /* CraftStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftStudioApp.swift; sourceTree = "<group>"; };
@@ -475,6 +482,7 @@
 				93B4769F23D4C7996618E967 /* APIKeysTests.swift */,
 				F602B15AB3A366EB3E4167E1 /* CameraFramingTests.swift */,
 				244C08CBAEF250121D0BB8FD /* ConceptModelActivityTests.swift */,
+				D1B0EB83C388A8D1B55D6D75 /* CraftGadgetTests.swift */,
 				941D5B6DBBCE89C963430CE2 /* CraftImageCacheTests.swift */,
 				24ACDC587B2CAA8C9A613D86 /* CraftModelTests.swift */,
 				0C18A1FC70286BC3EF9AAA55 /* CraftProfileTests.swift */,
@@ -544,6 +552,8 @@
 				FAAC0263CC108A11C8100BAC /* CraftCameraFraming.swift */,
 				ED7178DBF331689C815C902D /* CraftConversationView.swift */,
 				A9051EF609F72A545F5A0698 /* CraftDisplayStage.swift */,
+				05CA54F122B4E6FADDBD0CD5 /* CraftGadgetCenter.swift */,
+				BB37CC8214F8ADB2530FE3EC /* CraftGadgetShowcaseView.swift */,
 				8A4285093A50584C6F2B1F62 /* CraftGenerationActivity.swift */,
 				5C04D244C9D78DE1E5CB3164 /* CraftHaptics.swift */,
 				402752169C3F372A7B663AEA /* CraftImageCache.swift */,
@@ -964,6 +974,8 @@
 				39EDE6DAF5D5709D1495DFD6 /* CraftCameraFraming.swift in Sources */,
 				D71C0AFBF483FF00A097701E /* CraftConversationView.swift in Sources */,
 				5BD951CCBD172C7249ED3B40 /* CraftDisplayStage.swift in Sources */,
+				971E0A344DCB1EFBD17E980F /* CraftGadgetCenter.swift in Sources */,
+				A28CC0BC7CC2996B0F6BDF9D /* CraftGadgetShowcaseView.swift in Sources */,
 				65D3AAD87A6DF1560071C162 /* CraftGenerationActivity.swift in Sources */,
 				EB6B1FC1EE03DC0927BACA80 /* CraftHaptics.swift in Sources */,
 				8871FF0BF22B9DDB6CA98A4B /* CraftImageCache.swift in Sources */,
@@ -1014,6 +1026,7 @@
 				9F2F13F91B1CF6FA0D7C8FD0 /* APIKeysTests.swift in Sources */,
 				C489C5F5D169057DF07A8DAB /* CameraFramingTests.swift in Sources */,
 				8FB0A0D5EE2BA79BA139403E /* ConceptModelActivityTests.swift in Sources */,
+				09F266C0678F0D85EB2E6C98 /* CraftGadgetTests.swift in Sources */,
 				FB9CCEB881C44D9124D4582E /* CraftImageCacheTests.swift in Sources */,
 				EC62E2445C42FCA464DC031E /* CraftModelTests.swift in Sources */,
 				C30E90C7DC3948B7914C54FC /* CraftProfileTests.swift in Sources */,
@@ -1054,6 +1067,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1AA1C3CBAD19955A2A15C2A3 /* CraftGadgetCenter.swift in Sources */,
 				4DF841F92D6D232BA13FDC72 /* CraftGenerationActivity.swift in Sources */,
 				39B9080FBE5841A5AF7C028C /* GenerationLiveActivity.swift in Sources */,
 			);
@@ -1132,7 +1146,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2026091902;
+				CURRENT_PROJECT_VERSION = 2026092101;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = C265XC3RH7;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1194,7 +1208,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2026091902;
+				CURRENT_PROJECT_VERSION = 2026092101;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = C265XC3RH7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

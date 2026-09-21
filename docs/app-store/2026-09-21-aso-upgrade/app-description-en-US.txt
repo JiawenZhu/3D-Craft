@@ -4,52 +4,52 @@ Start with an idea. Bring it into 3D. Animate it into life.
 
 Whether crafting indie game assets, 3D printing custom miniatures, or directing animated character shorts, 3D Craft puts the world's top generative 3D and video models at your fingertips.
 
-━━━━━━━━━━━━━━━━━━━━
-◆ MULTI-MODEL GENERATIVE 3D
-━━━━━━━━━━━━━━━━━━━━
+——————————
+— MULTI-MODEL GENERATIVE 3D
+——————————
 Why settle for one AI when you can select the best model for your exact vision? 3D Craft integrates industry-leading neural reconstruction and diffusion engines:
 
 • Microsoft TRELLIS.2: Ultra-crisp geometric edges, sharp surface details, and physically accurate PBR materials.
 • Tencent Hunyuan3D-2.1: Optimized for expressive creatures, stylized game characters, and fantasy assets.
 • Hyper3D Rodin: Exceptional fidelity for detailed avatars, realistic costumes, and complex props.
 
-━━━━━━━━━━━━━━━━━━━━
-◆ AI CHARACTER ANIMATION & VIDEO
-━━━━━━━━━━━━━━━━━━━━
+——————————
+— AI CHARACTER ANIMATION & VIDEO
+——————————
 Bring static 3D concepts into motion! Turn generated characters into dynamic action videos:
 
 • MiniMax Hailuo 02: High-action sequences—jumping, acrobatics, and combat moves in fast 480p or crisp 768p.
 • ByteDance Seedance 2.5: Fluid looping character locomotion, walking cycles, and expressive motions.
 • Unified Creative Studio: Switch between 3D mesh inspection and animation video playback in one view.
 
-━━━━━━━━━━━━━━━━━━━━
-◆ BUILT FOR GAME DEV & 3D PRINTING
-━━━━━━━━━━━━━━━━━━━━
+——————————
+— BUILT FOR GAME DEV & 3D PRINTING
+——————————
 Your creations are never trapped inside an app. 3D Craft connects directly to your workflow:
 
 • Game Engines & DCC Tools: Export production-ready GLB, USDZ, and OBJ meshes. Directly import into Blender, Unity, Unreal Engine, Godot, Roblox Studio, and WebGL.
 • 3D Printing Ready: Clean, watertight geometry ready to slice in Bambu Studio, PrusaSlicer, or Cura for FDM and resin printing.
 • AI Game Briefs: Export structured game development prompts and browser-game templates formatted for ChatGPT, Claude, and Xcode.
 
-━━━━━━━━━━━━━━━━━━━━
-◆ REAL-TIME 3D STUDIO
-━━━━━━━━━━━━━━━━━━━━
+——————————
+— REAL-TIME 3D STUDIO
+——————————
 • Interactive 3D Viewport: Inspect meshes in Full Material, Solid, or Wireframe views with smooth 360° orbital controls.
 • Studio Lighting: Customize directional key lights, environment fill, and exposure presets.
 • Tactile Haptics: Feel every interaction with native Apple Taptic Engine feedback across model categories.
 • Live Activities & Dynamic Island: Monitor generation progress in the background while multitasking.
 
-━━━━━━━━━━━━━━━━━━━━
-◆ HOW IT WORKS
-━━━━━━━━━━━━━━━━━━━━
+——————————
+— HOW IT WORKS
+——————————
 1. Describe or Upload: Enter a text prompt or upload a reference photo.
 2. Select Your Model: Choose your preferred 3D or video engine.
 3. Bring to Life: Generate textured 3D meshes or animate into video with one tap.
 4. Export & Build: Download standard GLB/OBJ files or export to your game engine and 3D slicer.
 
-━━━━━━━━━━━━━━━━━━━━
-◆ SUBSCRIPTION & TOKENS
-━━━━━━━━━━━━━━━━━━━━
+——————————
+— SUBSCRIPTION & TOKENS
+——————————
 Generation requires an internet connection and generation credits:
 • Creator Weekly: 250 credits per billing period.
 • Creator Monthly: 850 credits per billing period.
