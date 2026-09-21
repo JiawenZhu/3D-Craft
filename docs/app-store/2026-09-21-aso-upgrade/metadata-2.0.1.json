@@ -1,0 +1,35 @@
+{
+  "version": "2.0.1",
+  "benchmarks_analyzed": [
+    {
+      "app": "Tripo AI: 3D Model Generator",
+      "id": "6748596826",
+      "category": "Utilities",
+      "key_takeaways": "Structured workflow, 'How it Works', 'Why Choose', bulleted benefits"
+    },
+    {
+      "app": "3D Modeling, Design: Shapeyard",
+      "id": "1397002448",
+      "category": "Graphics & Design",
+      "key_takeaways": "Strong game engine keyword targeting (Roblox, Unity, Unreal) and 3D printing slicing keywords"
+    }
+  ],
+  "en-US": {
+    "title": "3D Craft: AI 3D Model Maker",
+    "subtitle": "Generate 3D Models & Video",
+    "promotional_text": "Transform ideas into textured 3D models & looping AI character animations! Export GLB meshes for games, 3D printing & design with multi-model AI. Download now to create!",
+    "keywords": "generator,mesh,texture,animation,video,avatar,scan,print,cad,blender,unity,sculpt,rodin,trellis",
+    "primary_category": "Graphics & Design",
+    "secondary_category": "Productivity",
+    "description_file": "app-description-en-US.txt"
+  },
+  "zh-Hans": {
+    "title": "3D Craft: AI 3D模型生成器",
+    "subtitle": "生成3D模型与动作视频",
+    "promotional_text": "将创意化为带纹理的 3D 模型与循环 AI 角色动画！多模型 AI 驱动，一键导出 GLB 网格用于游戏、3D 打印与设计。立即下载开启创作！",
+    "keywords": "生成器,网格,纹理,动画,视频,角色,扫描,打印,建模,blender,unity,雕刻,rodin,trellis",
+    "primary_category": "图形与设计",
+    "secondary_category": "效率",
+    "description_file": "app-description-zh-Hans.txt"
+  }
+}
