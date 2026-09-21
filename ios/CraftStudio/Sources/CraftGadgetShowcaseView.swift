@@ -491,6 +491,9 @@ public struct CraftGadgetShowcaseView: View {
             if let localVideoURL {
                 heroImage = await CraftGadgetCenter.shared.extractHeroKeyframe(from: localVideoURL)
             }
+            if heroImage == nil, let thumbURL = asset.thumbURL {
+                heroImage = await CraftGadgetCenter.shared.downloadImage(from: thumbURL)
+            }
 
             let data = CraftGadgetData(
                 id: asset.id,

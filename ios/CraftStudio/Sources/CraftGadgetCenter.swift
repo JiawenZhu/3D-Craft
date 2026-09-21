@@ -9,6 +9,9 @@ import AVFoundation
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(Security)
+import Security
+#endif
 
 /// Widget style corresponding to the three circled icons in the iOS widget menu:
 /// - `.small`: 2x2 square desk pet & avatar loop (Circled Icon 2)
@@ -102,7 +105,10 @@ public final class CraftGadgetCenter: @unchecked Sendable {
     public static let shared = CraftGadgetCenter()
 
     private let storageKey = "craft_active_gadget_v1"
+    private let imageStorageKey = "craft_active_gadget_image_v1"
     private let appGroupName = "group.studio.craft.ios"
+    private let keychainAccessGroup = "C265XC3RH7.studio.craft.ios"
+    private let keychainService = "studio.craft.gadget"
 
     private var defaults: UserDefaults {
         UserDefaults(suiteName: appGroupName) ?? .standard
@@ -112,6 +118,12 @@ public final class CraftGadgetCenter: @unchecked Sendable {
 
     /// Get current active gadget data, or fall back to default dragon mascot.
     public func activeGadget() -> CraftGadgetData {
+        // 1. Try shared Keychain (shared seamlessly between App & WidgetKit extension)
+        if let data = keychainLoad(key: storageKey),
+           let gadget = try? JSONDecoder().decode(CraftGadgetData.self, from: data) {
+            return gadget
+        }
+        // 2. Try defaults cache
         if let data = defaults.data(forKey: storageKey),
            let gadget = try? JSONDecoder().decode(CraftGadgetData.self, from: data) {
             return gadget
@@ -123,13 +135,29 @@ public final class CraftGadgetCenter: @unchecked Sendable {
     public func setActiveGadget(_ gadget: CraftGadgetData, image: UIImage? = nil) {
         var updated = gadget
         if let image {
+            #if canImport(UIKit)
+            // Compress keyframe to compact 512x512 JPEG for instant, sharp widget rendering
+            let targetSize = CGSize(width: 512, height: 512)
+            let renderer = UIGraphicsImageRenderer(size: targetSize)
+            let resized = renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: targetSize))
+            }
+            if let imgData = resized.jpegData(compressionQuality: 0.85) {
+                keychainSave(key: imageStorageKey, data: imgData)
+                updated.imageFileName = "keychain:\(imageStorageKey)"
+            }
+            #endif
+
             let fileName = "gadget_hero_\(gadget.id).png"
             if saveImageToDisk(image, fileName: fileName) {
-                updated.imageFileName = fileName
+                if updated.imageFileName == nil {
+                    updated.imageFileName = fileName
+                }
             }
         }
 
         if let encoded = try? JSONEncoder().encode(updated) {
+            keychainSave(key: storageKey, data: encoded)
             defaults.set(encoded, forKey: storageKey)
         }
 
@@ -140,19 +168,27 @@ public final class CraftGadgetCenter: @unchecked Sendable {
 
     /// Load poster image from disk or bundle.
     public func loadHeroImage(for gadget: CraftGadgetData) -> UIImage? {
-        if let fileName = gadget.imageFileName {
-            // 1. Try file in container
+        #if canImport(UIKit)
+        // 1. Try shared Keychain image
+        if let data = keychainLoad(key: imageStorageKey),
+           let image = UIImage(data: data) {
+            return image
+        }
+        // 2. Try file in container / sandbox
+        if let fileName = gadget.imageFileName, !fileName.hasPrefix("keychain:") {
             if let fileUrl = fileURL(for: fileName),
                let image = UIImage(contentsOfFile: fileUrl.path) {
                 return image
             }
-            // 2. Try named asset
             if let image = UIImage(named: fileName) {
                 return image
             }
         }
-        // Fallback to fire-dragon or mascot
+        // 3. Fallback to bundled asset
         return UIImage(named: "fire-dragon") ?? UIImage(named: "mascot-dragon-model-1")
+        #else
+        return nil
+        #endif
     }
 
     #if canImport(AVFoundation)
@@ -171,6 +207,74 @@ public final class CraftGadgetCenter: @unchecked Sendable {
         }
     }
     #endif
+
+    /// Download thumbnail or remote image if video is not yet cached locally.
+    public func downloadImage(from url: URL) async -> UIImage? {
+        #if canImport(UIKit)
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard (response as? HTTPURLResponse)?.statusCode ?? 200 < 400 else { return nil }
+            return UIImage(data: data)
+        } catch {
+            return nil
+        }
+        #else
+        return nil
+        #endif
+    }
+
+    // MARK: - Shared Keychain Helpers
+
+    private func keychainSave(key: String, data: Data) {
+        #if canImport(Security)
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecAttrService as String: keychainService,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+        ]
+        #if !targetEnvironment(simulator)
+        query[kSecAttrAccessGroup as String] = keychainAccessGroup
+        #endif
+
+        SecItemDelete(query as CFDictionary)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess {
+            var fallback = query
+            fallback.removeValue(forKey: kSecAttrAccessGroup as String)
+            SecItemDelete(fallback as CFDictionary)
+            SecItemAdd(fallback as CFDictionary, nil)
+        }
+        #endif
+    }
+
+    private func keychainLoad(key: String) -> Data? {
+        #if canImport(Security)
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecAttrService as String: keychainService,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        #if !targetEnvironment(simulator)
+        query[kSecAttrAccessGroup as String] = keychainAccessGroup
+        #endif
+
+        var item: CFTypeRef?
+        var status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status != errSecSuccess {
+            var fallback = query
+            fallback.removeValue(forKey: kSecAttrAccessGroup as String)
+            status = SecItemCopyMatching(fallback as CFDictionary, &item)
+        }
+        if status == errSecSuccess, let data = item as? Data {
+            return data
+        }
+        #endif
+        return nil
+    }
 
     // MARK: - Private File Helpers
 
