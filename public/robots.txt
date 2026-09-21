@@ -1,0 +1,52 @@
+# Robots.txt for 3D Craft (https://3d-craft.web.app)
+# Designed for Web Search (SEO) and Answer Engine Optimization (AEO/AIO)
+
+User-agent: *
+Allow: /
+Allow: /play
+Allow: /api-access
+Allow: /privacy
+Allow: /terms
+Allow: /policy
+Allow: /contact
+Allow: /support
+Allow: /delete-account
+Allow: /llms.txt
+
+# Search Engine Crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Apple Search and Siri Intelligence
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# AI Answer Engines and Large Language Model Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://3d-craft.web.app/sitemap.xml

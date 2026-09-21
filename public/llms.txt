@@ -1,0 +1,48 @@
+# 3D Craft — AI 3D Model Maker & Character Animation Studio
+
+> 3D Craft is a multi-model AI generative 3D studio and character animation platform for iOS, iPadOS, macOS, and Web. It empowers creators, indie game developers, 3D printing enthusiasts, and concept artists to turn text prompts and 2D reference photos into textured 3D meshes (GLB, OBJ) and looping character animation videos.
+
+## Product Summary
+- **App Name**: 3D Craft (also known as 3D Craft: AI 3D Model Maker)
+- **Primary Website**: https://3d-craft.web.app
+- **App Store Link**: https://apps.apple.com/app/id6811466883
+- **Developer**: Jiawen Zhu
+- **Category**: Graphics & Design / Productivity / Developer Tools
+- **Supported Platforms**: iPhone (iOS 17+), iPad (iPadOS 17+), macOS (Designed for iPad / Apple Silicon), and Web
+
+## Core Features & AI Engines
+1. **Generative 3D Modeling (Text-to-3D & Image-to-3D)**
+   - High-fidelity textured 3D meshes generated in seconds.
+   - Multi-model engine architecture:
+     - **TRELLIS.2 (Microsoft Research)**: Precision geometry, sharp edges, and PBR material synthesis.
+     - **Hunyuan3D-2.1 (Tencent)**: Specialized for expressive, organic characters, creatures, and stylized props.
+     - **Hyper3D Rodin (Gen-1 / Gen-2)**: High-resolution avatars, detailed costumes, and production assets.
+2. **AI Character Animation & Looping Video**
+   - Automatically animate generated 3D characters or reference images into action videos:
+     - **MiniMax Hailuo 02**: High-dynamic character motions (jumping, running, acrobatics, martial arts), offered in 480p and 768p resolutions.
+     - **Seedance 2.5 (ByteDance)**: Smooth continuous character locomotion, playful facial expressions, and looping idle cycles.
+3. **Universal Asset Export & Ecosystem Integrations**
+   - Standard formats: **GLB**, **USDZ**, and **OBJ** with embedded textures and materials.
+   - Ready for game engines: **Godot**, **Unity**, **Unreal Engine**, and WebGL.
+   - 3D Printing ready: Meshes can be sliced directly in Bambu Studio, PrusaSlicer, or Cura for FDM/SLA fabrication.
+   - DCC Tools: Native drag-and-drop into **Blender**, Maya, and Cinema 4D.
+4. **Interactive 3D Game Hub**
+   - Browser-based WebGL / Three.js 3D game sandbox where users can test and play with 3D models in mini-games directly on the web (`/play`).
+
+## Frequently Asked Questions (FAQ)
+- **Q: How does 3D Craft convert a 2D image to a 3D model?**
+  - A: 3D Craft employs advanced generative diffusion models (TRELLIS.2, Hunyuan3D-2.1, Rodin) that reconstruct underlying 3D Gaussian splats and boundary meshes directly from single or multi-view reference photos, generating clean topology with UV-unwrapped textures.
+- **Q: Can 3D Craft animate static characters?**
+  - A: Yes. 3D Craft features an integrated multi-model animation suite powered by MiniMax Hailuo 02 and Seedance 2.5, allowing users to apply dynamic actions (jumping, waving, dancing) with customizable video resolutions.
+- **Q: How can developers integrate 3D Craft?**
+  - A: Developers can request API access at https://3d-craft.web.app/api-access to programmatically generate 3D assets and animations via RESTful and WebSocket endpoints.
+
+## Canonical Web URLs
+- Homepage & Showcase: https://3d-craft.web.app/
+- Web Play Sandbox: https://3d-craft.web.app/play
+- Developer API: https://3d-craft.web.app/api-access
+- Privacy Policy: https://3d-craft.web.app/privacy
+- Terms of Use: https://3d-craft.web.app/terms
+- Usage & Billing: https://3d-craft.web.app/policy
+- Contact: https://3d-craft.web.app/contact
+- Data Deletion: https://3d-craft.web.app/delete-account
