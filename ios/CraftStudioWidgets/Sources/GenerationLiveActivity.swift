@@ -283,10 +283,14 @@ struct CharacterGadgetEntry: TimelineEntry {
 
 struct CharacterGadgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> CharacterGadgetEntry {
-        CharacterGadgetEntry(
+        let bundle = Bundle(for: WidgetBundleToken.self)
+        let image = UIImage(named: "fire-dragon", in: bundle, with: nil)
+            ?? UIImage(named: "mascot-dragon-model-1", in: bundle, with: nil)
+            ?? UIImage(named: "mascot-dragon-model-1")
+        return CharacterGadgetEntry(
             date: .now,
             gadget: .defaultDragon,
-            heroImage: UIImage(named: "mascot-dragon-model-1")
+            heroImage: image
         )
     }
 
@@ -347,33 +351,11 @@ private struct SmallGadgetView: View {
     let entry: CharacterGadgetEntry
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
+            Color(red: 0.08, green: 0.08, blue: 0.11)
             heroImageView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            LinearGradient(
-                colors: [.clear, Color.black.opacity(0.85)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 5, height: 5)
-                    Text("4s Loop")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color.white.opacity(0.18), in: Capsule())
-
-                Text(entry.gadget.name)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-            }
-            .padding(10)
+                .clipped()
         }
     }
 
@@ -381,6 +363,10 @@ private struct SmallGadgetView: View {
     private var heroImageView: some View {
         if let uiImg = entry.heroImage {
             Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else if let dragonImg = UIImage(named: "fire-dragon", in: Bundle(for: WidgetBundleToken.self), with: nil) {
+            Image(uiImage: dragonImg)
                 .resizable()
                 .scaledToFill()
         } else {
@@ -453,6 +439,10 @@ private struct MediumGadgetView: View {
     private var heroImageView: some View {
         if let uiImg = entry.heroImage {
             Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else if let dragonImg = UIImage(named: "fire-dragon", in: Bundle(for: WidgetBundleToken.self), with: nil) {
+            Image(uiImage: dragonImg)
                 .resizable()
                 .scaledToFill()
         } else {
@@ -534,6 +524,10 @@ private struct LargeGadgetView: View {
     private var heroImageView: some View {
         if let uiImg = entry.heroImage {
             Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else if let dragonImg = UIImage(named: "fire-dragon", in: Bundle(for: WidgetBundleToken.self), with: nil) {
+            Image(uiImage: dragonImg)
                 .resizable()
                 .scaledToFill()
         } else {

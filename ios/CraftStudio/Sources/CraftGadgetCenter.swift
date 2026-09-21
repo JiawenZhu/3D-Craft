@@ -91,7 +91,7 @@ public struct CraftGadgetData: Codable, Hashable, Sendable {
             prompt: "A cute orange baby dragon breathing tiny glowing flames in a looping cycle",
             loopDuration: "4s Physics Loop",
             style: .small,
-            imageFileName: "mascot-dragon-model-1",
+            imageFileName: "fire-dragon",
             updatedAt: .now
         )
     }
@@ -151,8 +151,8 @@ public final class CraftGadgetCenter: @unchecked Sendable {
                 return image
             }
         }
-        // Fallback to mascot
-        return UIImage(named: "mascot-dragon-model-1")
+        // Fallback to fire-dragon or mascot
+        return UIImage(named: "fire-dragon") ?? UIImage(named: "mascot-dragon-model-1")
     }
 
     #if canImport(AVFoundation)
