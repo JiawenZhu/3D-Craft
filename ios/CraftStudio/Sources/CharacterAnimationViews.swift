@@ -51,11 +51,12 @@ struct CraftAnimationLoop: View {
     var body: some View {
         ZStack {
             appearance.washSoft
-            if let posterURL { CraftThumbnailImage(url: posterURL).scaledToFill() }
+            if let posterURL { CraftThumbnailImage(url: posterURL).scaledToFit() }
             if playing, let local = file.localURL {
                 CraftLoopingVideo(url: local, playing: true).id(local)
             }
         }
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .strokeBorder(appearance.fill.opacity(0.35), lineWidth: 1))
@@ -205,8 +206,9 @@ struct AnimationGenerationSheet: View {
                         .font(.subheadline).foregroundStyle(.secondary)
 
                     if let url = URL(string: concept.imageUrl) {
-                        CraftThumbnailImage(url: url).scaledToFill()
+                        CraftThumbnailImage(url: url).scaledToFit()
                             .frame(height: 180).frame(maxWidth: .infinity)
+                            .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
 
