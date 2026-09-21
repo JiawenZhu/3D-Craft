@@ -124,8 +124,8 @@ struct AnimatedCharacterDetailView: View {
                             .background(
                                 LinearGradient(
                                     colors: [
-                                        Color(red: 1.0, green: 0.44, blue: 0.24),
-                                        Color(red: 0.98, green: 0.24, blue: 0.42)
+                                        Color(red: 1.0, green: 0.56, blue: 0.42),
+                                        Color(red: 1.0, green: 0.46, blue: 0.54)
                                     ],
                                     startPoint: .leading,
                                     endPoint: .trailing
@@ -143,7 +143,7 @@ struct AnimatedCharacterDetailView: View {
                                         lineWidth: 1
                                     )
                             )
-                            .shadow(color: Color(red: 1.0, green: 0.35, blue: 0.30).opacity(0.35), radius: 10, x: 0, y: 5)
+                            .shadow(color: Color(red: 1.0, green: 0.50, blue: 0.46).opacity(0.28), radius: 10, x: 0, y: 5)
                         }
                         .buttonStyle(CraftPressStyle(scale: 0.96))
                         .accessibilityIdentifier("animation.gadget")
