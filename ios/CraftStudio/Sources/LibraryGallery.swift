@@ -57,8 +57,11 @@ enum LibraryGalleryItem: Identifiable {
         case .project(let project, _, let active):
             if active { return chinese ? "正在生成" : "Creating" }
             let count = project.concepts.filter { $0.isOriginal != true }.count
-            return count == 0 ? (chinese ? "创作项目" : "Concept project")
-                : (chinese ? "\(count) 张概念图" : "\(count) " + (count == 1 ? "concept" : "concepts"))
+            if count == 0 {
+                let hasChat = !project.turns.isEmpty
+                return hasChat ? (chinese ? "未完成对话" : "Chat Draft") : (chinese ? "创作项目" : "Concept project")
+            }
+            return (chinese ? "\(count) 张概念图" : "\(count) " + (count == 1 ? "concept" : "concepts"))
         case .asset(let asset, _):
             if asset.isAnimated { return chinese ? "动画" : "Animation" }
             if asset.isConcept { return chinese ? "概念图" : "Concept" }
@@ -143,8 +146,13 @@ private struct LibraryGalleryCard: View {
                 }
                 .overlay(alignment: .bottomLeading) {
                     HStack(spacing: 4) {
-                        if case .asset(let asset, _) = item {
+                        switch item {
+                        case .asset(let asset, _):
                             Image(systemName: asset.isAnimated ? "film.fill" : (asset.isConcept ? "photo.fill" : "cube.fill"))
+                                .font(.system(size: 8))
+                        case .project(let project, _, _):
+                            let hasConcepts = project.concepts.contains(where: { $0.isOriginal != true })
+                            Image(systemName: hasConcepts ? "folder.fill" : "bubble.left.and.bubble.right.fill")
                                 .font(.system(size: 8))
                         }
                         Text(item.caption(chinese: chinese))
@@ -192,11 +200,12 @@ private struct LibraryGalleryCard: View {
         switch item {
         case .asset(let asset, _):
             CraftThumbnailImage(url: asset.thumbURL ?? asset.sourceImageURL, inset: 7)
-        case .project(_, let url, _):
+        case .project(let project, let url, _):
             if let url {
                 CraftCachedImage(url: url).padding(6)
             } else {
-                placeholder("sparkles.rectangle.stack")
+                let hasChat = !project.turns.isEmpty
+                placeholder(hasChat ? "bubble.left.and.bubble.right" : "sparkles.rectangle.stack")
             }
         }
     }

@@ -65,11 +65,12 @@ struct LibraryView: View {
                 return .project(project, imageURL: url, active: activeProjects.contains(project.id))
             }
         let archivedAssetIDs = Set(store.archivedAssets.map(\.id))
-        let assets: [LibraryGalleryItem] = filter == .concepts ? [] : privateAssets
+        let assets: [LibraryGalleryItem] = privateAssets
             .filter { asset in
                 if asset.isArchived || archivedAssetIDs.contains(asset.id) { return false }
                 if filter == .models && (asset.isAnimated || asset.isConcept) { return false }
                 if filter == .animations && !asset.isAnimated { return false }
+                if filter == .concepts && !asset.isConcept { return false }
                 if filter == .favorites && !favorites.contains(asset.id) { return false }
                 return true
             }
@@ -1206,7 +1207,12 @@ private enum ArchivedCreation: Identifiable {
     func kindTitle(chinese: Bool) -> String {
         switch self {
         case .asset(let a): return a.kindTitle(chinese: chinese)
-        case .project: return chinese ? "项目灵感" : "Project"
+        case .project(let p):
+            let hasConcepts = p.concepts.contains(where: { $0.isOriginal != true })
+            if !hasConcepts {
+                return chinese ? "未完成对话" : "Chat Draft"
+            }
+            return chinese ? "项目灵感" : "Project"
         }
     }
     var imageURL: URL? {
@@ -1218,7 +1224,9 @@ private enum ArchivedCreation: Identifiable {
     var kindIcon: String {
         switch self {
         case .asset(let a): return a.kindIcon
-        case .project: return "folder.fill"
+        case .project(let p):
+            let hasConcepts = p.concepts.contains(where: { $0.isOriginal != true })
+            return hasConcepts ? "folder.fill" : "bubble.left.and.bubble.right.fill"
         }
     }
 }
