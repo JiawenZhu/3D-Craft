@@ -58,7 +58,7 @@ class CloudConcepts:
         uid_for('firebase:'+uid)
         if self.db.collection('accountDeletions').document(uid).get(transaction=tx).exists:raise HTTPException(403,'Account deletion is in progress.')
 
-    def create(self,owner,project_id,body,concept_id=None,environment=None,auto_model=None):
+    def create(self,owner,project_id,body,concept_id=None,environment=None,auto_model=None,auto_animation=None):
         uid=uid_for(owner);self.active(uid);started=self.now()
         jid='cj-'+hashlib.sha256((uid+':'+body.idempotencyKey).encode()).hexdigest()
         public,private=self.refs(uid,jid);project_ref=self.projects.ref(uid,'studioProjects',project_id)
@@ -103,11 +103,13 @@ class CloudConcepts:
                 reserved=cost,charged=0,createdAt=self.now(),error=None,imageModel=provider.MODEL,imageProvider='google',
                 sourcePrompt=words,selectedImageUrl=('gs://'+BUCKET+'/'+source) if source else None)
             if auto_model:data['autoModel']={'engine':auto_model['engine']}
+            if auto_animation:data['autoAnimation']={'model':auto_animation.get('model','seedance-2.5')}
             tx.create(public,data)
             tx.create(private,dict(signature=signature,phase='plan_ready',options=options,estimate=estimate,
                 allocation=allocation,walletName=wallet_name,projectId=project_id,source=source,selected=selected,mode=mode,
                 words=words,style=body.style or project.get('style','Stylized'),name=project.get('name','Concept'),
-                ids=ids,index=0,outputs=[],createdAt=self.now(),deadline=self.now()+DEADLINE,leaseUntil=0,autoModel=auto_model))
+                ids=ids,index=0,outputs=[],createdAt=self.now(),deadline=self.now()+DEADLINE,leaseUntil=0,
+                autoModel=auto_model,autoAnimation=auto_animation))
             tx.set(wallet_ref,after,merge=True)
             expired=max(0,int(before.get('subscriptionAvailable',0))-int(after.get('subscriptionAvailable',0))-allocation['subscription'])
             if expired:tx.create(wallet_ref.collection('entries').document(jid+':expiry'),dict(id=jid+':expiry',amount=-expired,kind='subscription_expiry',createdAt=self.now()))

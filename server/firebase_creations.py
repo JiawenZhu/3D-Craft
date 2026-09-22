@@ -9,6 +9,7 @@ iOS app reads, so API work appears in the app exactly like app work.
 import hashlib
 import os
 import time
+from urllib.parse import quote as url_quote
 from fastapi import HTTPException
 from google.api_core.exceptions import NotFound
 from pydantic import BaseModel, ConfigDict, Field
@@ -105,6 +106,44 @@ def continue_to_model(studio, uid, concept_job_id):
             return
         raise
     public.update({'modelJobId': model['id']})
+
+
+def animation_jobs_ready():
+    return os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') == '1' and bool(os.getenv('FAL_KEY'))
+
+
+def continue_to_animation(studio, uid, concept_job_id):
+    """Start the animation job for a settled one-step creation. Safe to call repeatedly."""
+    concepts = CloudConcepts(studio)
+    public, private = concepts.refs(uid, concept_job_id)
+    auto = (private.get().to_dict() or {}).get('autoAnimation')
+    job = public.get().to_dict() or {}
+    if not auto or job.get('status') not in ('done', 'partial') or job.get('autoAnimationError'):
+        return
+    if not job.get('concepts'):
+        return
+    try:
+        if not animation_jobs_ready():
+            raise HTTPException(503, 'Character animation is temporarily unavailable. The concept image is kept.')
+        from .firebase_animations import CloudAnimations, AnimationRequest
+        settings = auto.get('settings') or {}
+        candidate_body = AnimationRequest(
+            idempotencyKey=auto_key(concept_job_id),
+            model=settings.get('model', 'seedance-2.5'),
+            motion=settings.get('motion') or 'gentle dynamic movement, cinematic animation loop',
+            resolution=settings.get('resolution', '480p'),
+            duration=str(settings.get('duration', '4')),
+            aspect=settings.get('aspect', '1:1'),
+            maxTokens=auto.get('maxTokens', 200)
+        )
+        anim = CloudAnimations(studio).create('firebase:' + uid, job['concepts'][0]['id'], candidate_body,
+                                              environment=auto.get('environment'))
+    except HTTPException as exc:
+        if exc.status_code in (402, 403, 404, 409, 422, 503):
+            public.update({'autoAnimationError': str(exc.detail)})
+            return
+        raise
+    public.update({'animationJobId': anim['id']})
 
 
 class CloudCreations:
@@ -409,4 +448,60 @@ class CloudCreations:
         paths = [own] if own and own.startswith(f'users/{uid}/{folder}/') else []
         self.remove(refs, paths)
         return dict(deleted=True, id=clean)
+
+    def set_favorite(self, owner, asset_id, favorite: bool):
+        uid = uid_for(owner)
+        clean = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
+        record, item = self.find_creation_record(uid, asset_id)
+        if item is not None:
+            self.projects.ref(uid, 'mobileCreations', record).update({
+                'favorite': favorite,
+                'favoritedAt': time.time() if favorite else None
+            })
+            return dict(id=clean, favorite=favorite)
+        try:
+            self.owned(uid, 'studioProjects', clean)
+            self.projects.ref(uid, 'studioProjects', clean).update({
+                'favorite': favorite,
+                'favoritedAt': time.time() if favorite else None
+            })
+            return dict(id=clean, favorite=favorite)
+        except HTTPException:
+            raise HTTPException(404, 'Asset or project not found in your account.')
+
+    def favorites(self, owner):
+        uid = uid_for(owner)
+        self.purge_expired_archives(owner)
+        result = []
+        for item in self.studio.records(owner, 'mobileCreations'):
+            if not item.get('favorite'):
+                continue
+            kind = item.get('kind')
+            if kind not in ('3D object', 'Animated character', 'Concept image'):
+                continue
+            animated = kind == 'Animated character'
+            is_concept = kind == 'Concept image'
+            clean_id = item['id'].removeprefix('animation:' if animated else ('concept:' if is_concept else 'model:'))
+            def media(field):
+                path = item.get(field, '')
+                return f'https://firebasestorage.googleapis.com/v0/b/{BUCKET}/o/{url_quote(path, safe="")}?alt=media' if path.startswith(f'users/{uid}/') else None
+            result.append({
+                'id': clean_id,
+                'name': item.get('name', 'Untitled creation'),
+                'creationKind': kind,
+                'kind': 'animation' if animated else ('concept' if is_concept else 'model'),
+                'isFavorite': True,
+                'favoritedAt': seconds(item.get('favoritedAt')),
+                'animationUrl': media('animationStoragePath') if animated else None,
+                'videoUrl': media('animationStoragePath') if animated else None,
+                'modelUrl': media('modelStoragePath') if not animated and not is_concept else None,
+                'thumbUrl': media('previewStoragePath') or item.get('preview'),
+                'sourceImageUrl': media('previewStoragePath') if is_concept else None,
+                'projectId': item.get('projectId'),
+                'createdAt': seconds(item.get('createdAt')),
+                'downloadUrl': f'/api/v1/assets/{clean_id}/download' + ('?kind=video' if animated else ('?kind=preview' if is_concept else '')),
+            })
+        result.sort(key=lambda a: a.get('favoritedAt') or a.get('createdAt') or 0, reverse=True)
+        return {'favorites': result}
+
 
