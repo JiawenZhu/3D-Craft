@@ -38,6 +38,13 @@ struct LibraryView: View {
         store.assets.filter { !$0.isExample && $0.galleryExample != true }
     }
     private var items: [LibraryGalleryItem] {
+        if filter == .archive {
+            let archived = store.archivedAssets.map { LibraryGalleryItem.asset($0, favorite: false) }
+            let matching = archived.filter {
+                searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText)
+            }
+            return alphabetical ? matching.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending } : matching
+        }
         let activeProjects = Set(store.jobs.filter(\.isActive).map(\.projectId))
         let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations || filter == .favorites) ? [] : store.projects.map { project in
             let concept = store.selectedConcept(in: project)
@@ -48,7 +55,8 @@ struct LibraryView: View {
         }
         let assets: [LibraryGalleryItem] = filter == .concepts ? [] : privateAssets
             .filter { asset in
-                if filter == .models && asset.isAnimated { return false }
+                if asset.isArchived { return false }
+                if filter == .models && (asset.isAnimated || asset.isConcept) { return false }
                 if filter == .animations && !asset.isAnimated { return false }
                 if filter == .favorites && !favorites.contains(asset.id) { return false }
                 return true
@@ -73,6 +81,26 @@ struct LibraryView: View {
             header
             searchField.padding(.horizontal, 20)
             filters
+            if filter == .archive {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.subheadline)
+                        .foregroundStyle(appearance.fill)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.t("30-Day Auto Retention", "30 天自动保留"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(appearance.ink)
+                        Text(store.t("Archived creations are preserved for 30 days before being automatically purged from Firebase.", "归档的创作将保留 30 天，逾期将自动彻底清除。"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(12)
+                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 2)
+            }
             ScrollView {
                 if !store.connected {
                     Label(store.t("Saved library · Reconnect to generate or download", "已保存的资产库 · 联网后可生成或下载"), systemImage: "wifi.slash")
@@ -83,14 +111,48 @@ struct LibraryView: View {
                 if items.isEmpty {
                     emptyState.padding(.horizontal, 22).padding(.top, 36)
                 } else {
-                    LibraryGallery(items: items, chinese: store.isChinese) { item in
-                        searching = false
-                        openCount += 1
-                        switch item {
-                        case .project(let project, _, _): store.path.append(.project(project.id))
-                        case .asset(let asset, _): store.path.append(.asset(asset))
+                    LibraryGallery(
+                        items: items,
+                        chinese: store.isChinese,
+                        onModify: { item in
+                            switch item {
+                            case .project(let project, _, _): store.modifyProject(project)
+                            case .asset(let asset, _): store.modifyAsset(asset)
+                            }
+                        },
+                        onArchive: { item in
+                            Task {
+                                switch item {
+                                case .project(let project, _, _): await store.archiveProject(project)
+                                case .asset(let asset, _): await store.archiveAsset(asset)
+                                }
+                            }
+                        },
+                        onRestore: { item in
+                            Task {
+                                switch item {
+                                case .project(let project, _, _): await store.restoreProject(project)
+                                case .asset(let asset, _): await store.restoreAsset(asset)
+                                }
+                            }
+                        },
+                        onDeletePermanently: { item in
+                            Task {
+                                switch item {
+                                case .project(let project, _, _): await store.deletePermanently(project)
+                                case .asset(let asset, _): await store.deletePermanently(asset)
+                                }
+                            }
+                        },
+                        onSelect: { item in
+                            searching = false
+                            openCount += 1
+                            switch item {
+                            case .project(let project, _, _): store.path.append(.project(project.id))
+                            case .asset(let asset, _): store.path.append(.asset(asset))
+                            }
                         }
-                    }
+                    )
                     .padding(.horizontal, 14)
                     .padding(.bottom, 24)
                 }
@@ -202,11 +264,13 @@ struct LibraryView: View {
         let searchingOrFiltered = !searchText.isEmpty || (hasPrivateCreations && filter != .all)
         return CraftEmptyState(
             title: !searchText.isEmpty ? store.t("No matching creations", "没有匹配的作品")
+                : filter == .archive ? store.t("Archive is empty", "归档文件夹为空")
                 : filter == .favorites ? store.t("Keep your favorites here", "把喜欢的作品留在这里")
                 : filter == .models ? store.t("Your next dimension awaits", "下一维度，等你创造")
                 : filter == .animations ? store.t("Bring your characters to life", "让你的角色动起来")
                 : store.t("A home for your imagination", "给你的想象一个家"),
             message: !searchText.isEmpty ? store.t("Try a different name or clear your filters.", "试试其他名称，或清除筛选。")
+                : filter == .archive ? store.t("Long press any creation to archive it. Items are kept for 30 days before automatic deletion.", "长按任意作品即可移至归档。作品将保留 30 天，逾期自动彻底清除。")
                 : filter == .favorites ? store.t("Tap the heart in a model's details to save it here.", "在模型信息中点按爱心，即可收藏到这里。")
                 : filter == .models ? store.t("Open one of your concepts to bring it into 3D.", "打开你的概念图，让它成为 3D 模型。")
                 : filter == .animations ? store.t("Open one of your concepts and tap Animate to generate a looping character animation.", "打开你的概念图，点击“生成动画”即可生成无缝循环角色动画。")

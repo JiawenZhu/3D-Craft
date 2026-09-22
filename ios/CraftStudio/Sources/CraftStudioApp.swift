@@ -139,6 +139,9 @@ struct CraftRoot: View {
                         case .asset(let asset):
                             // An animated character has no mesh to inspect; it plays instead.
                             if asset.isAnimated { AnimatedCharacterDetailView(asset: asset) }
+                            else if asset.isConcept, let url = asset.sourceImageURL ?? asset.thumbURL {
+                                ConceptImageInspector(imageURL: url, chinese: store.isChinese)
+                            }
                             else { AssetDetailView(asset: asset) }
                         case .games(let asset): GameChooserView(asset: asset)
                         case .wallet: WalletView()
@@ -311,11 +314,24 @@ struct CraftRoot: View {
                         description: Text(category == .userCreated ? store.t("Describe an idea below. Your finished models will appear here.", "在下方描述灵感，完成的模型会保存在这里。") : store.t("Try another category, or describe your own idea below.", "试试其他分类，或在下方描述你的灵感。")))
                         .padding(.top, 50)
                 } else {
-                    GalleryHomeGrid(assets: galleryAssets, chinese: store.isChinese) { asset in
-                        promptFocused = false
-                        tileCount += 1
-                        store.path.append(.asset(asset))
-                    }
+                    GalleryHomeGrid(
+                        assets: galleryAssets,
+                        chinese: store.isChinese,
+                        onModify: { asset in
+                            promptFocused = false
+                            store.modifyAsset(asset)
+                        },
+                        onArchive: { asset in
+                            Task {
+                                await store.archiveAsset(asset)
+                            }
+                        },
+                        onSelect: { asset in
+                            promptFocused = false
+                            tileCount += 1
+                            store.path.append(.asset(asset))
+                        }
+                    )
                     .padding(.horizontal, 14)
                     .padding(.bottom, 12)
                 }

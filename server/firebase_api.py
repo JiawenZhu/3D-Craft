@@ -67,6 +67,9 @@ ROUTE_SCOPES = [
     (re.compile(r"^/api/v1/creations/[^/]+$"), {"GET": "assets:read"}),
     # 5. Assets & Jobs & Readouts
     (re.compile(r"^/api/v1/assets/[^/]+/download$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/assets/[^/]+/archive$"), {"POST": "assets:delete"}),
+    (re.compile(r"^/api/v1/assets/[^/]+/restore$"), {"POST": "models:write"}),
+    (re.compile(r"^/api/v1/archive$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/assets$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/assets/[^/]+$"), {"DELETE": "assets:delete"}),
     (re.compile(r"^/api/v1/jobs/[^/]+$"), {"GET": "assets:read"}),
@@ -501,48 +504,92 @@ def v1_job(ident: str, account=Depends(v1_owner)):
 
 
 @app.get('/api/mobile/assets')
-def mobile_assets(account=Depends(owner)):
+def mobile_assets(account=Depends(owner), archived: bool = False):
     uid = account.removeprefix('firebase:')
+    CloudCreations(studio()).purge_expired_archives(account)
     result = []
     for item in studio().records(account,'mobileCreations'):
         kind = item.get('kind')
-        if kind not in ('3D object','Animated character'): continue
+        if kind not in ('3D object','Animated character', 'Concept image'): continue
+        archived_at = firebase_creations.seconds(item.get('archivedAt'))
+        if (archived_at is not None) != archived: continue
         animated = kind == 'Animated character'
+        is_concept = kind == 'Concept image'
+        clean_id = item['id'].removeprefix('animation:' if animated else ('concept:' if is_concept else 'model:'))
         def media(field):
             path = item.get(field,'')
             return public_shape('gs://'+BUCKET+'/'+path,account) if path.startswith(f'users/{uid}/') else None
-        # `kind` stays the app's own shape category; the record type is separate.
-        entry = {'id':item['id'].removeprefix('animation:' if animated else 'model:'),
+        entry = {'id':clean_id,
                  'name':item.get('name','Untitled creation'),'creationKind':kind,
-                 'modelUrl':media('modelStoragePath'),'animationUrl':media('animationStoragePath'),
-                 'thumbUrl':media('previewStoragePath') or item.get('preview'),'isExample':False}
+                 'kind': 'animation' if animated else ('concept' if is_concept else 'model'),
+                 'modelUrl':media('modelStoragePath') if not animated and not is_concept else None,
+                 'animationUrl':media('animationStoragePath') if animated else None,
+                 'videoUrl':media('animationStoragePath') if animated else None,
+                 'thumbUrl':media('previewStoragePath') or item.get('preview'),
+                 'sourceImageUrl':media('previewStoragePath') if is_concept else None,
+                 'projectId':item.get('projectId'),
+                 'conceptIds':item.get('conceptIds') or [],
+                 'prompt':item.get('prompt') or '',
+                 'createdAt':firebase_creations.seconds(item.get('createdAt')),
+                 'archivedAt':archived_at,
+                 'daysRemaining': max(0, 30 - int((time.time() - archived_at) / 86400)) if archived_at else None,
+                 'isArchived': archived_at is not None,
+                 'isExample':False}
         result.append(entry)
+    result.sort(key=lambda a: a['createdAt'] or 0, reverse=True)
     return {'owned':result,'examples':[]}
 
 
 @app.get('/api/v1/assets')
-def v1_assets(account=Depends(v1_owner)):
+def v1_assets(account=Depends(v1_owner), archived: bool = False):
     uid = account.removeprefix('firebase:')
+    CloudCreations(studio()).purge_expired_archives(account)
     result = []
     for item in studio().records(account,'mobileCreations'):
         kind = item.get('kind')
-        if kind not in ('3D object','Animated character'): continue
+        if kind not in ('3D object','Animated character', 'Concept image'): continue
+        archived_at = firebase_creations.seconds(item.get('archivedAt'))
+        if (archived_at is not None) != archived: continue
         animated = kind == 'Animated character'
-        clean_id = item['id'].removeprefix('animation:' if animated else 'model:')
+        is_concept = kind == 'Concept image'
+        clean_id = item['id'].removeprefix('animation:' if animated else ('concept:' if is_concept else 'model:'))
         def media(field):
             path = item.get(field,'')
             return public_shape('gs://'+BUCKET+'/'+path,account) if path.startswith(f'users/{uid}/') else None
         result.append({'id':clean_id,'name':item.get('name','Untitled creation'),'creationKind':kind,
-                       'animationUrl':media('animationStoragePath'),
-                       'projectId':item.get('projectId'),'conceptIds':item.get('conceptIds') or [],
-                       'createdAt':firebase_creations.seconds(item.get('createdAt')),
-                       'modelUrl':media('modelStoragePath'),'downloadUrl':f'/api/v1/assets/{clean_id}/download',
-                       'previewDownloadUrl':f'/api/v1/assets/{clean_id}/download?kind=preview',
+                       'kind': 'animation' if animated else ('concept' if is_concept else 'model'),
+                       'animationUrl':media('animationStoragePath') if animated else None,
+                       'videoUrl':media('animationStoragePath') if animated else None,
+                       'modelUrl':media('modelStoragePath') if not animated and not is_concept else None,
                        'thumbUrl':media('previewStoragePath') or item.get('preview'),
+                       'sourceImageUrl':media('previewStoragePath') if is_concept else None,
+                       'projectId':item.get('projectId'),'conceptIds':item.get('conceptIds') or [],
+                       'prompt':item.get('prompt') or '',
+                       'createdAt':firebase_creations.seconds(item.get('createdAt')),
+                       'archivedAt':archived_at,
+                       'daysRemaining': max(0, 30 - int((time.time() - archived_at) / 86400)) if archived_at else None,
+                       'isArchived': archived_at is not None,
+                       'downloadUrl':f'/api/v1/assets/{clean_id}/download' + ('?kind=video' if animated else ('?kind=preview' if is_concept else '')),
+                       'previewDownloadUrl':f'/api/v1/assets/{clean_id}/download?kind=preview',
                        'isExample':False})
     # Newest first, so an agent's latest creation is always the first entry.
     result.sort(key=lambda a: a['createdAt'] or 0, reverse=True)
     return {'owned':result,'examples':[]}
+
+
+@app.get('/api/v1/archive')
+def v1_archive(account=Depends(v1_owner)):
+    return v1_assets(account, archived=True)
+
+
+@app.post('/api/v1/assets/{asset_id}/archive')
+def v1_archive_asset(asset_id: str, account=Depends(v1_owner)):
+    return CloudCreations(studio()).archive_asset(account, asset_id)
+
+
+@app.post('/api/v1/assets/{asset_id}/restore')
+def v1_restore_asset(asset_id: str, account=Depends(v1_owner)):
+    return CloudCreations(studio()).restore_asset(account, asset_id)
 
 
 @app.delete('/api/v1/assets/{asset_id}')
@@ -551,21 +598,22 @@ def v1_delete_asset(asset_id: str, account=Depends(v1_owner)):
 
 
 @app.get('/api/v1/assets/{asset_id}/download')
-def v1_download_asset(asset_id: str, kind: Literal['model','preview'] = 'model', account=Depends(v1_owner)):
+def v1_download_asset(asset_id: str, kind: Literal['model','preview','video','animation'] = 'model', account=Depends(v1_owner)):
     uid = account.removeprefix('firebase:')
-    clean_id = asset_id.removeprefix('model:').removeprefix('animation:')
+    clean_id = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
     creations = studio().db.collection('users').document(uid).collection('mobileCreations')
-    for candidate in ('model:' + clean_id, 'animation:' + clean_id, clean_id):
+    doc = None
+    for candidate in ('model:' + clean_id, 'animation:' + clean_id, 'concept:' + clean_id, clean_id):
         doc_ref = creations.document(candidate)
         doc = doc_ref.get()
         if doc.exists: break
-    if not doc.exists:
+    if doc is None or not doc.exists:
         raise HTTPException(404, "Asset not found in your account.")
     item = doc.to_dict() or {}
     if item.get('ownerId') != uid:
         raise HTTPException(403, "Access denied to requested asset.")
     field = 'previewStoragePath' if kind == 'preview' else \
-        ('animationStoragePath' if item.get('kind') == 'Animated character' else 'modelStoragePath')
+        ('animationStoragePath' if (kind in ('video', 'animation') or item.get('kind') == 'Animated character') else 'modelStoragePath')
     path = item.get(field) or ''
     if not path or not path.startswith(f'users/{uid}/') or '..' in path:
         raise HTTPException(404, f"Asset {kind} file not found.")
