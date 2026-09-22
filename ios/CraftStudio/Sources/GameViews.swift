@@ -88,6 +88,7 @@ struct GameChooserView: View {
             let name = asset.name.lowercased()
             kind = asset.kind == "vehicle" || ["car", "camper", "truck", "van", "汽车", "赛车"].contains(where: name.contains) ? "vehicle" : asset.kind == "flying" || ["dragon", "bird", "龙", "凤凰"].contains(where: name.contains) ? "flying" : "character"
             selected = compatible.first?.id ?? "survivor"
+            GamePrewarmer.shared.prewarm(webBase: store.webBase)
         }
         .fullScreenCover(item: $launch) { destination in
             NativeGameScreen(url: destination.url, title: destination.title, chinese: store.isChinese)
@@ -341,6 +342,43 @@ private struct NativeGameScreen: View {
     }
 }
 
+@MainActor
+final class GamePrewarmer: NSObject, WKNavigationDelegate {
+    static let shared = GamePrewarmer()
+    private var webView: WKWebView?
+    private var isPrewarming = false
+    private var prewarmedBase: String?
+
+    func prewarm(webBase: String) {
+        guard !isPrewarming, prewarmedBase != webBase else { return }
+        guard var components = URLComponents(string: webBase) else { return }
+        components.path = "/games/forma/index.html"
+        components.query = "prewarm=1"
+        guard let url = components.url else { return }
+
+        isPrewarming = true
+        prewarmedBase = webBase
+
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: config)
+        view.navigationDelegate = self
+        view.isHidden = true
+        let request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 60)
+        view.load(request)
+        self.webView = view
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        isPrewarming = false
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        isPrewarming = false
+    }
+}
+
 private struct CraftGameWebView: UIViewRepresentable {
     let url: URL
     let onClose: () -> Void
@@ -359,7 +397,7 @@ private struct CraftGameWebView: UIViewRepresentable {
         view.isOpaque = false
         view.backgroundColor = UIColor(red: 0.97, green: 0.96, blue: 0.99, alpha: 1)
         view.scrollView.isScrollEnabled = false
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 45)
+        var request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 45)
         view.load(request)
         return view
     }

@@ -422,6 +422,9 @@ struct AssetDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $fullScreen) { fullScreenStage }
+        .onAppear {
+            GamePrewarmer.shared.prewarm(webBase: store.webBase)
+        }
         }
     }
 
