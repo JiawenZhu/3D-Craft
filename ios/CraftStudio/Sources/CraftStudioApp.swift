@@ -292,7 +292,7 @@ struct CraftRoot: View {
         !store.draftPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || hasReference
     }
     private var galleryAssets: [CraftAsset] {
-        let unique = category.assets(owned: store.assets, examples: store.examples, favorites: store.favoriteIDs)
+        let unique = category.assets(owned: store.assets, examples: store.examples)
         if order == "name" { return unique.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending } }
         return unique
     }
@@ -317,12 +317,16 @@ struct CraftRoot: View {
                     GalleryHomeGrid(
                         assets: galleryAssets,
                         chinese: store.isChinese,
+                        isFavorite: { store.isFavorite($0.id) },
                         onModify: { asset in
                             promptFocused = false
                             store.modifyAsset(asset)
                         },
                         onFavorite: { asset in
                             store.addFavorite(asset.id)
+                        },
+                        onUnfavorite: { asset in
+                            store.removeFavorite(asset.id)
                         },
                         onArchive: { asset in
                             Task {

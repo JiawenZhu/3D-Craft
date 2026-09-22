@@ -77,24 +77,24 @@ struct LibraryView: View {
         let activeProjects = Set(store.jobs.filter(\.isActive).map(\.projectId))
         let archivedProjectIDs = Set(store.archivedProjects.map(\.id))
         let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations) ? [] : store.projects
-            .filter { !$0.isArchived && !archivedProjectIDs.contains($0.id) && !store.isFavorite($0.id) }
+            .filter { !$0.isArchived && !archivedProjectIDs.contains($0.id) }
             .map { project in
                 let concept = store.selectedConcept(in: project)
                     ?? project.concepts.first(where: { $0.isOriginal != true })
                     ?? project.concepts.first
                 let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
-                return .project(project, imageURL: url, active: activeProjects.contains(project.id), favorite: false)
+                return .project(project, imageURL: url, active: activeProjects.contains(project.id), favorite: store.isFavorite(project.id))
             }
         let archivedAssetIDs = Set(store.archivedAssets.map(\.id))
         let assets: [LibraryGalleryItem] = privateAssets
             .filter { asset in
-                if asset.isArchived || archivedAssetIDs.contains(asset.id) || store.isFavorite(asset.id) { return false }
+                if asset.isArchived || archivedAssetIDs.contains(asset.id) { return false }
                 if filter == .models && (asset.isAnimated || asset.isConcept) { return false }
                 if filter == .animations && !asset.isAnimated { return false }
                 if filter == .concepts && !asset.isConcept { return false }
                 return true
             }
-            .map { .asset($0, favorite: false) }
+            .map { .asset($0, favorite: store.isFavorite($0.id)) }
         // Mix the two real collections without pretending they share timestamps.
         var combined: [LibraryGalleryItem] = []
         for index in 0..<max(projects.count, assets.count) {
@@ -124,26 +124,6 @@ struct LibraryView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(appearance.ink)
                         Text(store.t("Archived creations are preserved for 30 days before being automatically purged from Firebase.", "归档的创作将保留 30 天，逾期将自动彻底清除。"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(12)
-                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
-                .padding(.horizontal, 20)
-                .padding(.bottom, 2)
-            }
-            if filter == .favorites {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "heart.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.pink)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(store.t("Permanent Favorites Folder", "永久收藏夹"))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(appearance.ink)
-                        Text(store.t("Favorited creations are kept here permanently without time limits.", "收藏的作品将永久保存在此收藏夹中，无时间限制。"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -330,7 +310,7 @@ struct LibraryView: View {
                 : store.t("A home for your imagination", "给你的想象一个家"),
             message: !searchText.isEmpty ? store.t("Try a different name or clear your filters.", "试试其他名称，或清除筛选。")
                 : filter == .archive ? store.t("Long press any creation to archive it. Items are kept for 30 days before automatic deletion.", "长按任意作品即可移至归档。作品将保留 30 天，逾期自动彻底清除。")
-                : filter == .favorites ? store.t("Hard press any creation or chat in your library and choose Favorite to save it here permanently.", "长按作品或对话并选择“加入收藏”，即可移入此收藏夹中永久保存。")
+                : filter == .favorites ? store.t("Long press any creation or chat and choose Add to Favorites.", "长按任意作品或对话并选择“加入收藏”。")
                 : filter == .models ? store.t("Open one of your concepts to bring it into 3D.", "打开你的概念图，让它成为 3D 模型。")
                 : filter == .animations ? store.t("Open one of your concepts and tap Animate to generate a looping character animation.", "打开你的概念图，点击“生成动画”即可生成无缝循环角色动画。")
                 : store.t("Your concept projects and finished 3D models will appear here. Start with a photo or a few words.", "你的概念项目和 3D 模型会保存在这里。先用照片或几句话开始创作。"),
