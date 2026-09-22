@@ -125,7 +125,7 @@ export function Showcase() {
     <div className="craft-showcase">
       <header className="showcase-nav">
         <a className="showcase-brand" href="/">
-          <img src="/craft-icon.svg" alt="" />
+          <img src="/craft-icon.png" alt="3D Craft" width="38" height="38" />
           3D Craft
         </a>
         <nav>
