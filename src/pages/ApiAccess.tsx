@@ -17,7 +17,7 @@ export function ApiAccess() {
 
   return <div className="craft-showcase api-page">
     <header className="showcase-nav">
-      <a className="showcase-brand" href="/"><img src="/craft-icon.svg" alt="" />3D Craft</a>
+      <a className="showcase-brand" href="/"><img src="/craft-icon.png" alt="3D Craft" width="38" height="38" />3D Craft</a>
       <nav>
         <a href="/"><ArrowLeft size={16} /> Back</a>
         {user && <button onClick={() => void logoutUser()}><LogOut size={16} /> Sign out</button>}
