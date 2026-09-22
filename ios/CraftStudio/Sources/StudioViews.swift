@@ -336,7 +336,11 @@ struct AssetDetailView: View {
                 if !lightingControls {
                     CraftSteps(selected: 1, chinese: store.isChinese,
                                titles: store.isChinese ? ["概念", "3D", "游戏"] : ["Concept", "3D", "Game"],
-                               onConcept: sourceConceptURL == nil ? nil : { showSourceConcept = true }, conceptIndex: 0)
+                               onConcept: sourceConceptURL == nil ? nil : { showSourceConcept = true }, conceptIndex: 0,
+                               onGame: {
+                                   playCount += 1
+                                   if let onPlay { onPlay() } else { store.path.append(.games(asset)) }
+                               }, gameIndex: 2)
                         .padding(.horizontal, 44)
                         .craftEntrance(1)
                     title
@@ -633,22 +637,35 @@ struct AssetDetailView: View {
 
     private var bottomCard: some View {
         VStack(spacing: 10) {
-            Button { showGameHandoff = true; playCount += 1 } label: {
-                Label(store.t("Send to ChatGPT / Claude Code", "发送到 ChatGPT / Claude Code"), systemImage: "paperplane")
+            Button {
+                playCount += 1
+                if let onPlay { onPlay() } else { store.path.append(.games(asset)) }
+            } label: {
+                Label(store.t("Play in game", "带入游戏试玩"), systemImage: "gamecontroller.fill")
                     .font(.subheadline.weight(.semibold))
             }
             .buttonStyle(CraftPrimary(armed: modelReady, verticalPadding: 14, cornerRadius: 16))
             .disabled(asset.modelURL == nil)
+            .accessibilityIdentifier("asset.playInGame")
+
+            Button { showGameHandoff = true; playCount += 1 } label: {
+                Label(store.t("Send to ChatGPT / Claude Code", "发送到 ChatGPT / Claude Code"), systemImage: "paperplane")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
+            }
+            .buttonStyle(CraftPressStyle())
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(RoundedRectangle(cornerRadius: 16).strokeBorder(appearance.hairline))
+            .disabled(asset.modelURL == nil)
             .accessibilityIdentifier("asset.gameHandoff")
 
             Button(exporting ? store.t("Preparing…", "准备中……") : store.t("Export model", "导出模型")) { exportModel() }
-                .font(.subheadline.weight(.medium)).foregroundStyle(.primary)
+                .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
                 .contentTransition(.opacity)
                 .animation(CraftMotion.gated(.fade, reduceMotion), value: exporting)
                 .buttonStyle(CraftPressStyle())
                 .disabled(exporting)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(RoundedRectangle(cornerRadius: 16).strokeBorder(appearance.hairline))
+                .frame(maxWidth: .infinity, minHeight: 38)
         }
         .padding(.horizontal, 22).padding(.top, 8).padding(.bottom, 6)
         .frame(maxWidth: .infinity)
@@ -721,6 +738,7 @@ struct ProfileView: View {
     @State private var deletingAccount = false
     @State private var apiAccessOpen = false
     @State private var showIntroduction = false
+    @State private var showArchiveFolder = false
     @State private var scrollY: CGFloat = 0
     @State private var rowCount = 0
 
@@ -731,6 +749,7 @@ struct ProfileView: View {
                     header
                     headline
                     identityRow
+                    archiveFolderCard
                     accountSection
                     CraftAIPrivacySettings()
                     AppearanceSettingsView()
@@ -756,6 +775,7 @@ struct ProfileView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $editingProfile) { ProfileEditorView() }
         .sheet(isPresented: $aiAccountOpen) { AIAccountView() }
+        .sheet(isPresented: $showArchiveFolder) { ProfileArchiveSheet() }
         .sheet(isPresented: $deletingAccount) { AccountDeletionView() }
         .sheet(isPresented: $apiAccessOpen) { APIAccessView() }
         .fullScreenCover(isPresented: $showIntroduction) {
@@ -805,6 +825,50 @@ struct ProfileView: View {
         .buttonStyle(CraftPressStyle(scale: 0.985))
         .accessibilityIdentifier("profile.edit")
         .accessibilityLabel(profile.displayName(chinese: store.isChinese) + " · " + store.t("Edit profile", "编辑个人资料"))
+        .craftEntrance(2)
+    }
+
+    private var archiveFolderCard: some View {
+        Button { showArchiveFolder = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "archivebox.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(appearance.ink)
+                    .frame(width: 44, height: 44)
+                    .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(store.t("Archive Folder", "归档文件夹"))
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        if !store.archivedAssets.isEmpty {
+                            Text("\(store.archivedAssets.count)")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(appearance.ink)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(appearance.washStrong, in: Capsule())
+                        }
+                    }
+                    Text(store.t("View archived creations · Auto-cleared in 30 days", "查看归档作品 · 30天后自动清理"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(appearance.fill.opacity(0.2), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(CraftPressStyle(scale: 0.985))
+        .accessibilityIdentifier("profile.archiveFolder")
         .craftEntrance(2)
     }
 
@@ -1114,3 +1178,193 @@ struct WalletView: View {
         }
     }
 }
+
+// MARK: - Profile Archive Sheet
+
+struct ProfileArchiveSheet: View {
+    @EnvironmentObject private var store: CraftStore
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+    @Environment(\.dismiss) private var dismiss
+    @State private var assetToDelete: CraftAsset?
+    @State private var showDeleteConfirmation = false
+    @State private var restoringAssetId: String?
+    @State private var restoredNotice: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if store.archivedAssets.isEmpty {
+                    VStack(spacing: 18) {
+                        ContentUnavailableView(
+                            store.t("Archive is Empty", "归档文件夹为空"),
+                            systemImage: "archivebox",
+                            description: Text(store.t("Creations you archive from the library will appear here for 30 days before permanent deletion.", "在资料库中长按并归档的作品将保留在此处30天，期满自动彻底删除。"))
+                        )
+                        if restoredNotice != nil {
+                            Button {
+                                dismiss()
+                                store.selectedTab = 1
+                            } label: {
+                                Label(store.t("Go to Library", "前往资料库"), systemImage: "square.grid.2x2")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(appearance.washStrong, in: Capsule())
+                            }
+                            .foregroundStyle(appearance.ink)
+                            .buttonStyle(CraftPressStyle())
+                        }
+                    }
+                    .padding(24)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 14) {
+                            headerNotice
+                            if let notice = restoredNotice {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(notice)
+                                        .font(.caption.weight(.medium))
+                                    Spacer()
+                                    Button(store.t("View in Library", "在资料库查看")) {
+                                        dismiss()
+                                        store.selectedTab = 1
+                                    }
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(appearance.ink)
+                                }
+                                .padding(12)
+                                .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                            ForEach(store.archivedAssets) { asset in
+                                archiveItemRow(asset)
+                            }
+                        }
+                        .padding(20)
+                    }
+                }
+            }
+            .background { StudioAtmosphere() }
+            .navigationTitle(store.t("Archive Folder", "归档文件夹"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(store.t("Done", "完成")) { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+            .confirmationDialog(
+                store.t("Delete Permanently?", "确认彻底删除？"),
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(store.t("Delete Permanently", "彻底删除"), role: .destructive) {
+                    if let target = assetToDelete {
+                        Task { await store.deletePermanently(target) }
+                    }
+                }
+                Button(store.t("Cancel", "取消"), role: .cancel) {}
+            } message: {
+                Text(store.t("This action cannot be undone. The creation will be permanently deleted from Firebase.", "此操作无法撤销。作品将从 Firebase 云端彻底删除。"))
+            }
+            .task {
+                await store.loadArchived()
+            }
+        }
+    }
+
+    private var headerNotice: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "clock.arrow.circlepath")
+                .foregroundStyle(appearance.ink)
+                .font(.system(size: 16))
+            Text(store.t("Archived items are kept for 30 days. You can restore any item back to your Library at any time.", "归档作品保留30天。你随时可以点击恢复，作品将立即回到资料库。"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func archiveItemRow(_ asset: CraftAsset) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                appearance.washStrong
+                if let thumb = asset.thumbURL ?? asset.sourceImageURL {
+                    CraftThumbnailImage(url: thumb, inset: 2)
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: asset.kindIcon)
+                        .font(.system(size: 24))
+                        .foregroundStyle(appearance.ink.opacity(0.7))
+                }
+            }
+            .frame(width: 60, height: 60)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(asset.name)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Text(asset.kindTitle(chinese: store.isChinese))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(appearance.ink)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(appearance.washStrong, in: Capsule())
+                }
+
+                Text(store.isChinese ? "⏳ 剩余 \(asset.daysRemaining) 天" : "⏳ \(asset.daysRemaining)d left")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 8) {
+                Button {
+                    restoringAssetId = asset.id
+                    Task {
+                        await store.restoreAsset(asset)
+                        restoringAssetId = nil
+                        restoredNotice = store.t("Restored \"\(asset.name)\" to Library", "已恢复 “\(asset.name)” 到资料库")
+                    }
+                } label: {
+                    if restoringAssetId == asset.id {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Label(store.t("Restore", "恢复"), systemImage: "arrow.uturn.backward")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(appearance.washStrong, in: Capsule())
+                .foregroundStyle(appearance.ink)
+                .buttonStyle(CraftPressStyle())
+
+                Button {
+                    assetToDelete = asset
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.red.opacity(0.85))
+                        .padding(8)
+                        .background(Color.red.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(CraftPressStyle())
+            }
+        }
+        .padding(14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(appearance.fill.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+

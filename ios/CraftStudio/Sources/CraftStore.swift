@@ -619,6 +619,12 @@ struct PendingGeneration: Codable, Equatable {
         }
     }
 
+    func loadArchived() async {
+        if let archived = try? await FirebaseCreationLibrary.loadArchived() {
+            archivedAssets = archived
+        }
+    }
+
     func deletePermanently(_ asset: CraftAsset) async {
         assets.removeAll { $0.id == asset.id }
         archivedAssets.removeAll { $0.id == asset.id }
