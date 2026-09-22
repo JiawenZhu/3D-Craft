@@ -397,7 +397,7 @@ private struct CraftGameWebView: UIViewRepresentable {
         view.isOpaque = false
         view.backgroundColor = UIColor(red: 0.97, green: 0.96, blue: 0.99, alpha: 1)
         view.scrollView.isScrollEnabled = false
-        var request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 45)
+        let request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 45)
         view.load(request)
         return view
     }
