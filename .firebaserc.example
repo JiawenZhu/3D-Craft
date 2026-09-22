@@ -1,9 +1,9 @@
 {
   "projects": {
-    "default": "forma-studio-2026"
+    "default": "your-firebase-project-id"
   },
   "targets": {
-    "forma-studio-2026": {
+    "your-firebase-project-id": {
       "hosting": {
         "app": [
           "3d-craft"

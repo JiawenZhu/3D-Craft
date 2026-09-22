@@ -54,8 +54,32 @@ ios/.build/
 ios/.build-device/
 ios/**/xcuserdata/
 
-# Local service state, caches, and distribution packages
+# Firebase & Google Cloud Runtime, Credentials, and Logs
 .firebase/
+.firebase
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+pubsub-debug.log*
+database-debug.log*
+hosting.*.log
+*firebase*-adminsdk*.json
+*-firebase-adminsdk-*.json
+serviceAccountKey*.json
+service-account*.json
+*service_account*.json
+google-service-account*.json
+gcp-key*.json
+gcp-credentials*.json
+GoogleService-Info.plist
+google-services.json
+.runtimeconfig.json
+.runtimeconfig.*.json
+firebase-export-*/
+firestore_export/
+.firebaserc
+.firebaserc.local
+
 *.db
 *.db-shm
 *.db-wal
