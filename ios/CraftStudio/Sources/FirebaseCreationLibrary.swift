@@ -109,11 +109,12 @@ enum FirebaseCreationLibrary {
 
     @MainActor static func archive(asset: CraftAsset) async throws {
         guard let uid = CraftAccount.shared.uid,
-              let encodedUID = uid.addingPercentEncoding(withAllowedCharacters: .alphanumerics) else { throw URLError(.userAuthenticationRequired) }
+              let encodedUID = uid.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+              var components = URLComponents(url: resolveDocURL(asset: asset, uid: encodedUID), resolvingAgainstBaseURL: false) else { throw URLError(.userAuthenticationRequired) }
+        components.queryItems = [URLQueryItem(name: "updateMask.fieldPaths", value: "archivedAt")]
+        guard let url = components.url else { throw URLError(.badURL) }
         let token = try await CraftAccount.shared.token()
-        let docPath = resolveDocPath(asset: asset, uid: encodedUID)
         let now = Date().timeIntervalSince1970
-        let url = URL(string: "https://firestore.googleapis.com/v1/\(docPath)?updateMask.fieldPaths=archivedAt")!
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
@@ -128,10 +129,11 @@ enum FirebaseCreationLibrary {
 
     @MainActor static func restore(asset: CraftAsset) async throws {
         guard let uid = CraftAccount.shared.uid,
-              let encodedUID = uid.addingPercentEncoding(withAllowedCharacters: .alphanumerics) else { throw URLError(.userAuthenticationRequired) }
+              let encodedUID = uid.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+              var components = URLComponents(url: resolveDocURL(asset: asset, uid: encodedUID), resolvingAgainstBaseURL: false) else { throw URLError(.userAuthenticationRequired) }
+        components.queryItems = [URLQueryItem(name: "updateMask.fieldPaths", value: "archivedAt")]
+        guard let url = components.url else { throw URLError(.badURL) }
         let token = try await CraftAccount.shared.token()
-        let docPath = resolveDocPath(asset: asset, uid: encodedUID)
-        let url = URL(string: "https://firestore.googleapis.com/v1/\(docPath)?updateMask.fieldPaths=archivedAt")!
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
@@ -147,9 +149,15 @@ enum FirebaseCreationLibrary {
     @MainActor static func deletePermanently(asset: CraftAsset) async throws {
         guard let uid = CraftAccount.shared.uid,
               let encodedUID = uid.addingPercentEncoding(withAllowedCharacters: .alphanumerics) else { throw URLError(.userAuthenticationRequired) }
+        let url = resolveDocURL(asset: asset, uid: encodedUID)
         let token = try await CraftAccount.shared.token()
-        let docPath = resolveDocPath(asset: asset, uid: encodedUID)
-        try await deleteDocByName(docPath, token: token)
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) || http.statusCode == 404 else {
+            throw URLError(.badServerResponse)
+        }
     }
 
     private static func deleteDocByName(_ docPath: String, token: String) async throws {
@@ -164,12 +172,16 @@ enum FirebaseCreationLibrary {
         }
     }
 
-    private static func resolveDocPath(asset: CraftAsset, uid: String) -> String {
-        if let docName = asset.firestoreDocName, !docName.isEmpty {
-            return docName
-        }
+    private static func resolveDocURL(asset: CraftAsset, uid: String) -> URL {
         let prefix = asset.isAnimated ? "animation:" : (asset.isConcept ? "concept:" : "model:")
-        return "projects/\(project)/databases/(default)/documents/users/\(uid)/mobileCreations/\(prefix)\(asset.id)"
+        let rawId: String
+        if let docName = asset.firestoreDocName, let last = docName.split(separator: "/").last {
+            rawId = String(last)
+        } else {
+            rawId = prefix + asset.id
+        }
+        let docId = rawId.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? rawId
+        return URL(string: "https://firestore.googleapis.com/v1/projects/\(project)/databases/(default)/documents/users/\(uid)/mobileCreations/\(docId)")!
     }
 }
 

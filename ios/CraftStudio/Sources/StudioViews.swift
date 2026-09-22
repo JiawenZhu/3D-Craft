@@ -39,23 +39,35 @@ struct LibraryView: View {
     }
     private var items: [LibraryGalleryItem] {
         if filter == .archive {
-            let archived = store.archivedAssets.map { LibraryGalleryItem.asset($0, favorite: false) }
+            let archivedA = store.archivedAssets.map { LibraryGalleryItem.asset($0, favorite: false) }
+            let archivedP = store.archivedProjects.map { project -> LibraryGalleryItem in
+                let concept = store.selectedConcept(in: project)
+                    ?? project.concepts.first(where: { $0.isOriginal != true })
+                    ?? project.concepts.first
+                let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
+                return .project(project, imageURL: url, active: false)
+            }
+            let archived = archivedA + archivedP
             let matching = archived.filter {
                 searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText)
             }
             return alphabetical ? matching.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending } : matching
         }
         let activeProjects = Set(store.jobs.filter(\.isActive).map(\.projectId))
-        let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations || filter == .favorites) ? [] : store.projects.map { project in
-            let concept = store.selectedConcept(in: project)
-                ?? project.concepts.first(where: { $0.isOriginal != true })
-                ?? project.concepts.first
-            let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
-            return .project(project, imageURL: url, active: activeProjects.contains(project.id))
-        }
+        let archivedProjectIDs = Set(store.archivedProjects.map(\.id))
+        let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations || filter == .favorites) ? [] : store.projects
+            .filter { !$0.isArchived && !archivedProjectIDs.contains($0.id) }
+            .map { project in
+                let concept = store.selectedConcept(in: project)
+                    ?? project.concepts.first(where: { $0.isOriginal != true })
+                    ?? project.concepts.first
+                let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
+                return .project(project, imageURL: url, active: activeProjects.contains(project.id))
+            }
+        let archivedAssetIDs = Set(store.archivedAssets.map(\.id))
         let assets: [LibraryGalleryItem] = filter == .concepts ? [] : privateAssets
             .filter { asset in
-                if asset.isArchived { return false }
+                if asset.isArchived || archivedAssetIDs.contains(asset.id) { return false }
                 if filter == .models && (asset.isAnimated || asset.isConcept) { return false }
                 if filter == .animations && !asset.isAnimated { return false }
                 if filter == .favorites && !favorites.contains(asset.id) { return false }
@@ -752,7 +764,6 @@ struct ProfileView: View {
                     header
                     headline
                     identityRow
-                    archiveFolderCard
                     accountSection
                     CraftAIPrivacySettings()
                     AppearanceSettingsView()
@@ -828,50 +839,6 @@ struct ProfileView: View {
         .buttonStyle(CraftPressStyle(scale: 0.985))
         .accessibilityIdentifier("profile.edit")
         .accessibilityLabel(profile.displayName(chinese: store.isChinese) + " · " + store.t("Edit profile", "编辑个人资料"))
-        .craftEntrance(2)
-    }
-
-    private var archiveFolderCard: some View {
-        Button { showArchiveFolder = true } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "archivebox.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(appearance.ink)
-                    .frame(width: 44, height: 44)
-                    .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(store.t("Archive Folder", "归档文件夹"))
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        if !store.archivedAssets.isEmpty {
-                            Text("\(store.archivedAssets.count)")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(appearance.ink)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 2)
-                                .background(appearance.washStrong, in: Capsule())
-                        }
-                    }
-                    Text(store.t("View archived creations · Auto-cleared in 30 days", "查看归档作品 · 30天后自动清理"))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(14)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(appearance.fill.opacity(0.2), lineWidth: 1)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(CraftPressStyle(scale: 0.985))
-        .accessibilityIdentifier("profile.archiveFolder")
         .craftEntrance(2)
     }
 
@@ -959,9 +926,39 @@ struct ProfileView: View {
                     apiAccessOpen = true
                 }.accessibilityIdentifier("profile.apiAccess")
             }
+
+            Divider().opacity(0.4)
+
+            archiveFolderRow
         }
         .font(.subheadline)
         .craftEntrance(5, step: 0.04)
+    }
+
+    private var archiveFolderRow: some View {
+        Button {
+            showArchiveFolder = true
+        } label: {
+            HStack {
+                rowLabel("archivebox", store.t("Archive Folder", "归档文件夹"))
+                let totalArchived = store.archivedAssets.count + store.archivedProjects.count
+                if totalArchived > 0 {
+                    Text("\(totalArchived)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(appearance.ink)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(appearance.washStrong, in: Capsule())
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            }
+            .frame(minHeight: 52)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(CraftPressStyle(scale: 0.99))
+        .accessibilityIdentifier("profile.archiveFolder")
     }
 
     private func navigationRow(_ icon: String, _ title: String, action: @escaping () -> Void) -> some View {
@@ -1184,19 +1181,72 @@ struct WalletView: View {
 
 // MARK: - Profile Archive Sheet
 
+private enum ArchivedCreation: Identifiable {
+    case asset(CraftAsset)
+    case project(CraftProject)
+
+    var id: String {
+        switch self {
+        case .asset(let a): return "asset:" + a.id
+        case .project(let p): return "project:" + p.id
+        }
+    }
+    var name: String {
+        switch self {
+        case .asset(let a): return a.name
+        case .project(let p): return p.name
+        }
+    }
+    var daysRemaining: Int {
+        switch self {
+        case .asset(let a): return a.daysRemaining
+        case .project(let p): return p.daysRemaining
+        }
+    }
+    func kindTitle(chinese: Bool) -> String {
+        switch self {
+        case .asset(let a): return a.kindTitle(chinese: chinese)
+        case .project: return chinese ? "项目灵感" : "Project"
+        }
+    }
+    var imageURL: URL? {
+        switch self {
+        case .asset(let a): return a.thumbURL ?? a.sourceImageURL
+        case .project(let p): return (p.concepts.first(where: { $0.isOriginal != true })?.imageUrl ?? p.imageUrl).flatMap(URL.init(string:))
+        }
+    }
+    var kindIcon: String {
+        switch self {
+        case .asset(let a): return a.kindIcon
+        case .project: return "folder.fill"
+        }
+    }
+}
+
 struct ProfileArchiveSheet: View {
     @EnvironmentObject private var store: CraftStore
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.dismiss) private var dismiss
-    @State private var assetToDelete: CraftAsset?
+    @State private var itemToDelete: ArchivedCreation?
     @State private var showDeleteConfirmation = false
-    @State private var restoringAssetId: String?
+    @State private var restoringItemId: String?
     @State private var restoredNotice: String?
+
+    private var archivedCreations: [ArchivedCreation] {
+        var list: [ArchivedCreation] = []
+        for asset in store.archivedAssets {
+            list.append(.asset(asset))
+        }
+        for project in store.archivedProjects {
+            list.append(.project(project))
+        }
+        return list
+    }
 
     var body: some View {
         NavigationStack {
             Group {
-                if store.archivedAssets.isEmpty {
+                if archivedCreations.isEmpty {
                     VStack(spacing: 18) {
                         ContentUnavailableView(
                             store.t("Archive is Empty", "归档文件夹为空"),
@@ -1240,8 +1290,8 @@ struct ProfileArchiveSheet: View {
                                 .padding(12)
                                 .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
-                            ForEach(store.archivedAssets) { asset in
-                                archiveItemRow(asset)
+                            ForEach(archivedCreations) { item in
+                                archiveItemRow(item)
                             }
                         }
                         .padding(20)
@@ -1263,8 +1313,13 @@ struct ProfileArchiveSheet: View {
                 titleVisibility: .visible
             ) {
                 Button(store.t("Delete Permanently", "彻底删除"), role: .destructive) {
-                    if let target = assetToDelete {
-                        Task { await store.deletePermanently(target) }
+                    if let target = itemToDelete {
+                        Task {
+                            switch target {
+                            case .asset(let a): await store.deletePermanently(a)
+                            case .project(let p): await store.deletePermanently(p)
+                            }
+                        }
                     }
                 }
                 Button(store.t("Cancel", "取消"), role: .cancel) {}
@@ -1291,15 +1346,15 @@ struct ProfileArchiveSheet: View {
         .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func archiveItemRow(_ asset: CraftAsset) -> some View {
+    private func archiveItemRow(_ item: ArchivedCreation) -> some View {
         HStack(spacing: 14) {
             ZStack {
                 appearance.washStrong
-                if let thumb = asset.thumbURL ?? asset.sourceImageURL {
+                if let thumb = item.imageURL {
                     CraftThumbnailImage(url: thumb, inset: 2)
                         .aspectRatio(contentMode: .fill)
                 } else {
-                    Image(systemName: asset.kindIcon)
+                    Image(systemName: item.kindIcon)
                         .font(.system(size: 24))
                         .foregroundStyle(appearance.ink.opacity(0.7))
                 }
@@ -1309,10 +1364,10 @@ struct ProfileArchiveSheet: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(asset.name)
+                    Text(item.name)
                         .font(.headline)
                         .lineLimit(1)
-                    Text(asset.kindTitle(chinese: store.isChinese))
+                    Text(item.kindTitle(chinese: store.isChinese))
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(appearance.ink)
                         .padding(.horizontal, 6)
@@ -1320,7 +1375,7 @@ struct ProfileArchiveSheet: View {
                         .background(appearance.washStrong, in: Capsule())
                 }
 
-                Text(store.isChinese ? "⏳ 剩余 \(asset.daysRemaining) 天" : "⏳ \(asset.daysRemaining)d left")
+                Text(store.isChinese ? "⏳ 剩余 \(item.daysRemaining) 天" : "⏳ \(item.daysRemaining)d left")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1329,14 +1384,17 @@ struct ProfileArchiveSheet: View {
 
             HStack(spacing: 8) {
                 Button {
-                    restoringAssetId = asset.id
+                    restoringItemId = item.id
                     Task {
-                        await store.restoreAsset(asset)
-                        restoringAssetId = nil
-                        restoredNotice = store.t("Restored \"\(asset.name)\" to Library", "已恢复 “\(asset.name)” 到资料库")
+                        switch item {
+                        case .asset(let a): await store.restoreAsset(a)
+                        case .project(let p): await store.restoreProject(p)
+                        }
+                        restoringItemId = nil
+                        restoredNotice = store.t("Restored \"\(item.name)\" to Library", "已恢复 “\(item.name)” 到资料库")
                     }
                 } label: {
-                    if restoringAssetId == asset.id {
+                    if restoringItemId == item.id {
                         ProgressView().controlSize(.small)
                     } else {
                         Label(store.t("Restore", "恢复"), systemImage: "arrow.uturn.backward")
@@ -1350,7 +1408,7 @@ struct ProfileArchiveSheet: View {
                 .buttonStyle(CraftPressStyle())
 
                 Button {
-                    assetToDelete = asset
+                    itemToDelete = item
                     showDeleteConfirmation = true
                 } label: {
                     Image(systemName: "trash")

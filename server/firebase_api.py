@@ -56,6 +56,8 @@ ROUTE_SCOPES = [
     (re.compile(r"^/api/v1/concepts/[^/]+/refine$"), {"POST": "concepts:write", "GET": "assets:read"}),
     (re.compile(r"^/api/v1/projects$"), {"POST": "concepts:write", "GET": "assets:read"}),
     (re.compile(r"^/api/v1/projects/[^/]+$"), {"GET": "assets:read", "PATCH": "concepts:write", "DELETE": "assets:delete"}),
+    (re.compile(r"^/api/v1/projects/[^/]+/archive$"), {"POST": "assets:delete"}),
+    (re.compile(r"^/api/v1/projects/[^/]+/restore$"), {"POST": "concepts:write"}),
     (re.compile(r"^/api/v1/concepts/[^/]+/image$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/concepts/[^/]+$"), {"DELETE": "assets:delete"}),
     # Animated characters
@@ -375,14 +377,22 @@ def v1_provider_pricing(account=Depends(v1_owner)):
 
 
 @app.get('/api/mobile/projects')
-def mobile_projects(account=Depends(owner)):
+def mobile_projects(account=Depends(owner), archived: bool = False):
+    CloudCreations(studio()).purge_expired_archives(account)
     records = studio().records(account,'studioProjects')
     concepts = studio().records(account,'studioConcepts')
     turns = studio().records(account,'studioConversations')
+    filtered = []
     for project in records:
+        archived_at = firebase_creations.seconds(project.get('archivedAt'))
+        if (archived_at is not None) != archived: continue
         project['concepts'] = sorted([c for c in concepts if c.get('projectId') == project['id']],key=lambda c:c.get('createdAt',0))
         project['conversation'] = sorted([t for t in turns if t.get('projectId') == project['id']],key=lambda t:t.get('createdAt',0))
-    return public_shape(sorted(records,key=lambda p:p.get('createdAt',0),reverse=True),account)
+        project['archivedAt'] = archived_at
+        project['isArchived'] = archived_at is not None
+        project['daysRemaining'] = max(0, 30 - int((time.time() - archived_at) / 86400)) if archived_at else None
+        filtered.append(project)
+    return public_shape(sorted(filtered,key=lambda p:p.get('createdAt',0),reverse=True),account)
 
 
 @app.get('/api/v1/projects')
@@ -426,9 +436,22 @@ def v1_rename_project(project_id: str, body: RenameRequest, account=Depends(v1_o
     return CloudCreations(studio()).rename(account, project_id, body.name)
 
 
+@app.delete('/api/mobile/projects/{project_id}')
 @app.delete('/api/v1/projects/{project_id}')
-def v1_delete_project(project_id: str, account=Depends(v1_owner)):
+def delete_project_endpoint(project_id: str, account=Depends(v1_owner)):
     return CloudCreations(studio()).delete_project(account, project_id)
+
+
+@app.post('/api/mobile/projects/{project_id}/archive')
+@app.post('/api/v1/projects/{project_id}/archive')
+def archive_project_endpoint(project_id: str, account=Depends(v1_owner)):
+    return CloudCreations(studio()).archive_project(account, project_id)
+
+
+@app.post('/api/mobile/projects/{project_id}/restore')
+@app.post('/api/v1/projects/{project_id}/restore')
+def restore_project_endpoint(project_id: str, account=Depends(v1_owner)):
+    return CloudCreations(studio()).restore_project(account, project_id)
 
 
 @app.get('/api/v1/concepts/{concept_id}/image')
@@ -577,21 +600,29 @@ def v1_assets(account=Depends(v1_owner), archived: bool = False):
     return {'owned':result,'examples':[]}
 
 
+@app.get('/api/mobile/archive')
+def mobile_archive(account=Depends(owner)):
+    return mobile_assets(account, archived=True)
+
+
 @app.get('/api/v1/archive')
 def v1_archive(account=Depends(v1_owner)):
     return v1_assets(account, archived=True)
 
 
+@app.post('/api/mobile/assets/{asset_id}/archive')
 @app.post('/api/v1/assets/{asset_id}/archive')
 def v1_archive_asset(asset_id: str, account=Depends(v1_owner)):
     return CloudCreations(studio()).archive_asset(account, asset_id)
 
 
+@app.post('/api/mobile/assets/{asset_id}/restore')
 @app.post('/api/v1/assets/{asset_id}/restore')
 def v1_restore_asset(asset_id: str, account=Depends(v1_owner)):
     return CloudCreations(studio()).restore_asset(account, asset_id)
 
 
+@app.delete('/api/mobile/assets/{asset_id}')
 @app.delete('/api/v1/assets/{asset_id}')
 def v1_delete_asset(asset_id: str, account=Depends(v1_owner)):
     return CloudCreations(studio()).delete_asset(account, asset_id)
