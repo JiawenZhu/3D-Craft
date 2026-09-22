@@ -35,6 +35,24 @@ struct CraftAsset: Identifiable, Hashable, Codable {
         return max(0, 30 - elapsed)
     }
     var thumbURL: URL? { (thumbDisplayUrl ?? thumbUrl).flatMap(URL.init(string:)) }
+    func kindTitle(chinese: Bool) -> String {
+        if isAnimated || creationKind == "Animated character" {
+            return chinese ? "动画角色" : "Animated"
+        } else if isConcept || creationKind == "Concept image" {
+            return chinese ? "概念图" : "Concept"
+        } else {
+            return chinese ? "3D 模型" : "3D Model"
+        }
+    }
+    var kindIcon: String {
+        if isAnimated || creationKind == "Animated character" {
+            return "figure.run"
+        } else if isConcept || creationKind == "Concept image" {
+            return "photo"
+        } else {
+            return "cube.fill"
+        }
+    }
     init(id: String, name: String, modelUrl: String? = nil, thumbUrl: String? = nil, faces: Int = 0, fileSizeMb: Double = 0, kind: String = "character", isExample: Bool = false, animationUrl: String? = nil, sourceImageUrl: String? = nil, projectId: String? = nil, prompt: String? = nil, archivedAt: Double? = nil, creationKind: String? = nil, firestoreDocName: String? = nil) {
         self.id=id; self.name=name; self.modelUrl=modelUrl; self.thumbUrl=thumbUrl; self.faces=faces; self.fileSizeMb=fileSizeMb; self.kind=kind; self.isExample=isExample
         self.animationUrl=animationUrl; self.sourceImageUrl=sourceImageUrl; self.projectId=projectId; self.prompt=prompt; self.archivedAt=archivedAt; self.creationKind=creationKind; self.firestoreDocName=firestoreDocName

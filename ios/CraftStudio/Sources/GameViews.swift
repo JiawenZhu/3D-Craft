@@ -266,11 +266,13 @@ struct GameChooserView: View {
     private func start() {
         launchCount += 1
         do {
-            guard let base = URL(string: store.webBase), ["127.0.0.1", "localhost", "::1", "[::1]"].contains(base.host ?? ""),
-                  ["http", "https"].contains(base.scheme ?? ""), base.user == nil, base.password == nil else { throw GameLaunchError.invalidServer }
+            guard let base = URL(string: store.webBase),
+                  ["http", "https"].contains(base.scheme?.lowercased() ?? ""),
+                  base.user == nil, base.password == nil else { throw GameLaunchError.invalidServer }
             let raw = (asset.id == "bundled-lantern" || asset.modelUrl == nil) ? "/models/lantern_cat.glb" : asset.modelUrl
             guard let raw, let model = URL(string: raw, relativeTo: base)?.absoluteURL,
-                  !model.isFileURL, ["127.0.0.1", "localhost", "::1", "[::1]"].contains(model.host ?? "") else { throw GameLaunchError.invalidModel }
+                  !model.isFileURL,
+                  ["http", "https"].contains(model.scheme?.lowercased() ?? "") else { throw GameLaunchError.invalidModel }
             var info: [String: Any] = ["id": asset.id, "name": asset.name, "url": model.absoluteString, "kind": kind, "yaw": yaw]
             if asset.isAnimated {
                 info["isAnimated"] = true
@@ -278,7 +280,9 @@ struct GameChooserView: View {
             }
             let preview = asset.id == "bundled-lantern" ? "/images/explore/lantern_cat.png" : (asset.thumbDisplayUrl ?? asset.thumbUrl)
             if let raw = preview, let thumb = URL(string: raw, relativeTo: base)?.absoluteURL,
-               ["127.0.0.1", "localhost", "::1", "[::1]"].contains(thumb.host ?? "") { info["thumbUrl"] = thumb.absoluteString }
+               !thumb.isFileURL, ["http", "https"].contains(thumb.scheme?.lowercased() ?? "") {
+                info["thumbUrl"] = thumb.absoluteString
+            }
             let data = try JSONSerialization.data(withJSONObject: ["version": 1, "game": selected, "locale": store.isChinese ? "zh" : "en", "asset": info])
             var url = URLComponents(url: base, resolvingAgainstBaseURL: true)!
             url.path = "/ios-game"
@@ -288,7 +292,7 @@ struct GameChooserView: View {
             error = nil
             launch = GameLaunchDestination(url: final, title: compatible.first { $0.id == selected }?.title ?? "Game")
         } catch {
-            self.error = store.t("This preview needs a local GLB asset and the studio at 127.0.0.1:3000. Return to the library, choose a ready asset, and try again.", "预览需要本地 GLB 资产和 127.0.0.1:3000 上的工作室。请返回资产库，选择已完成的模型后重试。")
+            self.error = store.t("Unable to launch game with this 3D model. Please ensure the model is ready and try again.", "无法带入此 3D 模型启动游戏。请确认模型已生成完毕后重试。")
             failureCount += 1
         }
     }
@@ -373,10 +377,22 @@ private struct CraftGameWebView: UIViewRepresentable {
             parent.onClose()
         }
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            guard let requested = navigationAction.request.url,
-                  requested.scheme == parent.url.scheme, requested.host == parent.url.host, requested.port == parent.url.port,
-                  requested.path == "/ios-game" || requested.path.hasPrefix("/games/forma/") else { decisionHandler(.cancel); return }
-            decisionHandler(.allow)
+            guard let requested = navigationAction.request.url else { decisionHandler(.cancel); return }
+            if requested.scheme == "about" || requested.scheme == "blob" {
+                decisionHandler(.allow)
+                return
+            }
+            if requested.host == parent.url.host {
+                if requested.path == "/ios-game" || requested.path.hasPrefix("/games/") || requested.path == "/" {
+                    decisionHandler(.allow)
+                    return
+                }
+            }
+            if ["http", "https"].contains(requested.scheme?.lowercased() ?? "") {
+                decisionHandler(.allow)
+                return
+            }
+            decisionHandler(.cancel)
         }
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { parent.onError(error) }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { parent.onError(error) }

@@ -76,6 +76,7 @@ struct AnimatedCharacterDetailView: View {
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showGadgetShowcase = false
+    @State private var showCodexGameHandoff = false
 
     var body: some View {
         ScrollView {
@@ -95,23 +96,17 @@ struct AnimatedCharacterDetailView: View {
                     .multilineTextAlignment(.center)
 
                 if let local = file.localURL {
-                    VStack(spacing: 10) {
-                        ShareLink(item: local) {
-                            Label(store.t("Share or save this loop", "分享或保存动画"), systemImage: "square.and.arrow.up")
-                        }
-                        .buttonStyle(CraftPrimary(verticalPadding: 14, cornerRadius: 16))
-                        .accessibilityIdentifier("animation.share")
-
+                    VStack(spacing: 12) {
                         Button {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                             showGadgetShowcase = true
                         } label: {
                             HStack(spacing: 8) {
-                                Image(systemName: "square.stack.3d.up.fill")
-                                    .font(.system(size: 16, weight: .bold))
+                                Image(systemName: "heart.circle.fill")
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundStyle(.white)
 
-                                Text(store.t("Add to Desktop Gadget", "设为桌面组件"))
+                                Text(store.t("Desktop Emotional Companion", "设为桌面情绪伴侣小组件"))
                                     .font(.system(size: 16, weight: .bold, design: .rounded))
                                     .foregroundStyle(.white)
 
@@ -124,8 +119,8 @@ struct AnimatedCharacterDetailView: View {
                             .background(
                                 LinearGradient(
                                     colors: [
-                                        Color(red: 1.0, green: 0.56, blue: 0.42),
-                                        Color(red: 1.0, green: 0.46, blue: 0.54)
+                                        Color(red: 1.0, green: 0.52, blue: 0.45),
+                                        Color(red: 1.0, green: 0.42, blue: 0.58)
                                     ],
                                     startPoint: .leading,
                                     endPoint: .trailing
@@ -147,6 +142,37 @@ struct AnimatedCharacterDetailView: View {
                         }
                         .buttonStyle(CraftPressStyle(scale: 0.96))
                         .accessibilityIdentifier("animation.gadget")
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            showCodexGameHandoff = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                    .font(.system(size: 15, weight: .bold))
+                                Text(store.t("Generate Game with Codex / Cloud Code", "发送到 Codex / Cloud Code 生成游戏"))
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .foregroundStyle(appearance.ink)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(appearance.fill.opacity(0.25), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(CraftPressStyle(scale: 0.97))
+                        .accessibilityIdentifier("animation.codexGame")
+
+                        ShareLink(item: local) {
+                            Label(store.t("Save as Phone Live Sticker / Video", "保存为手机动态贴纸 / 视频"), systemImage: "square.and.arrow.up")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .buttonStyle(CraftPressStyle())
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 2)
+                        .accessibilityIdentifier("animation.share")
                     }
                 } else if file.failed {
                     Text(store.t("This animation could not be loaded. Check your connection and try again.",
@@ -156,9 +182,14 @@ struct AnimatedCharacterDetailView: View {
                     ProgressView()
                 }
 
-                Text(store.t("A silent 4-second loop that ends where it starts, so it repeats cleanly in a game or a video.",
-                             "无声循环动画，首尾一致，可在游戏或视频中无缝重复播放。"))
-                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Text(store.t(
+                    "Animations provide emotional companionship and live stickers for your phone, and can be handed off to Codex or Cloud Code to code custom games. (To play inside the built-in 3D physics worlds, use 3D models.)",
+                    "动画角色专为情绪伴侣、手机动态贴纸及 2D 游戏动画设计，也可直接发给 Codex 或 Cloud Code 自动编写专属游戏。（如需在内置 3D 物理世界中直接试玩，请使用 3D 模型。）"
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
             }
             .padding(24).frame(maxWidth: 650).frame(maxWidth: .infinity)
         }
@@ -169,6 +200,9 @@ struct AnimatedCharacterDetailView: View {
             CraftGadgetShowcaseView(asset: asset, localVideoURL: file.localURL) {
                 showGadgetShowcase = false
             }
+        }
+        .sheet(isPresented: $showCodexGameHandoff) {
+            CodexAnimationGameHandoffView(asset: asset, videoURL: file.localURL)
         }
         .task { if let url = asset.animationURL { await file.load(url, id: asset.id) } }
     }
@@ -354,3 +388,312 @@ struct AnimationGenerationSheet: View {
         loading = false
     }
 }
+
+// MARK: - Codex & Cloud Code Game Handoff
+
+struct CodexAnimationGameHandoffView: View {
+    let asset: CraftAsset
+    let videoURL: URL?
+    @EnvironmentObject private var store: CraftStore
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
+    @State private var selectedTemplate = 0
+    @State private var customIdea = ""
+    @State private var copiedPrompt = false
+    @State private var copiedCommand = false
+
+    private struct GameTemplate {
+        let titleEn: String
+        let titleZh: String
+        let icon: String
+        let descEn: String
+        let descZh: String
+    }
+
+    private let templates: [GameTemplate] = [
+        GameTemplate(
+            titleEn: "Emotional Pet & Companion Game",
+            titleZh: "互动电子宠物 / 情绪陪伴小游戏",
+            icon: "heart.fill",
+            descEn: "Interactive desktop/mobile companion with hunger, happiness, audio reactions and ambient effects.",
+            descZh: "互动桌面/手机陪伴小游戏，包含喂食互动、心情动作、音效反馈与治愈背景氛围。"
+        ),
+        GameTemplate(
+            titleEn: "2D Action Platformer",
+            titleZh: "2D 动作冒险横版过关",
+            icon: "figure.run",
+            descEn: "Side-scrolling game with responsive jump, dash physics, enemy patrols and collectibles.",
+            descZh: "横版过关冒险，支持跳跃、冲刺、敌人巡逻机制与收集物金币。"
+        ),
+        GameTemplate(
+            titleEn: "2D Endless Runner",
+            titleZh: "2D 无尽跳跃跑酷",
+            icon: "flame.fill",
+            descEn: "Fast-paced single-tap runner where character dodges hazards and collects stars.",
+            descZh: "单指跳跃跑酷，角色奔跑躲避障碍并收集星星冲击最高分。"
+        )
+    ]
+
+    private var promptText: String {
+        let tmpl = templates[selectedTemplate]
+        let genreTitle = store.isChinese ? tmpl.titleZh : tmpl.titleEn
+        let genreDesc = store.isChinese ? tmpl.descZh : tmpl.descEn
+        let characterName = asset.name
+        let assetLink = asset.animationURL?.absoluteString ?? (videoURL?.lastPathComponent ?? "character_loop.mp4")
+
+        if store.isChinese {
+            return """
+你是一名资深游戏开发工程师。请使用 Codex / Cloud Code 为动画角色 “\(characterName)” 编写一个完整的 2D Web 游戏。
+
+【角色动画素材】
+- 角色名称: \(characterName)
+- 动画循环视频/素材: \(assetLink)
+- 动画特性: 4秒循环动作，首尾无缝衔接，富含生动的情绪与动态
+
+【游戏蓝图】
+- 类型: \(genreTitle)
+- 玩法设计: \(genreDesc)
+\(customIdea.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "- 额外玩法要求: " + customIdea.trimmingCharacters(in: .whitespacesAndNewlines))
+
+【技术规范与交付要求】
+1. 单文件纯 HTML5 Canvas 或 Phaser 3 架构，直接保存为 index.html 即可在浏览器运行。
+2. 完美适配移动端触屏与键盘控制 (WASD / 空格 / 点击)。
+3. 使用角色循环动画作为主角的核心动画状态。
+4. 计分系统、最高分本地存储 (localStorage) 以及音效反馈。
+5. 精美的主题视觉设计与 Game Over 重试结算面板。
+"""
+        } else {
+            return """
+You are a senior indie game developer. Use Codex / Cloud Code to build a complete 2D Web game featuring "\(characterName)".
+
+[Character Animation Asset]
+- Character Name: \(characterName)
+- Looping Animation Asset: \(assetLink)
+- Trait: Seamless 4-second looping motion with rich personality
+
+[Game Blueprint]
+- Genre: \(genreTitle)
+- Design: \(genreDesc)
+\(customIdea.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "- Custom Notes: " + customIdea.trimmingCharacters(in: .whitespacesAndNewlines))
+
+[Technical Requirements]
+1. Self-contained HTML5 Canvas or Phaser 3 application that runs out of the box in a single index.html.
+2. Dual controls: mobile touch buttons and keyboard (WASD / Space).
+3. Integrate the character looping animation seamlessly into gameplay states.
+4. Score tracking, high-score persistence (localStorage), and audio/visual feedback.
+5. Polished game start screen and game over recap dialog.
+"""
+        }
+    }
+
+    private var cliCommand: String {
+        let characterName = asset.name
+        let tmpl = templates[selectedTemplate]
+        let genreTitle = store.isChinese ? tmpl.titleZh : tmpl.titleEn
+        return "agy -p \"Create a 2D web sprite game featuring \(characterName) (\(genreTitle)). Looping animation URL: \(asset.animationURL?.absoluteString ?? "")\" --dangerously-skip-permissions"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    bannerCard
+                    characterCard
+                    templateSection
+                    customNotesSection
+                    promptSection
+                    cliSection
+                    exportSection
+                }
+                .padding(20)
+            }
+            .background { StudioAtmosphere() }
+            .navigationTitle(store.t("Generate Game with Codex", "Codex / Cloud Code 游戏生成"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(store.t("Done", "完成")) { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private var bannerCard: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lightbulb.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(appearance.ink)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(store.t("Direct Game Generation", "直接由 AI 编码生成游戏"))
+                    .font(.headline)
+                Text(store.t(
+                    "Animated characters (2D loops) are directly sent to Codex or Cloud Code to code custom games. (3D models are placed into the built-in 3D game engine.)",
+                    "动画角色（2D 循环动画）直接发送给 Codex 或 Cloud Code 自动编写专属游戏；3D 模型则可在内置 3D 物理引擎中直接试玩。"
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var characterCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                appearance.washStrong
+                if let poster = asset.thumbURL {
+                    CraftThumbnailImage(url: poster).scaledToFill()
+                } else {
+                    Image(systemName: "film")
+                        .font(.system(size: 24))
+                        .foregroundStyle(appearance.ink)
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(asset.name).font(.headline)
+                Text(store.t("4-second seamless loop · 2D Game Asset", "4秒无缝循环 · 2D 游戏动画素材"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var templateSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(store.t("Select Game Blueprint", "选择游戏玩法蓝图")).font(.headline)
+            ForEach(0..<templates.count, id: \.self) { index in
+                let tmpl = templates[index]
+                let isSelected = selectedTemplate == index
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    selectedTemplate = index
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: tmpl.icon)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(isSelected ? appearance.ink : .secondary)
+                            .frame(width: 34, height: 34)
+                            .background(isSelected ? appearance.washStrong : Color.black.opacity(0.04), in: Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(store.isChinese ? tmpl.titleZh : tmpl.titleEn)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                            Text(store.isChinese ? tmpl.descZh : tmpl.descEn)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(appearance.ink)
+                        }
+                    }
+                    .padding(12)
+                    .background(isSelected ? appearance.washSoft : Color.white.opacity(0.6),
+                                in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(isSelected ? appearance.fill : Color.clear, lineWidth: 1.5)
+                    )
+                }
+                .buttonStyle(CraftPressStyle())
+            }
+        }
+    }
+
+    private var customNotesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(store.t("Custom Gameplay Notes (Optional)", "自定义玩法说明（可选）")).font(.subheadline.weight(.semibold))
+            TextField(store.t("e.g. Add jump sound effects, retro pixel background...", "例如：添加跳跃音效、复古像素街道背景……"), text: $customIdea)
+                .textFieldStyle(.roundedBorder)
+                .font(.subheadline)
+        }
+    }
+
+    private var promptSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(store.t("Codex / Cloud Code Prompt", "Codex / Cloud Code 编写提示词")).font(.headline)
+                Spacer()
+                Button {
+                    UIPasteboard.general.string = promptText
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    copiedPrompt = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        copiedPrompt = false
+                    }
+                } label: {
+                    Label(copiedPrompt ? store.t("Copied!", "已复制！") : store.t("Copy Prompt", "复制 Prompt"),
+                          systemImage: copiedPrompt ? "checkmark" : "doc.on.doc")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(CraftPressStyle())
+                .foregroundStyle(appearance.ink)
+            }
+
+            Text(promptText)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    private var cliSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label(store.t("Antigravity CLI (agy)", "Antigravity CLI 指令 (agy)"), systemImage: "terminal")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Button {
+                    UIPasteboard.general.string = cliCommand
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    copiedCommand = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        copiedCommand = false
+                    }
+                } label: {
+                    Text(copiedCommand ? store.t("Copied!", "已复制！") : store.t("Copy Command", "复制指令"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(appearance.ink)
+                }
+                .buttonStyle(CraftPressStyle())
+            }
+
+            Text(cliCommand)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(appearance.ink)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+
+    private var exportSection: some View {
+        Group {
+            if let local = videoURL {
+                ShareLink(item: local) {
+                    Label(store.t("Export Animation Asset (.mp4)", "导出动画素材包 (.mp4)"), systemImage: "square.and.arrow.up")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .background(appearance.washStrong, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .foregroundStyle(appearance.ink)
+                .buttonStyle(CraftPressStyle())
+            }
+        }
+    }
+}
+

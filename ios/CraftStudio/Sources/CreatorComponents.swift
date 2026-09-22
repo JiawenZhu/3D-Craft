@@ -48,6 +48,8 @@ struct CraftSteps: View {
     var titles: [String]? = nil
     var onConcept: (() -> Void)? = nil
     var conceptIndex: Int = 1
+    var onGame: (() -> Void)? = nil
+    var gameIndex: Int = 2
 
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -66,6 +68,11 @@ struct CraftSteps: View {
                         .buttonStyle(CraftPressStyle())
                         .accessibilityIdentifier("studio.openConcept")
                         .accessibilityHint(chinese ? "查看生成此模型时使用的概念图" : "View the concept image used to create this model")
+                } else if index == gameIndex, let onGame {
+                    Button(action: onGame) { stepLabel(index).frame(minHeight: 44) }
+                        .buttonStyle(CraftPressStyle())
+                        .accessibilityIdentifier("studio.openGame")
+                        .accessibilityHint(chinese ? "带入游戏试玩" : "Play this model in a game")
                 } else {
                     stepLabel(index)
                 }
