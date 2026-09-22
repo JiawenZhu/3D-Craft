@@ -204,6 +204,7 @@ struct PendingGeneration: Codable, Equatable {
     @Published var archivedProjects:[CraftProject]=[]
     @Published var assets:[CraftAsset]=[]
     @Published var archivedAssets:[CraftAsset]=[]
+    @Published var favoriteIDs: Set<String> = []
     @Published var examples:[CraftAsset]=PublicGallery.bundled
     @Published var jobs:[CraftJob]=[]
     @Published var wallet=WalletState()
@@ -288,6 +289,8 @@ struct PendingGeneration: Codable, Equatable {
         if pendingGeneration?.accountUID != CraftAccount.shared.uid { pendingGeneration=nil;try? FileManager.default.removeItem(at:self.pendingURL) }
         if draftPrompt == Self.legacyDemoPrompt {draftPrompt=""}
         if !apiBase.isEmpty { UserDefaults.standard.set(apiBase, forKey: "craftAPI") }
+        let favs = UserDefaults.standard.string(forKey: "craftFavorites") ?? ""
+        favoriteIDs = Set(favs.split(separator: ",").map(String.init).filter { !$0.isEmpty })
         loadLibraryCache(); activeConversationID = UserDefaults.standard.string(forKey: "craftActiveConversation:" + apiBase); if let d=try? Data(contentsOf:Self.draftURL){draftImage=UIImage(data:d)}
     }
     private static var libraryCacheURL:URL {draftURL.deletingLastPathComponent().appendingPathComponent("library-cache.json")}
@@ -712,6 +715,29 @@ struct PendingGeneration: Codable, Equatable {
             }
         }
     }
+
+    func isFavorite(_ id: String) -> Bool {
+        favoriteIDs.contains(id)
+    }
+
+    func toggleFavorite(_ id: String) {
+        if favoriteIDs.contains(id) {
+            removeFavorite(id)
+        } else {
+            addFavorite(id)
+        }
+    }
+
+    func addFavorite(_ id: String) {
+        favoriteIDs.insert(id)
+        UserDefaults.standard.set(favoriteIDs.sorted().joined(separator: ","), forKey: "craftFavorites")
+    }
+
+    func removeFavorite(_ id: String) {
+        favoriteIDs.remove(id)
+        UserDefaults.standard.set(favoriteIDs.sorted().joined(separator: ","), forKey: "craftFavorites")
+    }
+
     func syncCloudLibrary(force: Bool = false) {
         guard !cloudSyncing, (force || Date().timeIntervalSince(lastCloudSync) > 15), CraftAccount.shared.uid != nil else { return }
         cloudSyncing = true; lastCloudSync = Date()

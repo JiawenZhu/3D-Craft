@@ -18,10 +18,10 @@ enum GalleryHomeCategory: String, CaseIterable, Identifiable {
     }
     /// Public discovery and the owner's creations are distinct sources. Legacy
     /// uncurated examples must never leak into the public category tabs.
-    func assets(owned: [CraftAsset], examples: [CraftAsset]) -> [CraftAsset] {
+    func assets(owned: [CraftAsset], examples: [CraftAsset], favorites: Set<String> = []) -> [CraftAsset] {
         let source: [CraftAsset]
         if self == .userCreated {
-            source = owned.filter { !$0.isExample && $0.galleryExample != true && !$0.isArchived }
+            source = owned.filter { !$0.isExample && $0.galleryExample != true && !$0.isArchived && !favorites.contains($0.id) }
         } else {
             let curated = examples.filter { $0.galleryExample == true }
             source = curated.isEmpty ? examples.filter { $0.id == "bundled-lantern" } : curated
@@ -52,6 +52,7 @@ struct GalleryHomeGrid: View {
     let assets: [CraftAsset]
     let chinese: Bool
     var onModify: ((CraftAsset) -> Void)? = nil
+    var onFavorite: ((CraftAsset) -> Void)? = nil
     var onArchive: ((CraftAsset) -> Void)? = nil
     let onSelect: (CraftAsset) -> Void
 
@@ -74,6 +75,11 @@ struct GalleryHomeGrid: View {
                 .accessibilityIdentifier("creation.asset." + asset.id)
                 .contextMenu {
                     if !asset.isExample {
+                        Button {
+                            onFavorite?(asset)
+                        } label: {
+                            Label(chinese ? "加入收藏" : "Add to Favorites", systemImage: "heart")
+                        }
                         Button {
                             onModify?(asset)
                         } label: {

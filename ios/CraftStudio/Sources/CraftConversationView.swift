@@ -204,6 +204,14 @@ struct CraftConversationView: View {
             Spacer()
             CreationCostButton(projectID: projectID, imageCount: count)
             Menu {
+                if let project {
+                    Button {
+                        store.toggleFavorite(project.id)
+                    } label: {
+                        Label(store.isFavorite(project.id) ? store.t("Remove from Favorites", "移出收藏") : store.t("Add to Favorites", "加入收藏"),
+                              systemImage: store.isFavorite(project.id) ? "heart.slash" : "heart")
+                    }
+                }
                 Button { settings = true } label: {
                     Label(store.t("Creation settings", "创作设置"), systemImage: "slider.horizontal.3")
                 }
@@ -650,6 +658,12 @@ struct CraftConversationView: View {
                 Section { Button(store.t("Create concepts now", "现在生成概念图")) { settings = false; prepareImages() }.disabled(working || store.busy || thinking) }
                 if let project {
                     Section {
+                        Button {
+                            store.toggleFavorite(project.id)
+                        } label: {
+                            Label(store.isFavorite(project.id) ? store.t("Remove from Favorites", "移出收藏") : store.t("Add to Favorites", "加入收藏"),
+                                  systemImage: store.isFavorite(project.id) ? "heart.slash" : "heart")
+                        }
                         Button(role: .destructive) {
                             settings = false
                             Task {

@@ -45,7 +45,7 @@ struct LibraryView: View {
                     ?? project.concepts.first(where: { $0.isOriginal != true })
                     ?? project.concepts.first
                 let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
-                return .project(project, imageURL: url, active: false)
+                return .project(project, imageURL: url, active: false, favorite: false)
             }
             let archived = archivedA + archivedP
             let matching = archived.filter {
@@ -53,28 +53,48 @@ struct LibraryView: View {
             }
             return alphabetical ? matching.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending } : matching
         }
+        if filter == .favorites {
+            let archivedAssetIDs = Set(store.archivedAssets.map(\.id))
+            let favAssets = privateAssets
+                .filter { !$0.isArchived && !archivedAssetIDs.contains($0.id) && store.isFavorite($0.id) }
+                .map { LibraryGalleryItem.asset($0, favorite: true) }
+            let archivedProjectIDs = Set(store.archivedProjects.map(\.id))
+            let favProjects = store.projects
+                .filter { !$0.isArchived && !archivedProjectIDs.contains($0.id) && store.isFavorite($0.id) }
+                .map { project -> LibraryGalleryItem in
+                    let concept = store.selectedConcept(in: project)
+                        ?? project.concepts.first(where: { $0.isOriginal != true })
+                        ?? project.concepts.first
+                    let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
+                    return .project(project, imageURL: url, active: false, favorite: true)
+                }
+            let combined = favAssets + favProjects
+            let matching = combined.filter {
+                searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText)
+            }
+            return alphabetical ? matching.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending } : matching
+        }
         let activeProjects = Set(store.jobs.filter(\.isActive).map(\.projectId))
         let archivedProjectIDs = Set(store.archivedProjects.map(\.id))
-        let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations || filter == .favorites) ? [] : store.projects
-            .filter { !$0.isArchived && !archivedProjectIDs.contains($0.id) }
+        let projects: [LibraryGalleryItem] = (filter == .models || filter == .animations) ? [] : store.projects
+            .filter { !$0.isArchived && !archivedProjectIDs.contains($0.id) && !store.isFavorite($0.id) }
             .map { project in
                 let concept = store.selectedConcept(in: project)
                     ?? project.concepts.first(where: { $0.isOriginal != true })
                     ?? project.concepts.first
                 let url = (concept?.imageUrl ?? project.imageUrl).flatMap(URL.init(string:))
-                return .project(project, imageURL: url, active: activeProjects.contains(project.id))
+                return .project(project, imageURL: url, active: activeProjects.contains(project.id), favorite: false)
             }
         let archivedAssetIDs = Set(store.archivedAssets.map(\.id))
         let assets: [LibraryGalleryItem] = privateAssets
             .filter { asset in
-                if asset.isArchived || archivedAssetIDs.contains(asset.id) { return false }
+                if asset.isArchived || archivedAssetIDs.contains(asset.id) || store.isFavorite(asset.id) { return false }
                 if filter == .models && (asset.isAnimated || asset.isConcept) { return false }
                 if filter == .animations && !asset.isAnimated { return false }
                 if filter == .concepts && !asset.isConcept { return false }
-                if filter == .favorites && !favorites.contains(asset.id) { return false }
                 return true
             }
-            .map { .asset($0, favorite: favorites.contains($0.id)) }
+            .map { .asset($0, favorite: false) }
         // Mix the two real collections without pretending they share timestamps.
         var combined: [LibraryGalleryItem] = []
         for index in 0..<max(projects.count, assets.count) {
@@ -114,6 +134,26 @@ struct LibraryView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 2)
             }
+            if filter == .favorites {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "heart.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.pink)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.t("Permanent Favorites Folder", "永久收藏夹"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(appearance.ink)
+                        Text(store.t("Favorited creations are kept here permanently without time limits.", "收藏的作品将永久保存在此收藏夹中，无时间限制。"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(12)
+                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 2)
+            }
             ScrollView {
                 if !store.connected {
                     Label(store.t("Saved library · Reconnect to generate or download", "已保存的资产库 · 联网后可生成或下载"), systemImage: "wifi.slash")
@@ -129,14 +169,20 @@ struct LibraryView: View {
                         chinese: store.isChinese,
                         onModify: { item in
                             switch item {
-                            case .project(let project, _, _): store.modifyProject(project)
+                            case .project(let project, _, _, _): store.modifyProject(project)
                             case .asset(let asset, _): store.modifyAsset(asset)
                             }
+                        },
+                        onFavorite: { item in
+                            store.addFavorite(item.rawID)
+                        },
+                        onUnfavorite: { item in
+                            store.removeFavorite(item.rawID)
                         },
                         onArchive: { item in
                             Task {
                                 switch item {
-                                case .project(let project, _, _): await store.archiveProject(project)
+                                case .project(let project, _, _, _): await store.archiveProject(project)
                                 case .asset(let asset, _): await store.archiveAsset(asset)
                                 }
                             }
@@ -144,7 +190,7 @@ struct LibraryView: View {
                         onRestore: { item in
                             Task {
                                 switch item {
-                                case .project(let project, _, _): await store.restoreProject(project)
+                                case .project(let project, _, _, _): await store.restoreProject(project)
                                 case .asset(let asset, _): await store.restoreAsset(asset)
                                 }
                             }
@@ -152,7 +198,7 @@ struct LibraryView: View {
                         onDeletePermanently: { item in
                             Task {
                                 switch item {
-                                case .project(let project, _, _): await store.deletePermanently(project)
+                                case .project(let project, _, _, _): await store.deletePermanently(project)
                                 case .asset(let asset, _): await store.deletePermanently(asset)
                                 }
                             }
@@ -161,7 +207,7 @@ struct LibraryView: View {
                             searching = false
                             openCount += 1
                             switch item {
-                            case .project(let project, _, _): store.path.append(.project(project.id))
+                            case .project(let project, _, _, _): store.path.append(.project(project.id))
                             case .asset(let asset, _): store.path.append(.asset(asset))
                             }
                         }
@@ -278,13 +324,13 @@ struct LibraryView: View {
         return CraftEmptyState(
             title: !searchText.isEmpty ? store.t("No matching creations", "没有匹配的作品")
                 : filter == .archive ? store.t("Archive is empty", "归档文件夹为空")
-                : filter == .favorites ? store.t("Keep your favorites here", "把喜欢的作品留在这里")
+                : filter == .favorites ? store.t("No favorites yet", "收藏夹为空")
                 : filter == .models ? store.t("Your next dimension awaits", "下一维度，等你创造")
                 : filter == .animations ? store.t("Bring your characters to life", "让你的角色动起来")
                 : store.t("A home for your imagination", "给你的想象一个家"),
             message: !searchText.isEmpty ? store.t("Try a different name or clear your filters.", "试试其他名称，或清除筛选。")
                 : filter == .archive ? store.t("Long press any creation to archive it. Items are kept for 30 days before automatic deletion.", "长按任意作品即可移至归档。作品将保留 30 天，逾期自动彻底清除。")
-                : filter == .favorites ? store.t("Tap the heart in a model's details to save it here.", "在模型信息中点按爱心，即可收藏到这里。")
+                : filter == .favorites ? store.t("Hard press any creation or chat in your library and choose Favorite to save it here permanently.", "长按作品或对话并选择“加入收藏”，即可移入此收藏夹中永久保存。")
                 : filter == .models ? store.t("Open one of your concepts to bring it into 3D.", "打开你的概念图，让它成为 3D 模型。")
                 : filter == .animations ? store.t("Open one of your concepts and tap Animate to generate a looping character animation.", "打开你的概念图，点击“生成动画”即可生成无缝循环角色动画。")
                 : store.t("Your concept projects and finished 3D models will appear here. Start with a photo or a few words.", "你的概念项目和 3D 模型会保存在这里。先用照片或几句话开始创作。"),
@@ -307,8 +353,7 @@ struct AssetDetailView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let asset: CraftAsset
 
-    @AppStorage("craftFavorites") private var favoriteIDs = ""
-    private var isFavorite: Bool { favoriteIDs.split(separator: ",").contains(Substring(asset.id)) }
+    private var isFavorite: Bool { store.isFavorite(asset.id) }
 
     @State private var lighting: CraftLightingPreset = .studio
     @State private var directional = 1.0
@@ -599,10 +644,8 @@ struct AssetDetailView: View {
                     }.font(.caption).foregroundStyle(.secondary)
 
                     Button {
-                        var ids = Set(favoriteIDs.split(separator: ",").map(String.init))
-                        if isFavorite { ids.remove(asset.id); favoriteOffCount += 1 }
-                        else { ids.insert(asset.id); favoriteOnCount += 1 }
-                        favoriteIDs = ids.sorted().joined(separator: ",")
+                        if isFavorite { favoriteOffCount += 1 } else { favoriteOnCount += 1 }
+                        store.toggleFavorite(asset.id)
                     } label: {
                         Label {
                             Text(store.t("Favorite", "收藏"))
