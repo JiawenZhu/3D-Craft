@@ -31,7 +31,7 @@ import StoreKitTest
         }
     }()
     #endif
-    @AppStorage("hasSeenIntroductionV2") private var hasSeenIntroduction: Bool = false
+    @AppStorage("hasSeenIntroductionV3") private var hasSeenIntroduction: Bool = false
     @State private var showIntroduction = false
 
     init() {
@@ -60,11 +60,27 @@ import StoreKitTest
                 ModelGenerationSheet(concept: CraftConcept(["id":"preview","projectId":"preview","name":"Lantern Explorer",
                     "imageUrl":Bundle.main.url(forResource:"lantern_cat",withExtension:"jpg")?.absoluteString ?? ""],base:""), chinese:store.isChinese) { _,_,_,_,_ in }
             }
+            else if !hasSeenIntroduction && !ProcessInfo.processInfo.arguments.contains(where: { $0.contains("craftActiveConversation") || $0.contains("-hasSeenIntroduction") }) {
+                CraftIntroductionView {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        hasSeenIntroduction = true
+                    }
+                }
+            }
             else if account.uid == nil && !ProcessInfo.processInfo.arguments.contains(where: { $0.contains("craftActiveConversation") }) { PublicDiscoveryView() }
             else { CraftRoot().id(account.uid ?? "review") }
             #else
-            if account.uid == nil { PublicDiscoveryView() }
-            else { CraftRoot().id(account.uid) }
+            if !hasSeenIntroduction {
+                CraftIntroductionView {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        hasSeenIntroduction = true
+                    }
+                }
+            } else if account.uid == nil {
+                PublicDiscoveryView()
+            } else {
+                CraftRoot().id(account.uid)
+            }
             #endif
         }.environmentObject(store).environmentObject(billing).preferredColorScheme(.light)
          .fullScreenCover(isPresented: $showIntroduction) {
@@ -78,9 +94,9 @@ import StoreKitTest
          .task {
              let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
                  || ProcessInfo.processInfo.arguments.contains("-hasSeenIntroductionV2")
+                 || ProcessInfo.processInfo.arguments.contains("-hasSeenIntroductionV3")
                  || ProcessInfo.processInfo.arguments.contains(where: { $0.contains("craftActiveConversation") })
              if !hasSeenIntroduction && !isTesting {
-                 try? await Task.sleep(nanoseconds: 300_000_000)
                  showIntroduction = true
              }
          }

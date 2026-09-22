@@ -113,4 +113,26 @@ class CloudReconciliationTests(unittest.TestCase):
         self.assertEqual(result['purchaseTokens'], 200)
         self.assertEqual(result['purchaseReceiptID'], 'SANDBOX:new')
 
+    def test_new_user_gets_50_welcome_tokens_one_time(self):
+        wallet_ref = Mock()
+        tx = Mock()
+        initial_data = {}
+        updated = self.billing.ensure_welcome('new_user_123', initial_data, wallet_ref, tx)
+        self.assertEqual(updated['available'], 50)
+        self.assertTrue(updated['welcomeTokensGranted'])
+        tx.set.assert_any_call(wallet_ref, {
+            'available': 50,
+            'welcomeTokensGranted': True,
+            'reserved': 0,
+            'freeConceptTokens': 0,
+        }, merge=True)
+
+    def test_existing_welcome_tokens_not_regranted(self):
+        wallet_ref = Mock()
+        tx = Mock()
+        initial_data = {'available': 120, 'welcomeTokensGranted': True}
+        updated = self.billing.ensure_welcome('existing_user_456', initial_data, wallet_ref, tx)
+        self.assertEqual(updated['available'], 120)
+        tx.set.assert_not_called()
+
 if __name__=='__main__':unittest.main()

@@ -95,6 +95,7 @@ class CloudConcepts:
                 sandbox = context.get('environment') == 'SANDBOX' and os.getenv('CRAFT_REVENUECAT_SANDBOX') == '1'
             wallet_name='sandboxWallet' if sandbox else 'wallet';wallet_ref=self.billing.private(uid,wallet_name)
             before=wallet_ref.get(transaction=tx).to_dict() or {}
+            before=self.billing.ensure_welcome(uid,before,wallet_ref,tx)
             after,allocation=reserve({**before,'environment':'SANDBOX' if sandbox else 'PRODUCTION'},cost,self.now())
             if self.now()-started>120:raise HTTPException(503,'Retry this request.')
             data=dict(id=jid,ownerId=uid,projectId=project_id,kind='refine' if concept_id else 'concepts',

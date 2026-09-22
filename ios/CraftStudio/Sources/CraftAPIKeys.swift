@@ -164,12 +164,16 @@ struct APIAccessView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Image(systemName: "key.horizontal").font(.system(size: 38)).foregroundStyle(appearance.ink).accessibilityHidden(true)
-                    Text(store.t("Use 3D Craft from\nyour own tools.", "在你自己的工具中\n使用 3D Craft。"))
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
-                    Text(store.t("API calls act as your account and spend your real production Token balance. Apple Sandbox test Tokens from TestFlight can’t be used with API keys. Anyone holding a key can spend your Tokens until you revoke it or it expires.",
-                                 "API 调用代表你的账户，消耗的是你正式环境中的真实代币余额。TestFlight 中的 Apple 沙盒测试代币无法通过 API 密钥使用。任何持有密钥的人都可以使用你的代币，直到你撤销密钥或密钥过期。"))
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(store.t("API Configuration", "API 接口设置"))
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(appearance.ink)
+                        Text(store.t("Configure and manage API keys to connect 3D Craft with your external tools, scripts, and workflows.",
+                                     "配置并管理你的 API 密钥，以便将 3D Craft 与外部工具、脚本和工作流无缝连接。"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 4)
                     if let revealed = keys.revealed { reveal(revealed) } else { createForm }
                     if let error = keys.error {
                         Text(error).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("apiKeys.error")
@@ -308,21 +312,50 @@ struct APIAccessView: View {
     }
 
     private var connectGuide: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(store.t("Connect a client", "连接客户端")).font(.headline)
-            LabeledContent(store.t("Base URL", "基础 URL")) { Text(CraftAPIKeyRules.baseURL).font(.system(.caption, design: .monospaced)).textSelection(.enabled) }
-            LabeledContent(store.t("Schema", "接口描述")) { Link("OpenAPI", destination: CraftAPIKeyRules.openAPIURL) }
-            LabeledContent(store.t("Header", "请求头")) { Text("Authorization: Bearer <key>").font(.system(.caption, design: .monospaced)) }
-            Text(store.t("Operations: Token balance, projects, concept images and refinements, model-prompt planning, 3D model jobs and finished assets.",
-                         "可用操作：代币余额、项目、概念图与优化、模型提示词规划、3D 模型任务与成品资源。"))
+        VStack(alignment: .leading, spacing: 14) {
+            Text(store.t("Client integration", "客户端接入参数")).font(.headline)
+            
+            LabeledContent(store.t("Base URL", "基础 URL")) {
+                HStack(spacing: 8) {
+                    Text(CraftAPIKeyRules.baseURL)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                    Button {
+                        UIPasteboard.general.string = CraftAPIKeyRules.baseURL
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption)
+                            .foregroundStyle(appearance.ink)
+                    }
+                }
+            }
+            LabeledContent(store.t("Documentation", "接口文档")) {
+                Link(store.t("OpenAPI Specification", "OpenAPI 规范"), destination: CraftAPIKeyRules.openAPIURL)
+                    .font(.caption.weight(.medium))
+            }
+            LabeledContent(store.t("Authentication", "鉴权请求头")) {
+                Text("Authorization: Bearer <key>")
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+            }
+            
+            Divider().opacity(0.4)
+            
+            Text(store.t("Supported operations: Token balance, creative planning, multi-view concept images, and 3D reconstruction jobs.",
+                         "支持的操作：代币余额查询、提示词规划、多视角概念图生成与 3D 模型重构。"))
                 .font(.caption).foregroundStyle(.secondary)
-            Text(store.t("3D Craft doesn’t have built-in integrations with ChatGPT, Claude or other assistants. A key works with any client that lets you add a custom HTTP tool using an OpenAPI schema and a Bearer key. Check your client’s own documentation to see whether it supports this; many mobile chat apps don’t.",
-                         "3D Craft 没有与 ChatGPT、Claude 或其他助手的内置集成。只要客户端允许添加使用 OpenAPI 描述和 Bearer 密钥的自定义 HTTP 工具，就可以使用你的密钥。请查看客户端自己的文档确认是否支持；许多移动聊天应用并不支持。"))
-                .font(.caption).foregroundStyle(.secondary)
-            Link(store.t("Muse by Meta: integration not yet verified", "Meta Muse：集成尚未验证"), destination: URL(string: "https://muse.ai/join")!).font(.caption)
-            Text(store.t("Paste a key only into a client’s dedicated secret or authentication field — never into a chat message, prompt, shared document or link.",
-                         "只能将密钥粘贴到客户端专用的密钥或认证字段中，切勿粘贴到聊天消息、提示词、共享文档或链接里。"))
-                .font(.caption.weight(.semibold))
+            
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield.fill")
+                    .foregroundStyle(appearance.ink)
+                    .font(.caption)
+                Text(store.t("Keep your secret keys secure. API requests authenticate as your account and spend your Token balance.",
+                             "请妥善保管你的密钥。API 请求将代表你的账户执行并消耗相应的代币余额。"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 12))
         }
         .padding(18).craftSurface(.raised, cornerRadius: 20)
     }

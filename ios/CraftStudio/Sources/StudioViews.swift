@@ -1179,6 +1179,7 @@ struct WalletView: View {
 
     private func activityTitle(_ kind: String) -> String {
         switch kind {
+        case "welcome_grant": return store.t("New user welcome gift · Never expires", "新用户注册礼赠 · 永久有效")
         case "reserve": return store.t("Generation reservation · not an extra charge", "生成预留 · 非额外扣费")
         case "settle": return store.t("Completed generation · final cost", "生成结算 · 最终消耗")
         case "chat_reservation": return store.t("Tokens reserved for AI reply", "AI 回复预留 Tokens")

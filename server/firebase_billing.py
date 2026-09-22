@@ -60,6 +60,9 @@ def transition(prior, uid, purchase):
     return record, delta
 
 
+WELCOME_TOKENS = 50
+
+
 class CloudBilling:
     def __init__(self, db, clock=None):
         self.db = db
@@ -67,6 +70,37 @@ class CloudBilling:
 
     def private(self, uid, name):
         return self.db.collection('users').document(uid).collection('private').document(name)
+
+    def ensure_welcome(self, uid, data, wallet_ref, tx=None):
+        """Grants 50 one-time welcome tokens to new users with no expiration date."""
+        if not data.get('welcomeTokensGranted'):
+            now = self.now()
+            welcome_id = f"welcome:grant:{uid}"
+            ledger_ref = wallet_ref.collection('entries').document(welcome_id)
+            updated = dict(data)
+            updated['available'] = int(data.get('available', 0)) + WELCOME_TOKENS
+            updated['welcomeTokensGranted'] = True
+            save_payload = dict(
+                available=updated['available'],
+                welcomeTokensGranted=True,
+                reserved=int(data.get('reserved', 0)),
+                freeConceptTokens=int(data.get('freeConceptTokens', 0)),
+            )
+            ledger_payload = dict(
+                id=welcome_id,
+                amount=WELCOME_TOKENS,
+                kind='welcome_grant',
+                product='welcome_tokens_50',
+                createdAt=now,
+            )
+            if tx is not None:
+                tx.set(wallet_ref, save_payload, merge=True)
+                tx.set(ledger_ref, ledger_payload)
+            else:
+                wallet_ref.set(save_payload, merge=True)
+                ledger_ref.set(ledger_payload)
+            return updated
+        return data
 
     def settle(self, uid, purchase):
         receipt_id = purchase['environment'] + ':' + purchase['transaction']
@@ -84,6 +118,7 @@ class CloudBilling:
             prior = receipt.to_dict() if receipt.exists else None
             record, delta = transition(prior, uid, purchase)
             data = snapshot.to_dict() if snapshot.exists else {}
+            data = self.ensure_welcome(uid, data, wallet_ref, tx)
             if delta:
                 tx.set(wallet_ref, dict(available=int(data.get('available', 0)) + delta,
                     reserved=int(data.get('reserved', 0)), freeConceptTokens=int(data.get('freeConceptTokens', 0)),
@@ -107,6 +142,7 @@ class CloudBilling:
                 raise HTTPException(403, 'This account is being deleted.')
             receipt, snapshot = receipt_ref.get(transaction=tx), ref.get(transaction=tx)
             before = snapshot.to_dict() if snapshot.exists else {}
+            before = self.ensure_welcome(uid, before, ref, tx)
             now = self.now()
             record, after, grant = subscription_transition(receipt.to_dict() if receipt.exists else None, before, uid, purchase, now)
             old = int(before.get('subscriptionAvailable', 0))
@@ -139,6 +175,7 @@ class CloudBilling:
                 raise HTTPException(403, 'This account is being deleted.')
             snap = ref.get(transaction=tx)
             before = snap.to_dict() if snap.exists else {}
+            before = self.ensure_welcome(uid, before, ref, tx)
             now = self.now(); data = expire_allowance(before, now)
             removed = int(before.get('subscriptionAvailable', 0)) - int(data.get('subscriptionAvailable', 0))
             if removed:
