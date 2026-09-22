@@ -151,6 +151,7 @@ class CloudModelJobs:
             wallet_name = 'sandboxWallet' if effective_env == 'SANDBOX' else 'wallet'
             wallet_ref = self.billing.private(uid, wallet_name)
             before = wallet_ref.get(transaction=tx).to_dict() or {}
+            before = self.billing.ensure_welcome(uid, before, wallet_ref, tx)
             after, allocation = reserve({**before, 'environment': effective_env}, cost, self.now())
             if self.now()-started > 120:
                 raise HTTPException(503,'The request took too long. Please retry.')

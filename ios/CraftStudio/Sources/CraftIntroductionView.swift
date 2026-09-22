@@ -717,10 +717,10 @@ struct CraftIntroductionView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(isChinese ? "赠送初始创作 Token" : "Complimentary Creator Tokens")
+                        Text(isChinese ? "赠送 50 初始创作 Token" : "50 Free Welcome Tokens")
                             .font(.system(size: 17, weight: .bold))
                             .foregroundStyle(.white)
-                        Text(isChinese ? "新用户无需等待，马上体验全套生成功能" : "Instant access to create 3D models & loops")
+                        Text(isChinese ? "新用户注册即赠 50 Token，一次性发放，永久有效无过期时间" : "50 one-time welcome tokens upon signup, never expires")
                             .font(.system(size: 13))
                             .foregroundStyle(Color.white.opacity(0.7))
                     }

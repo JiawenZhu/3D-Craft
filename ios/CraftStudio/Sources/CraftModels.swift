@@ -150,7 +150,7 @@ enum CraftPaywallRoute {
 }
 
 struct WalletEntry: Identifiable { var id:String;var description:String;var amount:Int;var date:Date }
-struct WalletState { var environment="PRODUCTION";var available=0;var packAvailable:Int?;var subscriptionAvailable=0;var subscriptionExpiresAt:Date?;var freeConceptTokens=0;var reserved=0;var ledger:[WalletEntry]=[] }
+struct WalletState { var environment="PRODUCTION";var available=50;var packAvailable:Int?=50;var subscriptionAvailable=0;var subscriptionExpiresAt:Date?;var freeConceptTokens=0;var reserved=0;var ledger:[WalletEntry]=[] }
 enum CraftRoute:Hashable {case project(String),asset(CraftAsset),wallet,settings,games(CraftAsset)}
 
 /// Server-published provider costs. These are not the app's Token prices.
