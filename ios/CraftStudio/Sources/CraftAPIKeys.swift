@@ -50,6 +50,8 @@ enum CraftAPIKeyRules {
         ("prompt:write", "Chat & plan model prompts", "对话与规划模型提示词"),
         ("concepts:write", "Create & refine concept images", "创建与优化概念图"),
         ("models:write", "Start 3D model generation", "开始生成 3D 模型"),
+        ("animations:write", "Create character animations & video loops", "生成角色动画与视频"),
+        ("profile:write", "Update profile & preferences", "更新个人资料与偏好"),
         ("wallet:read", "Read Token balance", "读取代币余额"),
     ]
 

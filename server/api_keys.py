@@ -30,6 +30,9 @@ ALLOWED_SCOPES = {
     "prompt:write",
     "concepts:write",
     "models:write",
+    "animations:write",
+    "profile:read",
+    "profile:write",
     "assets:read",
     "assets:delete",
 }
@@ -362,7 +365,12 @@ def verify_api_key(
 
     # Validate scopes
     scopes = set(data.get("scopes", []))
-    covered = required_scope in scopes or ("*" in scopes and required_scope not in EXPLICIT_SCOPES)
+    covered = (
+        required_scope in scopes
+        or ("*" in scopes and required_scope not in EXPLICIT_SCOPES)
+        or (required_scope == "animations:write" and "models:write" in scopes)
+        or (required_scope == "profile:read" and ("assets:read" in scopes or "*" in scopes))
+    )
     if required_scope and not covered:
         raise HTTPException(403, f"API key does not possess required scope '{required_scope}'.")
 

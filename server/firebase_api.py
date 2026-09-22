@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile, Request, Query, Response
 from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from .identity import require_claims
+from .identity import require_claims, firebase_app
 from .firebase_studio import FirebaseStudio, BUCKET
 from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
@@ -20,7 +20,7 @@ from .firebase_model_jobs import CloudModelJobs, ModelRequest
 from .firebase_planning import CloudPlanning, PromptRequest, ChatRequest
 from . import cloud_planner_provider, cloud_concept_provider
 from .firebase_concepts import CloudConcepts, ConceptRequest
-from .firebase_creations import CloudCreations, CreationRequest, RenameRequest, continue_to_model
+from .firebase_creations import CloudCreations, CreationRequest, RenameRequest, continue_to_model, continue_to_animation
 from .firebase_animations import CloudAnimations, AnimationRequest
 from . import cloud_animation_provider
 from . import firebase_creations
@@ -60,13 +60,29 @@ ROUTE_SCOPES = [
     (re.compile(r"^/api/v1/projects/[^/]+/restore$"), {"POST": "concepts:write"}),
     (re.compile(r"^/api/v1/concepts/[^/]+/image$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/concepts/[^/]+$"), {"DELETE": "assets:delete"}),
-    # Animated characters
+    # Profile management
+    (re.compile(r"^/api/v1/profile$"), {"GET": "profile:read", "PATCH": "profile:write"}),
+    # Direct animations
     (re.compile(r"^/api/v1/animations/quote$"), {"GET": "assets:read"}),
-    (re.compile(r"^/api/v1/concepts/[^/]+/animation$"), {"POST": "models:write", "GET": "assets:read"}),
+    (re.compile(r"^/api/v1/animations$"), {"POST": "animations:write", "GET": "assets:read"}),
+    (re.compile(r"^/api/v1/animations/[^/]+$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/animations/[^/]+/download$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/concepts/[^/]+/animation$"), {"POST": "animations:write", "GET": "assets:read"}),
+    # Direct images
+    (re.compile(r"^/api/v1/images$"), {"POST": "concepts:write", "GET": "assets:read"}),
+    (re.compile(r"^/api/v1/images/[^/]+$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/images/[^/]+/download$"), {"GET": "assets:read"}),
     # One-step prompt-to-3D
     (re.compile(r"^/api/v1/creations/quote$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/creations$"), {"POST": "models:write"}),
     (re.compile(r"^/api/v1/creations/[^/]+$"), {"GET": "assets:read"}),
+    # Favorites
+    (re.compile(r"^/api/v1/favorites$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/assets/[^/]+/favorite$"), {"POST": "models:write", "DELETE": "models:write"}),
+    # Prompt enhancement
+    (re.compile(r"^/api/v1/prompts/enhance$"), {"POST": "prompt:write"}),
+    # Community
+    (re.compile(r"^/api/v1/community/games$"), {"GET": "assets:read"}),
     # 5. Assets & Jobs & Readouts
     (re.compile(r"^/api/v1/assets/[^/]+/download$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/assets/[^/]+/archive$"), {"POST": "assets:delete"}),
@@ -304,6 +320,7 @@ def concept_worker(uid:str,job_id:str,authorization:str=Header(default=''),x_cra
     verify_worker(authorization)
     result = CloudConcepts(studio()).run(uid,job_id,x_craft_queued_at)
     continue_to_model(studio(), uid, job_id)
+    continue_to_animation(studio(), uid, job_id)
     return result
 
 
@@ -629,7 +646,7 @@ def v1_delete_asset(asset_id: str, account=Depends(v1_owner)):
 
 
 @app.get('/api/v1/assets/{asset_id}/download')
-def v1_download_asset(asset_id: str, kind: Literal['model','preview','video','animation'] = 'model', account=Depends(v1_owner)):
+def v1_download_asset(asset_id: str, kind: Literal['model', 'preview', 'video', 'animation', 'image', 'auto'] = 'auto', account=Depends(v1_owner)):
     uid = account.removeprefix('firebase:')
     clean_id = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
     creations = studio().db.collection('users').document(uid).collection('mobileCreations')
@@ -638,19 +655,48 @@ def v1_download_asset(asset_id: str, kind: Literal['model','preview','video','an
         doc_ref = creations.document(candidate)
         doc = doc_ref.get()
         if doc.exists: break
-    if doc is None or not doc.exists:
+
+    item = None
+    if doc is not None and doc.exists:
+        item = doc.to_dict() or {}
+    else:
+        concept_snap = studio().db.collection('users').document(uid).collection('studioConcepts').document(clean_id).get()
+        if concept_snap.exists:
+            item = concept_snap.to_dict() or {}
+            item['kind'] = 'Concept image'
+            item['previewStoragePath'] = item.get('imageUrl')
+
+    if not item or item.get('ownerId') != uid:
         raise HTTPException(404, "Asset not found in your account.")
-    item = doc.to_dict() or {}
-    if item.get('ownerId') != uid:
-        raise HTTPException(403, "Access denied to requested asset.")
-    field = 'previewStoragePath' if kind == 'preview' else \
-        ('animationStoragePath' if (kind in ('video', 'animation') or item.get('kind') == 'Animated character') else 'modelStoragePath')
-    path = item.get(field) or ''
+
+    creation_kind = item.get('kind')
+    if kind in ('video', 'animation'):
+        path = item.get('animationStoragePath')
+    elif kind in ('preview', 'image'):
+        path = item.get('previewStoragePath') or item.get('imageUrl')
+    elif kind == 'model':
+        path = item.get('modelStoragePath')
+    else:  # auto
+        if creation_kind == 'Animated character':
+            path = item.get('animationStoragePath') or item.get('previewStoragePath') or item.get('modelStoragePath')
+        elif creation_kind == 'Concept image':
+            path = item.get('previewStoragePath') or item.get('imageUrl') or item.get('modelStoragePath')
+        else:  # 3D object
+            path = item.get('modelStoragePath') or item.get('previewStoragePath') or item.get('animationStoragePath')
+
+    if not path:
+        path = item.get('animationStoragePath') or item.get('modelStoragePath') or item.get('previewStoragePath') or item.get('imageUrl')
+
+    if isinstance(path, str) and path.startswith(f'gs://{BUCKET}/'):
+        path = path.removeprefix(f'gs://{BUCKET}/')
+
     if not path or not path.startswith(f'users/{uid}/') or '..' in path:
         raise HTTPException(404, f"Asset {kind} file not found.")
+
     suffix = Path(path).suffix.lower()
     if suffix not in ('.glb', '.gltf', '.bin', '.usdz', '.obj', '.mtl', '.png', '.jpg', '.jpeg', '.webp', '.mp4'):
         raise HTTPException(403, "File type not permitted for download.")
+
     try:
         blob = studio().bucket.blob(path)
         content = blob.download_as_bytes()
@@ -658,6 +704,7 @@ def v1_download_asset(asset_id: str, kind: Literal['model','preview','video','an
         raise
     except Exception as exc:
         raise HTTPException(503, "Failed to download asset file from storage.") from exc
+
     media_types = {
         '.glb': 'model/gltf-binary',
         '.mp4': 'video/mp4',
@@ -677,6 +724,428 @@ def v1_download_asset(asset_id: str, kind: Literal['model','preview','video','an
             "Cache-Control": "private, max-age=3600",
         },
     )
+
+
+# -------------------------------------------------------------
+# Direct Animation Endpoints
+# -------------------------------------------------------------
+
+class DirectAnimationRequest(BaseModel):
+    idempotencyKey: str = Field(min_length=8, max_length=120)
+    conceptId: Optional[str] = None
+    assetId: Optional[str] = None
+    prompt: Optional[str] = None
+    motion: Optional[str] = None
+    model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5'
+    resolution: Literal['480p', '720p', '768p'] = '480p'
+    duration: Literal['4', '5', '6'] = '4'
+    aspect: Literal['1:1', '16:9', '9:16'] = '1:1'
+    maxTokens: int = Field(default=200, ge=1, le=1000)
+
+
+@app.post('/api/v1/animations')
+def v1_create_animation(body: DirectAnimationRequest, account=Depends(v1_owner)):
+    if not animations_ready():
+        raise HTTPException(503, 'Character animation is temporarily unavailable. No Tokens were charged.')
+    uid = account.removeprefix('firebase:')
+
+    # Case 1: Concept ID or Asset ID provided
+    target_concept_id = body.conceptId
+    if not target_concept_id and body.assetId:
+        clean_asset_id = body.assetId.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
+        for candidate in ('concept:' + clean_asset_id, 'model:' + clean_asset_id, 'animation:' + clean_asset_id, clean_asset_id):
+            snap = studio().db.collection('users').document(uid).collection('mobileCreations').document(candidate).get()
+            if snap.exists:
+                c_ids = snap.to_dict().get('conceptIds') or []
+                if c_ids:
+                    target_concept_id = c_ids[0]
+                    break
+        if not target_concept_id:
+            concept_snap = studio().db.collection('users').document(uid).collection('studioConcepts').document(clean_asset_id).get()
+            if concept_snap.exists:
+                target_concept_id = clean_asset_id
+
+    if target_concept_id:
+        clean_target = target_concept_id.removeprefix('concept:')
+        anim_req = AnimationRequest(
+            idempotencyKey=body.idempotencyKey,
+            model=body.model,
+            motion=body.motion,
+            resolution=body.resolution,
+            duration=body.duration,
+            aspect=body.aspect,
+            maxTokens=body.maxTokens,
+        )
+        return public_shape(v1_charge(account, lambda: CloudAnimations(studio()).create(account, clean_target, anim_req, environment=v1_environment(account))), account)
+
+    # Case 2: Prompt provided (One-step prompt to animation)
+    if not body.prompt or not body.prompt.strip():
+        raise HTTPException(422, 'Provide either a conceptId, an assetId, or a prompt to create an animation.')
+
+    if not concepts_ready():
+        raise HTTPException(503, 'Cloud concepts are temporarily unavailable. No Tokens were charged.')
+
+    quote_anim = pricing.animation_quote(body.resolution, int(body.duration), body.aspect, body.model)
+    cost_anim = quote_anim['usageWithServiceFee']['credits']
+    concept_quote = cloud_concept_provider.quote(time.time(), 1)
+    cost_concept = concept_quote['maxTokens']
+    total_tokens = cost_concept + cost_anim
+    if body.maxTokens < total_tokens:
+        raise HTTPException(409, f'This animation can cost up to {total_tokens} Tokens '
+                                 f'({cost_concept} for the concept image, {cost_anim} for animation). '
+                                 f'Set maxTokens to at least {total_tokens}.')
+
+    name = body.prompt.strip()[:60]
+    project = CloudProjects(studio()).create(account, prompt=body.prompt, name=name, style='Stylized',
+                                             client_id='anim:' + body.idempotencyKey)
+    concept_req = ConceptRequest(idempotencyKey=body.idempotencyKey, count=1, prompt=body.prompt,
+                                 style='Stylized', maxTokens=cost_concept)
+    auto_anim = dict(
+        settings=dict(model=body.model, motion=body.motion, resolution=body.resolution,
+                      duration=body.duration, aspect=body.aspect),
+        maxTokens=cost_anim,
+        environment=v1_environment(account)
+    )
+    job = CloudConcepts(studio()).create(account, project['id'], concept_req,
+                                         environment=v1_environment(account), auto_animation=auto_anim)
+    return public_shape(job, account)
+
+
+@app.get('/api/v1/animations/{job_id}')
+def v1_animation_status(job_id: str, account=Depends(v1_owner)):
+    uid = account.removeprefix('firebase:')
+    clean_id = job_id.removeprefix('animation:').removeprefix('concept:')
+
+    # If it's a concept job that has an auto-animation:
+    if clean_id.startswith('cj-'):
+        concept = studio().db.collection('users').document(uid).collection('studioJobs').document(clean_id).get().to_dict()
+        if not concept:
+            raise HTTPException(404, 'Animation creation not found in your account.')
+        anim_id = concept.get('animationJobId')
+        anim = studio().db.collection('users').document(uid).collection('studioJobs').document(anim_id).get().to_dict() if anim_id else None
+
+        stage = concept.get('stage', 'queued')
+        status = concept.get('status', 'queued')
+        progress = int(0.4 * (concept.get('progress') or 0))
+        message = concept.get('message')
+        error = concept.get('error')
+
+        if concept.get('status') == 'done' and not anim:
+            stage, status, progress, message = 'animation', 'running', 40, 'Starting your character animation'
+        elif anim:
+            if anim.get('status') == 'done':
+                stage, status, progress, message = 'done', 'done', 100, anim.get('message')
+            elif anim.get('status') == 'failed':
+                stage, status, progress, message = 'failed', 'failed', 100, anim.get('error')
+                error = anim.get('error')
+            else:
+                stage, status = 'animation', anim.get('status', 'running')
+                progress = 40 + int(0.6 * (anim.get('progress') or 0))
+                message = anim.get('message')
+
+        asset = None
+        if anim and anim.get('status') == 'done':
+            asset = {
+                'id': anim['id'],
+                'downloadUrl': f'/api/v1/animations/{anim["id"]}/download',
+                'videoUrl': f'/api/v1/assets/{anim["id"]}/download?kind=video'
+            }
+
+        return {
+            'id': clean_id,
+            'conceptJobId': clean_id,
+            'animationJobId': anim_id,
+            'status': status,
+            'stage': stage,
+            'progress': progress,
+            'message': message,
+            'error': error,
+            'asset': asset,
+            'createdAt': concept.get('createdAt')
+        }
+
+    # Direct animation job (an-...)
+    job = studio().db.collection('users').document(uid).collection('studioJobs').document(clean_id).get().to_dict()
+    if not job:
+        raise HTTPException(404, 'Animation job not found in your account.')
+
+    asset = None
+    if job.get('status') == 'done':
+        asset = {
+            'id': clean_id,
+            'downloadUrl': f'/api/v1/animations/{clean_id}/download',
+            'videoUrl': f'/api/v1/assets/{clean_id}/download?kind=video'
+        }
+
+    return {
+        'id': clean_id,
+        'status': job.get('status', 'queued'),
+        'stage': job.get('stage', 'queued'),
+        'progress': job.get('progress', 0),
+        'message': job.get('message'),
+        'error': job.get('error'),
+        'asset': asset,
+        'cost': job.get('cost') or job.get('charged'),
+        'createdAt': job.get('createdAt')
+    }
+
+
+@app.get('/api/v1/animations/{job_id}/download')
+def v1_download_animation(job_id: str, account=Depends(v1_owner)):
+    return v1_download_asset(job_id, kind='animation', account=account)
+
+
+# -------------------------------------------------------------
+# Direct Image Endpoints
+# -------------------------------------------------------------
+
+class DirectImageRequest(BaseModel):
+    idempotencyKey: str = Field(min_length=8, max_length=120)
+    prompt: str = Field(min_length=1, max_length=4000)
+    projectId: Optional[str] = None
+    style: Optional[str] = 'Stylized'
+    count: int = Field(default=1, ge=1, le=4)
+    maxTokens: int = Field(default=50, ge=1, le=500)
+
+
+@app.post('/api/v1/images')
+def v1_create_image(body: DirectImageRequest, account=Depends(v1_owner)):
+    if not concepts_ready():
+        raise HTTPException(503, 'Cloud concepts are temporarily unavailable. No Tokens were charged.')
+    project_id = body.projectId
+    if not project_id:
+        name = body.prompt.strip()[:60]
+        project = CloudProjects(studio()).create(account, prompt=body.prompt, name=name, style=body.style or 'Stylized',
+                                                 client_id='img:' + body.idempotencyKey)
+        project_id = project['id']
+    req = ConceptRequest(idempotencyKey=body.idempotencyKey, count=body.count, prompt=body.prompt,
+                         style=body.style, maxTokens=body.maxTokens)
+    return public_shape(v1_charge(account, lambda: CloudConcepts(studio()).create(account, project_id, req, environment=v1_environment(account))), account)
+
+
+@app.get('/api/v1/images/{concept_id}')
+def v1_get_image(concept_id: str, account=Depends(v1_owner)):
+    uid = account.removeprefix('firebase:')
+    clean_id = concept_id.removeprefix('concept:')
+    doc = studio().db.collection('users').document(uid).collection('studioConcepts').document(clean_id).get()
+    if not doc.exists:
+        raise HTTPException(404, 'Image not found in your account.')
+    data = doc.to_dict() or {}
+    return {
+        'id': clean_id,
+        'projectId': data.get('projectId'),
+        'label': data.get('label'),
+        'downloadUrl': f'/api/v1/images/{clean_id}/download',
+        'imageUrl': public_shape(data.get('imageUrl'), account),
+        'createdAt': data.get('createdAt')
+    }
+
+
+@app.get('/api/v1/images/{concept_id}/download')
+def v1_download_image(concept_id: str, account=Depends(v1_owner)):
+    clean_id = concept_id.removeprefix('concept:')
+    content = CloudCreations(studio()).concept_image(account, clean_id)
+    return Response(content=content, media_type='image/jpeg', headers={
+        'Content-Disposition': f'attachment; filename="{clean_id}.jpg"',
+        'Cache-Control': 'private, max-age=3600'
+    })
+
+
+# -------------------------------------------------------------
+# Profile Management Endpoints
+# -------------------------------------------------------------
+
+class ProfileUpdateRequest(BaseModel):
+    displayName: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    bio: Optional[str] = Field(default=None, max_length=500)
+    avatarUrl: Optional[str] = Field(default=None, max_length=1000)
+    avatarAssetId: Optional[str] = Field(default=None, max_length=100)
+    appearance: Optional[dict] = None
+
+
+@app.get('/api/v1/profile')
+def v1_get_profile(account=Depends(v1_owner)):
+    uid = account.removeprefix('firebase:')
+    user_doc = studio().db.collection('users').document(uid).get()
+    profile_data = user_doc.to_dict() if user_doc.exists else {}
+
+    auth_user = None
+    try:
+        from firebase_admin import auth
+        auth_user = auth.get_user(uid, app=firebase_app())
+    except Exception:
+        pass
+
+    display_name = profile_data.get('displayName') or (auth_user.display_name if auth_user else None) or 'Creator'
+    avatar_url = profile_data.get('avatarUrl') or (auth_user.photo_url if auth_user else None)
+
+    # Read wallet summary
+    wallet_info = CloudBilling(studio().db).wallet(uid, environment=v1_environment(account))
+
+    # Aggregate counts
+    creations = studio().records(account, 'mobileCreations')
+    models_count = sum(1 for c in creations if c.get('kind') == '3D object')
+    animations_count = sum(1 for c in creations if c.get('kind') == 'Animated character')
+    concepts_count = sum(1 for c in creations if c.get('kind') == 'Concept image')
+    projects = studio().records(account, 'studioProjects')
+
+    return {
+        'uid': uid,
+        'displayName': display_name,
+        'bio': profile_data.get('bio', ''),
+        'avatarUrl': avatar_url,
+        'avatarAssetId': profile_data.get('avatarAssetId'),
+        'appearance': profile_data.get('appearance', {'theme': 'system'}),
+        'wallet': {
+            'available': wallet_info.get('available', 0),
+            'subscriptionAvailable': wallet_info.get('subscriptionAvailable', 0),
+            'packAvailable': wallet_info.get('packAvailable', 0),
+        },
+        'stats': {
+            'totalCreations': len(creations),
+            'modelsCount': models_count,
+            'animationsCount': animations_count,
+            'conceptsCount': concepts_count,
+            'projectsCount': len(projects),
+        },
+        'updatedAt': profile_data.get('updatedAt')
+    }
+
+
+@app.patch('/api/v1/profile')
+def v1_update_profile(body: ProfileUpdateRequest, account=Depends(v1_owner)):
+    uid = account.removeprefix('firebase:')
+    updates = {'updatedAt': time.time()}
+    if body.displayName is not None:
+        updates['displayName'] = body.displayName.strip()
+    if body.bio is not None:
+        updates['bio'] = body.bio.strip()
+    if body.avatarUrl is not None:
+        updates['avatarUrl'] = body.avatarUrl.strip()
+    if body.avatarAssetId is not None:
+        updates['avatarAssetId'] = body.avatarAssetId.strip()
+    if body.appearance is not None:
+        updates['appearance'] = body.appearance
+
+    studio().db.collection('users').document(uid).set(updates, merge=True)
+
+    # Sync with Firebase Auth best-effort
+    try:
+        from firebase_admin import auth
+        auth_kwargs = {}
+        if 'displayName' in updates: auth_kwargs['display_name'] = updates['displayName']
+        if 'avatarUrl' in updates: auth_kwargs['photo_url'] = updates['avatarUrl']
+        if auth_kwargs:
+            auth.update_user(uid, **auth_kwargs, app=firebase_app())
+    except Exception:
+        pass
+
+    return v1_get_profile(account)
+
+
+# -------------------------------------------------------------
+# Favorites Management Endpoints
+# -------------------------------------------------------------
+
+@app.get('/api/v1/favorites')
+def v1_get_favorites(account=Depends(v1_owner)):
+    return CloudCreations(studio()).favorites(account)
+
+
+@app.post('/api/v1/assets/{asset_id}/favorite')
+def v1_set_favorite(asset_id: str, account=Depends(v1_owner)):
+    return CloudCreations(studio()).set_favorite(account, asset_id, True)
+
+
+@app.delete('/api/v1/assets/{asset_id}/favorite')
+def v1_remove_favorite(asset_id: str, account=Depends(v1_owner)):
+    return CloudCreations(studio()).set_favorite(account, asset_id, False)
+
+
+# -------------------------------------------------------------
+# AI Prompt Architect / Enhancement Endpoint
+# -------------------------------------------------------------
+
+class PromptEnhanceRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=4000)
+    target: Literal['3d', 'animation', 'concept'] = '3d'
+    style: Optional[str] = 'Stylized'
+
+
+@app.post('/api/v1/prompts/enhance')
+def v1_enhance_prompt(body: PromptEnhanceRequest, account=Depends(v1_owner)):
+    """Architects & expands high-fidelity prompts optimized for 3D reconstruction and video loops."""
+    raw_prompt = body.prompt.strip()
+    target = body.target
+    style = body.style or 'Stylized'
+
+    if target == 'animation':
+        enhanced = f"{raw_prompt}, full body turnaround, smooth natural character motion, expressive animation loop, high quality cinematic lighting, 4k render, style of {style}"
+        negative = "ugly, distorted limbs, jerky motion, abrupt frame cuts, extra hands, missing fingers, low resolution, artifacts"
+        engine = "seedance-2.5"
+    elif target == 'concept':
+        enhanced = f"{raw_prompt}, multi-angle character concept art, clean front view, T-pose, crisp silhouette, neutral studio lighting, isolated on solid background, style of {style}"
+        negative = "cluttered background, cropped subject, harsh shadows, occluded details, text, watermark"
+        engine = "gemini-3-pro-image"
+    else:  # 3d
+        enhanced = f"{raw_prompt}, clean watertight 3D game asset, sharp geometric bevels, PBR textured surface, uniform studio lighting, full turntable visibility, style of {style}"
+        negative = "floating geometry, non-manifold edges, blurred albedo, baked hard shadows, low polygon artifacts"
+        engine = "trellis"
+
+    try:
+        from . import cloud_planner_provider
+        system_inst = (
+            "You are an expert 3D generative AI prompt engineer and creative director for 3D Craft. "
+            "Given a creator's rough prompt, output a JSON object with: "
+            "1. 'enhancedPrompt': an expanded, highly detailed description optimized for generative neural 3D and animation synthesis. "
+            "2. 'negativePrompt': unwanted attributes to prevent deformities. "
+            "3. 'suggestedEngine': 'trellis' or 'hunyuan' for 3d, 'seedance-2.5' or 'minimax-h3' for animation. "
+            "4. 'suggestedStyle': aesthetic recommendation."
+        )
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "enhancedPrompt": {"type": "STRING"},
+                "negativePrompt": {"type": "STRING"},
+                "suggestedEngine": {"type": "STRING"},
+                "suggestedStyle": {"type": "STRING"}
+            },
+            "required": ["enhancedPrompt", "negativePrompt", "suggestedEngine", "suggestedStyle"]
+        }
+        res = cloud_planner_provider.call(
+            'generateContent',
+            cloud_planner_provider.structured_body(system_inst, schema, f"Target: {target}\nStyle: {style}\nUser Prompt: {raw_prompt}", None, 'low', 1024),
+            model='gemini-3.8-flash'
+        )
+        data = json.loads(res['candidates'][0]['content']['parts'][0]['text'])
+        return {
+            'originalPrompt': raw_prompt,
+            'target': target,
+            'enhancedPrompt': data.get('enhancedPrompt', enhanced),
+            'negativePrompt': data.get('negativePrompt', negative),
+            'suggestedEngine': data.get('suggestedEngine', engine),
+            'suggestedStyle': data.get('suggestedStyle', style)
+        }
+    except Exception:
+        return {
+            'originalPrompt': raw_prompt,
+            'target': target,
+            'enhancedPrompt': enhanced,
+            'negativePrompt': negative,
+            'suggestedEngine': engine,
+            'suggestedStyle': style
+        }
+
+
+# -------------------------------------------------------------
+# Community Games for External Agents
+# -------------------------------------------------------------
+
+@app.get('/api/v1/community/games')
+def v1_community_games(category: Category = 'fun', offset: int = Query(default=0, ge=0, le=10000), account=Depends(v1_owner)):
+    uid = account.removeprefix('firebase:')
+    return CloudCommunity(studio().db).feed(category, offset, uid)
+
 
 
 @app.post('/api/mobile/cloud-library/sync')

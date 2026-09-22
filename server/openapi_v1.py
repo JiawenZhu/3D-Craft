@@ -408,18 +408,34 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
             },
             "/api/v1/assets/{asset_id}/download": {
                 "get": {
-                    "summary": "Download 3D model (GLB) binary or preview file with API key",
-                    "description": "Stream the raw binary asset file directly using your Bearer API key. No Firebase ID token required.",
+                    "summary": "Download 3D model, character animation video, or concept image with API key",
+                    "description": (
+                        "Stream the raw binary asset file directly using your Bearer API key. No Firebase ID token required. "
+                        "By default (kind=auto), automatically detects whether the asset is a 3D model (GLB), character animation (MP4), "
+                        "or concept image (JPEG/PNG) and streams with appropriate Content-Type."
+                    ),
                     "parameters": [
                         {"name": "asset_id", "in": "path", "required": True, "schema": {"type": "string"}},
-                        {"name": "kind", "in": "query", "required": False, "schema": {"type": "string", "enum": ["model", "preview"], "default": "model"}},
+                        {
+                            "name": "kind",
+                            "in": "query",
+                            "required": False,
+                            "schema": {
+                                "type": "string",
+                                "enum": ["model", "preview", "video", "animation", "image", "auto"],
+                                "default": "auto",
+                            },
+                        },
                     ],
                     "responses": {
                         "200": {
-                            "description": "Binary GLB model or preview image",
+                            "description": "Binary file (video/mp4, model/gltf-binary, image/jpeg, or image/png)",
                             "content": {
+                                "video/mp4": {"schema": {"type": "string", "format": "binary"}},
                                 "model/gltf-binary": {"schema": {"type": "string", "format": "binary"}},
+                                "image/jpeg": {"schema": {"type": "string", "format": "binary"}},
                                 "image/png": {"schema": {"type": "string", "format": "binary"}},
+                                "model/vnd.usdz+zip": {"schema": {"type": "string", "format": "binary"}},
                             },
                         },
                         "404": {"description": "Asset or file not found in account"},
@@ -429,8 +445,10 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
         },
     }
     spec["components"]["schemas"].update(CREATION_SCHEMAS)
+    spec["components"]["schemas"].update(EXTENDED_SCHEMAS)
     spec["paths"].update(CREATION_PATHS)
     spec["paths"].update(ANIMATION_PATHS)
+    spec["paths"].update(EXTENDED_PATHS)
     return spec
 
 
@@ -639,3 +657,219 @@ CREATION_PATHS: Dict[str, Any] = {
         }
     },
 }
+
+EXTENDED_SCHEMAS: Dict[str, Any] = {
+    "DirectAnimationRequest": {
+        "type": "object",
+        "required": ["idempotencyKey"],
+        "properties": {
+            "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 120, "description": "Unique client token to prevent duplicate charges."},
+            "conceptId": {"type": "string", "description": "ID of an existing concept image to animate."},
+            "assetId": {"type": "string", "description": "ID of an existing creation asset."},
+            "prompt": {"type": "string", "maxLength": 4000, "description": "Text prompt to generate a character and animate it in one step."},
+            "motion": {"type": "string", "maxLength": 600, "description": "Specific character actions and turnaround motions."},
+            "model": {"type": "string", "enum": ["seedance-2.5", "minimax-h3"], "default": "seedance-2.5"},
+            "resolution": {"type": "string", "enum": ["480p", "720p", "768p"], "default": "480p"},
+            "duration": {"type": "string", "enum": ["4", "5", "6"], "default": "4"},
+            "aspect": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1"},
+            "maxTokens": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
+        },
+    },
+    "DirectImageRequest": {
+        "type": "object",
+        "required": ["idempotencyKey", "prompt"],
+        "properties": {
+            "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 120},
+            "prompt": {"type": "string", "minLength": 1, "maxLength": 4000, "description": "Concept description."},
+            "projectId": {"type": "string", "description": "Optional project to bind image to."},
+            "style": {"type": "string", "default": "Stylized"},
+            "count": {"type": "integer", "minimum": 1, "maximum": 4, "default": 1},
+            "maxTokens": {"type": "integer", "minimum": 1, "maximum": 500, "default": 50},
+        },
+    },
+    "ProfileResponse": {
+        "type": "object",
+        "properties": {
+            "uid": {"type": "string"},
+            "displayName": {"type": "string"},
+            "bio": {"type": "string"},
+            "avatarUrl": {"type": "string", "nullable": True},
+            "avatarAssetId": {"type": "string", "nullable": True},
+            "appearance": {"type": "object"},
+            "wallet": {"type": "object"},
+            "stats": {"type": "object"},
+            "updatedAt": {"type": "number", "nullable": True},
+        },
+    },
+    "ProfileUpdateRequest": {
+        "type": "object",
+        "properties": {
+            "displayName": {"type": "string", "minLength": 1, "maxLength": 64},
+            "bio": {"type": "string", "maxLength": 500},
+            "avatarUrl": {"type": "string", "maxLength": 1000},
+            "avatarAssetId": {"type": "string", "maxLength": 100},
+            "appearance": {"type": "object"},
+        },
+    },
+    "FavoriteActionResult": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string"},
+            "favorite": {"type": "boolean"},
+        },
+    },
+    "FavoritesResponse": {
+        "type": "object",
+        "properties": {
+            "favorites": {"type": "array", "items": {"type": "object"}},
+        },
+    },
+    "PromptEnhanceRequest": {
+        "type": "object",
+        "required": ["prompt"],
+        "properties": {
+            "prompt": {"type": "string", "minLength": 1, "maxLength": 4000},
+            "target": {"type": "string", "enum": ["3d", "animation", "concept"], "default": "3d"},
+            "style": {"type": "string", "default": "Stylized"},
+        },
+    },
+    "PromptEnhanceResponse": {
+        "type": "object",
+        "properties": {
+            "originalPrompt": {"type": "string"},
+            "target": {"type": "string"},
+            "enhancedPrompt": {"type": "string"},
+            "negativePrompt": {"type": "string"},
+            "suggestedEngine": {"type": "string"},
+            "suggestedStyle": {"type": "string"},
+        },
+    },
+}
+
+EXTENDED_PATHS: Dict[str, Any] = {
+    "/api/v1/animations": {
+        "post": {
+            "summary": "Create an animated character video loop in one step",
+            "description": "Generate an animation from a prompt, concept image, or existing asset. Poll GET /api/v1/animations/{job_id}.",
+            "requestBody": {"required": True, **_json("DirectAnimationRequest")},
+            "responses": {
+                "200": {"description": "Animation job created"},
+                "402": {"description": "Not enough Tokens"},
+                "409": {"description": "maxTokens below quote or idempotency conflict"},
+            },
+        },
+    },
+    "/api/v1/animations/{job_id}": {
+        "get": {
+            "summary": "Poll character animation status",
+            "parameters": [_id("job_id")],
+            "responses": {
+                "200": {"description": "Animation status, progress and download link"},
+                "404": {"description": "Animation not found"},
+            },
+        },
+    },
+    "/api/v1/animations/{job_id}/download": {
+        "get": {
+            "summary": "Download rendered MP4 character animation",
+            "parameters": [_id("job_id")],
+            "responses": {
+                "200": {"description": "MP4 video stream", "content": {"video/mp4": {"schema": {"type": "string", "format": "binary"}}}},
+                "404": {"description": "Animation file not found"},
+            },
+        },
+    },
+    "/api/v1/images": {
+        "post": {
+            "summary": "Generate a concept image in one step",
+            "requestBody": {"required": True, **_json("DirectImageRequest")},
+            "responses": {
+                "200": {"description": "Image generation job created"},
+                "402": {"description": "Not enough Tokens"},
+            },
+        },
+    },
+    "/api/v1/images/{concept_id}": {
+        "get": {
+            "summary": "Get concept image metadata",
+            "parameters": [_id("concept_id")],
+            "responses": {
+                "200": {"description": "Concept image details"},
+                "404": {"description": "Image not found"},
+            },
+        },
+    },
+    "/api/v1/images/{concept_id}/download": {
+        "get": {
+            "summary": "Download concept image binary (JPEG)",
+            "parameters": [_id("concept_id")],
+            "responses": {
+                "200": {"description": "JPEG binary stream", "content": {"image/jpeg": {"schema": {"type": "string", "format": "binary"}}}},
+                "404": {"description": "Image not found"},
+            },
+        },
+    },
+    "/api/v1/profile": {
+        "get": {
+            "summary": "Get creator profile, wallet balance, and creation statistics",
+            "responses": {
+                "200": {"description": "Creator profile", **_json("ProfileResponse")},
+            },
+        },
+        "patch": {
+            "summary": "Update creator profile (displayName, bio, avatarUrl, appearance)",
+            "requestBody": {"required": True, **_json("ProfileUpdateRequest")},
+            "responses": {
+                "200": {"description": "Updated profile", **_json("ProfileResponse")},
+            },
+        },
+    },
+    "/api/v1/favorites": {
+        "get": {
+            "summary": "List all favorited creations and assets",
+            "responses": {
+                "200": {"description": "Favorited assets", **_json("FavoritesResponse")},
+            },
+        },
+    },
+    "/api/v1/assets/{asset_id}/favorite": {
+        "post": {
+            "summary": "Add asset to favorites",
+            "parameters": [_id("asset_id")],
+            "responses": {
+                "200": {"description": "Asset marked as favorite", **_json("FavoriteActionResult")},
+                "404": {"description": "Asset not found"},
+            },
+        },
+        "delete": {
+            "summary": "Remove asset from favorites",
+            "parameters": [_id("asset_id")],
+            "responses": {
+                "200": {"description": "Asset removed from favorites", **_json("FavoriteActionResult")},
+                "404": {"description": "Asset not found"},
+            },
+        },
+    },
+    "/api/v1/prompts/enhance": {
+        "post": {
+            "summary": "Enhance and optimize prompts for 3D reconstruction and character animation using Gemini 3.8 Flash",
+            "requestBody": {"required": True, **_json("PromptEnhanceRequest")},
+            "responses": {
+                "200": {"description": "Optimized prompt recommendations", **_json("PromptEnhanceResponse")},
+            },
+        },
+    },
+    "/api/v1/community/games": {
+        "get": {
+            "summary": "Explore community games and interactive worlds",
+            "parameters": [
+                {"name": "category", "in": "query", "required": False, "schema": {"type": "string", "enum": ["fun", "gameplay", "visual", "audio", "creative", "new"], "default": "fun"}},
+                {"name": "offset", "in": "query", "required": False, "schema": {"type": "integer", "default": 0}},
+            ],
+            "responses": {
+                "200": {"description": "Community games feed"},
+            },
+        },
+    },
+}
+

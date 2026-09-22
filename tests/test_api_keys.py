@@ -117,6 +117,9 @@ class MockQuery:
     def limit(self, count):
         return self
 
+    def offset(self, count):
+        return self
+
     def stream(self):
         results = []
         for doc in self.docs_dict.values():
@@ -594,6 +597,7 @@ class ApiKeysSecurityTests(unittest.TestCase):
                 "available": 1000,
                 "subscriptionAvailable": 0,
                 "purchasedAvailable": 1000,
+                "welcomeTokensGranted": True,
                 "environment": "PRODUCTION",
             })
 
@@ -666,7 +670,8 @@ class ApiKeysSecurityTests(unittest.TestCase):
             uid = "user_alice"
             private = self.mock_db.collection("users").document(uid).collection("private")
             private.document("billingContext").set({"environment": "SANDBOX"})
-            private.document("sandboxWallet").set({"available": 500, "subscriptionAvailable": 0, "environment": "SANDBOX"})
+            private.document("sandboxWallet").set({"available": 500, "subscriptionAvailable": 0, "welcomeTokensGranted": True, "environment": "SANDBOX"})
+            private.document("wallet").set({"available": 0, "subscriptionAvailable": 0, "welcomeTokensGranted": True, "environment": "PRODUCTION"})
 
             api_key = api_keys.create_api_key(self.mock_db, uid, "Pipeline Key", scopes=["prompt:write"])["key"]
             res = self.client.post(
@@ -692,8 +697,8 @@ class ApiKeysSecurityTests(unittest.TestCase):
             uid = "user_alice"
             private = self.mock_db.collection("users").document(uid).collection("private")
             private.document("billingContext").set({"environment": "SANDBOX"})
-            private.document("sandboxWallet").set({"available": 500, "subscriptionAvailable": 0, "environment": "SANDBOX"})
-            private.document("wallet").set({"available": 1000, "subscriptionAvailable": 0, "environment": "PRODUCTION"})
+            private.document("sandboxWallet").set({"available": 500, "subscriptionAvailable": 0, "welcomeTokensGranted": True, "environment": "SANDBOX"})
+            private.document("wallet").set({"available": 1000, "subscriptionAvailable": 0, "welcomeTokensGranted": True, "environment": "PRODUCTION"})
 
             api_key = api_keys.create_api_key(self.mock_db, uid, "Pipeline Key", scopes=["prompt:write"])["key"]
             res = self.client.post(
