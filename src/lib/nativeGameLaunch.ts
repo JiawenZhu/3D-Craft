@@ -5,12 +5,10 @@ export type NativeGameLaunch = { game: string; locale: 'en' | 'zh'; asset: Custo
 const isAllowedPageHost = (host: string) =>
   ['localhost', '127.0.0.1', '[::1]', '3d-craft.web.app', '3d-craft.firebaseapp.com', 'forma-studio-2026.web.app', 'forma-studio-2026.firebaseapp.com'].includes(host) ||
   host.endsWith('.web.app') ||
-  host.endsWith('.firebaseapp.com');
-
-const isAllowedAssetHost = (host: string) =>
-  isAllowedPageHost(host) ||
-  ['firebasestorage.googleapis.com', 'storage.googleapis.com'].includes(host) ||
-  host.endsWith('.googleapis.com');
+  host.endsWith('.firebaseapp.com') ||
+  host.startsWith('192.168.') ||
+  host.startsWith('10.') ||
+  host.startsWith('172.');
 
 /** Local review and cloud production native game launch bridge. */
 export function decodeNativeGameLaunch(fragment: string, pageOrigin: string): NativeGameLaunch {
@@ -21,7 +19,9 @@ export function decodeNativeGameLaunch(fragment: string, pageOrigin: string): Na
   if (fragment.length > 24000) throw new Error('The game request is too large.');
   let payload: any;
   try {
-    payload = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(fragment.replace(/^#/, '')), c => c.charCodeAt(0))));
+    const rawClean = fragment.replace(/^#/, '');
+    const clean = rawClean.includes('%') ? decodeURIComponent(rawClean) : rawClean;
+    payload = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(clean), c => c.charCodeAt(0))));
   } catch {
     throw new Error('The game request could not be read. Return to your model and try again.');
   }
@@ -29,8 +29,8 @@ export function decodeNativeGameLaunch(fragment: string, pageOrigin: string): Na
   const parseURL = (raw: unknown, model: boolean) => {
     if (typeof raw !== 'string' || raw.length > 8192) throw new Error('The asset link is missing.');
     const url = new URL(raw, pageOrigin);
-    if (!isAllowedAssetHost(url.hostname) || url.username || url.password || !['http:', 'https:'].includes(url.protocol)) {
-      throw new Error('Asset host is not allowed.');
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+      throw new Error('Asset URL is not allowed.');
     }
     return url.href;
   };
