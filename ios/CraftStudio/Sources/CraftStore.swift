@@ -201,8 +201,10 @@ struct PendingGeneration: Codable, Equatable {
         return id
     }
     @Published var projects:[CraftProject]=[]
+    @Published var archivedProjects:[CraftProject]=[]
     @Published var assets:[CraftAsset]=[]
     @Published var archivedAssets:[CraftAsset]=[]
+    @Published var favoriteIDs: Set<String> = []
     @Published var examples:[CraftAsset]=PublicGallery.bundled
     @Published var jobs:[CraftJob]=[]
     @Published var wallet=WalletState()
@@ -287,15 +289,17 @@ struct PendingGeneration: Codable, Equatable {
         if pendingGeneration?.accountUID != CraftAccount.shared.uid { pendingGeneration=nil;try? FileManager.default.removeItem(at:self.pendingURL) }
         if draftPrompt == Self.legacyDemoPrompt {draftPrompt=""}
         if !apiBase.isEmpty { UserDefaults.standard.set(apiBase, forKey: "craftAPI") }
+        let favs = UserDefaults.standard.string(forKey: "craftFavorites") ?? ""
+        favoriteIDs = Set(favs.split(separator: ",").map(String.init).filter { !$0.isEmpty })
         loadLibraryCache(); activeConversationID = UserDefaults.standard.string(forKey: "craftActiveConversation:" + apiBase); if let d=try? Data(contentsOf:Self.draftURL){draftImage=UIImage(data:d)}
     }
     private static var libraryCacheURL:URL {draftURL.deletingLastPathComponent().appendingPathComponent("library-cache.json")}
     private func loadLibraryCache() {
         guard let data=try?Data(contentsOf:Self.libraryCacheURL),let cache=(try?JSONSerialization.jsonObject(with:data)) as? [String:Any],cache["apiBase"] as? String==apiBase, cache["accountUID"] as? String == CraftAccount.shared.uid, CraftAccount.shared.uid != nil else{return}
-        projects=(cache["projects"] as? [[String:Any]] ?? []).map{CraftProject($0,base:apiBase)}
+        projects=(cache["projects"] as? [[String:Any]] ?? []).map{CraftProject($0,base:apiBase)}.filter { !$0.isArchived }
         jobs=(cache["jobs"] as? [[String:Any]] ?? []).map{CraftJob($0,base:apiBase)}
         let a=cache["assets"] as? [String:Any] ?? [:]
-        assets=(a["owned"] as? [[String:Any]] ?? []).map{CraftAsset($0,base:apiBase)}
+        assets=(a["owned"] as? [[String:Any]] ?? []).map{CraftAsset($0,base:apiBase)}.filter { !$0.isArchived }
         // Public examples come from the shipped catalog, not the account cache.
     }
     func persistPending(_ pending:PendingGeneration?) throws {
@@ -422,7 +426,9 @@ struct PendingGeneration: Codable, Equatable {
         // catalog, wallet or library must never leave a finished job spinning.
         if let values = try? await request("/projects") as? [[String: Any]], CraftAccount.shared.uid == uid {
             rawProjectSnapshot = values
-            projects = values.map { CraftProject($0, base: apiBase) }
+            let fetched = values.map { CraftProject($0, base: apiBase) }
+            let archivedIDs = Set(archivedProjects.map(\.id))
+            projects = fetched.filter { !$0.isArchived && !archivedIDs.contains($0.id) }
         }
         if let value = try? await request("/wallet") as? [String: Any], CraftAccount.shared.uid == uid { applyWallet(value) }
         guard CraftAccount.shared.uid == uid else { return }
@@ -521,8 +527,13 @@ struct PendingGeneration: Codable, Equatable {
             let saved = try await FirebaseCreationLibrary.load()
             let archived = (try? await FirebaseCreationLibrary.loadArchived()) ?? []
             if CraftAccount.shared.uid == uid {
-                assets = saved
-                archivedAssets = archived
+                let archivedIDs = Set(archivedAssets.map(\.id)).union(Set(archived.map(\.id)))
+                assets = saved.filter { !$0.isArchived && !archivedIDs.contains($0.id) }
+                for a in archived {
+                    if !archivedAssets.contains(where: { $0.id == a.id }) {
+                        archivedAssets.append(a)
+                    }
+                }
             }
         } catch { /* Keep the current cloud snapshot during transient failures. */ }
     }
@@ -541,8 +552,21 @@ struct PendingGeneration: Codable, Equatable {
         guard let accountUID = CraftAccount.shared.uid else { return }
         do {
             try await refreshCreationState()
-            if let cloudAssets = try? await FirebaseCreationLibrary.load(), CraftAccount.shared.uid == accountUID { assets = cloudAssets }
-            if let archived = try? await FirebaseCreationLibrary.loadArchived(), CraftAccount.shared.uid == accountUID { archivedAssets = archived }
+            let cloudAssets = try? await FirebaseCreationLibrary.load()
+            let cloudArchived = try? await FirebaseCreationLibrary.loadArchived()
+            if CraftAccount.shared.uid == accountUID {
+                if let cloudArchived {
+                    for a in cloudArchived {
+                        if !archivedAssets.contains(where: { $0.id == a.id }) {
+                            archivedAssets.append(a)
+                        }
+                    }
+                }
+                if let cloudAssets {
+                    let archivedIDs = Set(archivedAssets.map(\.id))
+                    assets = cloudAssets.filter { !$0.isArchived && !archivedIDs.contains($0.id) }
+                }
+            }
             await refreshImageModelCatalog()
             await refreshPricing()
             guard CraftAccount.shared.uid == accountUID else { return }
@@ -590,14 +614,11 @@ struct PendingGeneration: Codable, Equatable {
         if !archivedAssets.contains(where: { $0.id == asset.id }) {
             archivedAssets.insert(archived, at: 0)
         }
-        do {
-            try await FirebaseCreationLibrary.archive(asset: asset)
+        Task {
             if connected {
-                _ = try? await request("/api/v1/assets/\(asset.id)/archive", method: "POST")
+                _ = try? await request("/api/mobile/assets/\(asset.id)/archive", method: "POST")
             }
-        } catch {
-            assets.insert(asset, at: 0)
-            archivedAssets.removeAll { $0.id == asset.id }
+            try? await FirebaseCreationLibrary.archive(asset: asset)
         }
     }
 
@@ -608,51 +629,115 @@ struct PendingGeneration: Codable, Equatable {
         if !assets.contains(where: { $0.id == asset.id }) {
             assets.insert(restored, at: 0)
         }
-        do {
-            try await FirebaseCreationLibrary.restore(asset: asset)
+        Task {
             if connected {
-                _ = try? await request("/api/v1/assets/\(asset.id)/restore", method: "POST")
+                _ = try? await request("/api/mobile/assets/\(asset.id)/restore", method: "POST")
             }
-        } catch {
-            archivedAssets.insert(asset, at: 0)
-            assets.removeAll { $0.id == asset.id }
+            try? await FirebaseCreationLibrary.restore(asset: asset)
         }
     }
 
     func loadArchived() async {
         if let archived = try? await FirebaseCreationLibrary.loadArchived() {
-            archivedAssets = archived
+            for a in archived {
+                if !archivedAssets.contains(where: { $0.id == a.id }) {
+                    archivedAssets.append(a)
+                }
+            }
+        }
+        if connected {
+            if let serverArchive = try? await request("/api/mobile/archive") as? [String: Any],
+               let owned = serverArchive["owned"] as? [[String: Any]] {
+                let serverAssets = owned.map { CraftAsset($0, base: apiBase) }
+                for sa in serverAssets {
+                    if !archivedAssets.contains(where: { $0.id == sa.id }) {
+                        archivedAssets.append(sa)
+                    }
+                }
+            }
+            if let serverProjects = try? await request("/api/mobile/projects?archived=true") as? [[String: Any]] {
+                let p = serverProjects.map { CraftProject($0, base: apiBase) }
+                for proj in p {
+                    if !archivedProjects.contains(where: { $0.id == proj.id }) {
+                        archivedProjects.append(proj)
+                    }
+                }
+            }
         }
     }
 
     func deletePermanently(_ asset: CraftAsset) async {
         assets.removeAll { $0.id == asset.id }
         archivedAssets.removeAll { $0.id == asset.id }
-        do {
-            try await FirebaseCreationLibrary.deletePermanently(asset: asset)
+        Task {
             if connected {
-                _ = try? await request("/api/v1/assets/\(asset.id)", method: "DELETE")
+                _ = try? await request("/api/mobile/assets/\(asset.id)", method: "DELETE")
             }
-        } catch { /* Handled */ }
+            try? await FirebaseCreationLibrary.deletePermanently(asset: asset)
+        }
     }
 
     func archiveProject(_ project: CraftProject) async {
+        let now = Date().timeIntervalSince1970
+        var archived = project
+        archived.archivedAt = now
         projects.removeAll { $0.id == project.id }
-        if connected {
-            _ = try? await request("/projects/\(project.id)", method: "DELETE")
+        if !archivedProjects.contains(where: { $0.id == project.id }) {
+            archivedProjects.insert(archived, at: 0)
+        }
+        Task {
+            if connected {
+                _ = try? await request("/api/mobile/projects/\(project.id)/archive", method: "POST")
+            }
         }
     }
 
     func restoreProject(_ project: CraftProject) async {
-        await refresh()
+        var restored = project
+        restored.archivedAt = nil
+        archivedProjects.removeAll { $0.id == project.id }
+        if !projects.contains(where: { $0.id == project.id }) {
+            projects.insert(restored, at: 0)
+        }
+        Task {
+            if connected {
+                _ = try? await request("/api/mobile/projects/\(project.id)/restore", method: "POST")
+            }
+        }
     }
 
     func deletePermanently(_ project: CraftProject) async {
         projects.removeAll { $0.id == project.id }
-        if connected {
-            _ = try? await request("/projects/\(project.id)", method: "DELETE")
+        archivedProjects.removeAll { $0.id == project.id }
+        Task {
+            if connected {
+                _ = try? await request("/api/mobile/projects/\(project.id)", method: "DELETE")
+            }
         }
     }
+
+    func isFavorite(_ id: String) -> Bool {
+        favoriteIDs.contains(id)
+    }
+
+    func toggleFavorite(_ id: String) {
+        if favoriteIDs.contains(id) {
+            removeFavorite(id)
+        } else {
+            addFavorite(id)
+        }
+    }
+
+    func addFavorite(_ id: String) {
+        favoriteIDs.insert(id)
+        UserDefaults.standard.set(favoriteIDs.sorted().joined(separator: ","), forKey: "craftFavorites")
+    }
+
+    func removeFavorite(_ id: String) {
+        favoriteIDs.remove(id)
+        UserDefaults.standard.set(favoriteIDs.sorted().joined(separator: ","), forKey: "craftFavorites")
+    }
+
     func syncCloudLibrary(force: Bool = false) {
         guard !cloudSyncing, (force || Date().timeIntervalSince(lastCloudSync) > 15), CraftAccount.shared.uid != nil else { return }
         cloudSyncing = true; lastCloudSync = Date()
@@ -1150,7 +1235,13 @@ struct PendingGeneration: Codable, Equatable {
             guard CraftAccount.shared.uid == requestUID else { throw CancellationError() }
         }
         guard !apiBase.isEmpty else { throw CraftError(message: t("Service is temporarily unavailable.", "服务暂时不可用。")) }
-        let base = apiBase.hasSuffix("/api/mobile") ? apiBase : (apiBase + "/api/mobile")
+        let base: String
+        if path.hasPrefix("/api/") {
+            let root = apiBase.replacingOccurrences(of: "/api/mobile", with: "")
+            base = root.hasSuffix("/") ? String(root.dropLast()) : root
+        } else {
+            base = apiBase.hasSuffix("/api/mobile") ? apiBase : (apiBase + "/api/mobile")
+        }
         guard let url=URL(string:base+path),["http","https"].contains(url.scheme ?? "") else{throw CraftError(message:"Invalid server URL.")}
         let host = url.host?.lowercased() ?? ""
         let isLocal = ["127.0.0.1", "localhost"].contains(host) || host.hasSuffix(".local") || host.starts(with: "192.168.") || host.starts(with: "10.") || host.starts(with: "172.")

@@ -38,6 +38,22 @@ export function GameHub() {
   const [playing, setPlaying] = useState(false);
   const setup = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (selected && !playing) setup.current?.showModal(); }, [selectedId, playing]);
+  useEffect(() => {
+    const linkWasm = document.createElement('link');
+    linkWasm.rel = 'prefetch';
+    linkWasm.href = '/games/forma/index.wasm';
+    linkWasm.as = 'fetch';
+    document.head.appendChild(linkWasm);
+    const linkPck = document.createElement('link');
+    linkPck.rel = 'prefetch';
+    linkPck.href = '/games/forma/index.pck';
+    linkPck.as = 'fetch';
+    document.head.appendChild(linkPck);
+    return () => {
+      linkWasm.remove();
+      linkPck.remove();
+    };
+  }, []);
   return <div className="game-hub" lang={locale==='zh'?'zh-CN':'en'}>
     <div className="game-intro"><div><h2>{t('在这里创作，在这里畅玩。')}</h2><p>{t('从 Explore 到真正的游戏世界。选择一个场景，亲手试试你的 3D 创作。')}</p></div><div className="game-intro-tools"><span><Gamepad2 size={16}/> {t('5 个可玩场景')}</span><LanguageSwitch locale={locale} onChange={changeLocale}/></div></div>
     <div className="game-grid">{games.map(game => <button key={game.id} className="game-card" onClick={() => {setSelected(game); setVehicle('scout');}} style={{'--game-accent':game.color} as React.CSSProperties}>
@@ -60,6 +76,7 @@ export function GamePlayer({game,vehicle,locale,onLocaleChange,onClose,customAss
   const frame=useRef<HTMLIFrameElement>(null);
   const root=useRef<HTMLDivElement>(null);
   const [state,setState]=useState<State|null>(null);
+  const [progress,setProgress]=useState<{current:number;total:number;percent:number}|null>(null);
   const [failed,setFailed]=useState('');
   const [mute,setMute]=useState(false);
   const [session,setSession]=useState(0);
@@ -73,6 +90,13 @@ export function GamePlayer({game,vehicle,locale,onLocaleChange,onClose,customAss
     if(app)app.inert=true;
     const receive=(event:MessageEvent)=>{
       if(event.origin!==window.location.origin||event.source!==frame.current?.contentWindow)return;
+      if(event.data?.channel==='forma-progress') {
+        setProgress({
+          current: event.data.current ?? 0,
+          total: event.data.total ?? 0,
+          percent: event.data.percent ?? (event.data.total > 0 ? Math.round((event.data.current / event.data.total) * 100) : 0)
+        });
+      }
       if(event.data?.channel==='forma-state')setState(event.data);
       if(event.data?.channel==='forma-error')setFailed(event.data.message||'游戏启动失败，请重新加载。');
     };
@@ -98,7 +122,7 @@ export function GamePlayer({game,vehicle,locale,onLocaleChange,onClose,customAss
   useEffect(()=>{if(!customAsset||!state||state.customAsset?.status==='ready'||state.customAsset?.status==='error')return;const timer=setTimeout(()=>setFailed('模型加载时间较长。请重试或返回模型查看器。'),120000);return()=>clearTimeout(timer);},[!!customAsset,!!state,state?.customAsset?.status,session]);
   const customReady=!customAsset||state?.customAsset?.status==='ready';
   const loadError=failed||(customAsset&&state?.customAsset?.status==='error'?(state.customAsset.error||t('无法加载此模型。请重试。')):'');
-  const restart=()=>{initialLocale.current=locale;setState(null);setFailed('');setMute(false);setSession(s=>s+1);};
+  const restart=()=>{initialLocale.current=locale;setProgress(null);setState(null);setFailed('');setMute(false);setSession(s=>s+1);};
   const held=(key:string)=>({onPointerDown:(e:React.PointerEvent<HTMLButtonElement>)=>{e.currentTarget.setPointerCapture(e.pointerId);send('input',{key,down:true});},onPointerUp:()=>send('input',{key,down:false}),onPointerCancel:()=>send('input',{key,down:false}),onLostPointerCapture:()=>send('input',{key,down:false})});
   const clock=(seconds:number)=>`${Math.floor(seconds/60).toString().padStart(2,'0')}:${(seconds%60).toFixed(1).padStart(4,'0')}`;
   return createPortal(<div ref={root} role="dialog" aria-modal="true" aria-label={`${game.title} ${t('游戏')}`} className={cn("game-player",game.id==='survivor'&&'game-player-survivor')} lang={locale==='zh'?'zh-CN':'en'} style={{'--game-accent':game.color} as React.CSSProperties}>
@@ -113,7 +137,7 @@ export function GamePlayer({game,vehicle,locale,onLocaleChange,onClose,customAss
     <output className="game-telemetry" aria-label={t('游戏状态')} data-state={JSON.stringify(state)}>{state.fps} FPS · {state.collisions} {t('碰撞')} · {state.explosions} {t('爆炸')}</output></>}
     {customReady&&<div className="game-controls"><div className="game-dpad"><button {...held('forward')} aria-label={t('前进')}><ArrowUp size={20}/></button><div><button {...held('left')} aria-label={t('左转')}><ArrowLeft size={20}/></button><button {...held('back')} aria-label={t('后退')}><ArrowDown size={20}/></button><button {...held('right')} aria-label={t('右转')}><ArrowRight size={20}/></button></div></div><div className="game-control-legend"><span>{game.controls}</span><small>{game.id==='survivor'?t('拾取灵光升级 · 靠近灯台点亮 · 闪避穿越敌群'):game.id==='dragon'?t('穿环补充能量 · 连续击碎水晶获得连击奖励'):< >Q {t('生成物体')} · {game.id==='ruins'?t('E 互动'):t('E 生成油桶')}</>}{game.id!=='survivor'&&<> · R {t('复位')}</>} · P {t('暂停')}</small></div><div className="game-abilities">{game.id==='survivor'?<button className="game-primary-action game-dash-action" {...held('dash')} title={t('闪避 (空格 / Shift)')}><Zap size={19}/><span>{t('闪避')}</span><small>{(state?.survivor?.dash??1)>=1?t('就绪'):`${Math.round((state?.survivor?.dash??0)*100)}%`}</small></button>:<>{game.id==='dragon'?<><button {...held('descend')} title={t('下降并着陆 (C)')}><ArrowDown size={18}/>{t('下降')}</button><button {...held('ascend')} title={t('起飞与上升 (空格)')}><ArrowUp size={18}/>{t('上升')}</button></>:<><button onClick={()=>send('crate')} title={t('生成熔岩方块 (Q)')}><Box size={19}/><span>{t('物体')}</span></button>{game.id!=='ruins'&&<button onClick={()=>send('barrel')} title={t('生成爆炸桶 (E)')}><span>{t('油桶')}</span></button>}</>}<button {...held('boost')} title={t('加速 (Shift)')} aria-label={t('加速')}><Sparkles size={18}/></button><button className="game-primary-action" {...held(game.id==='dragon'||game.id==='arena'?'fire':game.id==='race'?'brake':'jump')}>{game.id==='dragon'?<><Flame size={19}/>{t('喷火')}</>:game.id==='arena'?t('开火'):game.id==='race'?t('刹车'):t('跳跃')}</button></>}</div></div>}
     {state&&!customReady&&<output className="game-telemetry" aria-label={t('游戏状态')} data-state={JSON.stringify(state)}/> }
-    {(!state||loadError||!customReady)&&<div className="game-loading">{loadError?<Box size={35}/>:<div className="game-spinner"/>}<h2>{loadError?t('暂时无法进入'):customAsset?`${t('正在带入')} ${customAsset.name}`:`${t('正在进入')} ${game.title}`}</h2><p>{loadError?runtimeText(t(loadError),locale):customAsset?t('正在加载你的真实 3D 模型。准备好后，游戏才会开始。'):t('正在加载 Godot 引擎与 Explore 的真实 3D 模型…')}</p>{loadError&&<button className="game-start" onClick={restart}>{t('重新加载')}</button>}<button onClick={onClose}>{customAsset?t('返回模型'):t('返回 Game')}</button></div>}
+    {(!state||loadError||!customReady)&&<div className="game-loading">{loadError?<Box size={35}/>:<div className="game-spinner"/>}<h2>{loadError?t('暂时无法进入'):customAsset?`${t('正在带入')} ${customAsset.name}`:`${t('正在进入')} ${game.title}`}</h2><p>{loadError?runtimeText(t(loadError),locale):customAsset?t('正在加载你的真实 3D 模型。准备好后，游戏才会开始。'):t('正在加载 Godot 引擎与 Explore 的真实 3D 模型…')}</p>{progress && !loadError && <div className="game-download-progress" style={{width:'100%',maxWidth:'280px',margin:'14px auto 6px'}}><div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',color:'#cbd5e1',marginBottom:'6px'}}><span>{t('下载游戏资源')}</span><span style={{fontWeight:600}}>{progress.percent}%</span></div><div style={{width:'100%',height:'6px',background:'rgba(255,255,255,0.18)',borderRadius:'3px',overflow:'hidden'}}><div style={{width:`${Math.min(100,Math.max(0,progress.percent))}%`,height:'100%',background:'linear-gradient(90deg,#818cf8,#c084fc)',transition:'width 0.15s ease'}}/></div>{progress.total>0&&<div style={{fontSize:'11px',color:'#94a3b8',marginTop:'5px',textAlign:'center'}}>{(progress.current/(1024*1024)).toFixed(1)} MB / {(progress.total/(1024*1024)).toFixed(1)} MB</div>}</div>}{loadError&&<button className="game-start" onClick={restart}>{t('重新加载')}</button>}<button onClick={onClose}>{customAsset?t('返回模型'):t('返回 Game')}</button></div>}
     {customReady&&state?.status==='upgrading'&&state.survivor&&<UpgradePicker choices={state.survivor.choices} level={state.survivor.level} locale={locale} t={t} onChoose={index=>{send('upgrade',{index});frame.current?.focus();}}/>}
     {customReady&&state&&state.status!=='playing'&&state.status!=='upgrading'&&<div className="game-result"><section><span>{state.status==='paused'?t('已暂停'):state.status==='won'?t('已完成'):t('再试一次')}</span><h2>{state.status==='paused'?t('休息一下'):state.status==='won'?t('完成挑战'):t('再来一局')}</h2><p>{state.status==='paused'?game.objective:runtimeText(state.notice,locale)}</p>{state.status==='won'&&<strong>{clock(state.elapsed)} {best&&<small>{t('个人最佳')} {clock(best)}</small>}</strong>}<button className="game-start" onClick={()=>{if(state.status==='paused'){send('pause');frame.current?.focus();}else restart();}}>{state.status==='paused'?t('继续游戏'):t('再玩一次')}</button><button onClick={onClose}>{customAsset?t('返回模型'):t('选择其他游戏')}</button></section></div>}
   </div>,document.body);

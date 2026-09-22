@@ -16,36 +16,48 @@ enum LibraryGalleryFilter: String, CaseIterable, Identifiable {
 }
 
 enum LibraryGalleryItem: Identifiable {
-    case project(CraftProject, imageURL: URL?, active: Bool)
+    case project(CraftProject, imageURL: URL?, active: Bool, favorite: Bool = false)
     case asset(CraftAsset, favorite: Bool)
 
+    var rawID: String {
+        switch self {
+        case .project(let project, _, _, _): return project.id
+        case .asset(let asset, _): return asset.id
+        }
+    }
+    var isFavorite: Bool {
+        switch self {
+        case .project(_, _, _, let favorite): return favorite
+        case .asset(_, let favorite): return favorite
+        }
+    }
     var id: String {
         switch self {
-        case .project(let project, _, _): return "project:" + project.id
+        case .project(let project, _, _, _): return "project:" + project.id
         case .asset(let asset, _): return "asset:" + asset.id
         }
     }
     var name: String {
         switch self {
-        case .project(let project, _, _): return project.name
+        case .project(let project, _, _, _): return project.name
         case .asset(let asset, _): return asset.name
         }
     }
     var accessibilityID: String {
         switch self {
-        case .project(let project, _, _): return "library.project." + project.id
+        case .project(let project, _, _, _): return "library.project." + project.id
         case .asset(let asset, _): return "asset." + asset.id
         }
     }
     var isArchived: Bool {
         switch self {
-        case .project(let project, _, _): return project.isArchived
+        case .project(let project, _, _, _): return project.isArchived
         case .asset(let asset, _): return asset.isArchived
         }
     }
     var daysRemaining: Int {
         switch self {
-        case .project(let project, _, _): return project.daysRemaining
+        case .project(let project, _, _, _): return project.daysRemaining
         case .asset(let asset, _): return asset.daysRemaining
         }
     }
@@ -54,11 +66,14 @@ enum LibraryGalleryItem: Identifiable {
             return chinese ? "剩余 \(daysRemaining) 天" : "\(daysRemaining)d left"
         }
         switch self {
-        case .project(let project, _, let active):
+        case .project(let project, _, let active, _):
             if active { return chinese ? "正在生成" : "Creating" }
             let count = project.concepts.filter { $0.isOriginal != true }.count
-            return count == 0 ? (chinese ? "创作项目" : "Concept project")
-                : (chinese ? "\(count) 张概念图" : "\(count) " + (count == 1 ? "concept" : "concepts"))
+            if count == 0 {
+                let hasChat = !project.turns.isEmpty
+                return hasChat ? (chinese ? "未完成对话" : "Chat Draft") : (chinese ? "创作项目" : "Concept project")
+            }
+            return (chinese ? "\(count) 张概念图" : "\(count) " + (count == 1 ? "concept" : "concepts"))
         case .asset(let asset, _):
             if asset.isAnimated { return chinese ? "动画" : "Animation" }
             if asset.isConcept { return chinese ? "概念图" : "Concept" }
@@ -71,6 +86,8 @@ struct LibraryGallery: View {
     let items: [LibraryGalleryItem]
     let chinese: Bool
     var onModify: ((LibraryGalleryItem) -> Void)? = nil
+    var onFavorite: ((LibraryGalleryItem) -> Void)? = nil
+    var onUnfavorite: ((LibraryGalleryItem) -> Void)? = nil
     var onArchive: ((LibraryGalleryItem) -> Void)? = nil
     var onRestore: ((LibraryGalleryItem) -> Void)? = nil
     var onDeletePermanently: ((LibraryGalleryItem) -> Void)? = nil
@@ -107,6 +124,19 @@ struct LibraryGallery: View {
                             Label(chinese ? "彻底删除" : "Delete permanently", systemImage: "trash")
                         }
                     } else {
+                        if item.isFavorite {
+                            Button {
+                                onUnfavorite?(item)
+                            } label: {
+                                Label(chinese ? "移出收藏" : "Remove from Favorites", systemImage: "heart.slash")
+                            }
+                        } else {
+                            Button {
+                                onFavorite?(item)
+                            } label: {
+                                Label(chinese ? "加入收藏" : "Add to Favorites", systemImage: "heart")
+                            }
+                        }
                         Button {
                             onModify?(item)
                         } label: {
@@ -143,8 +173,13 @@ private struct LibraryGalleryCard: View {
                 }
                 .overlay(alignment: .bottomLeading) {
                     HStack(spacing: 4) {
-                        if case .asset(let asset, _) = item {
+                        switch item {
+                        case .asset(let asset, _):
                             Image(systemName: asset.isAnimated ? "film.fill" : (asset.isConcept ? "photo.fill" : "cube.fill"))
+                                .font(.system(size: 8))
+                        case .project(let project, _, _, _):
+                            let hasConcepts = project.concepts.contains(where: { $0.isOriginal != true })
+                            Image(systemName: hasConcepts ? "folder.fill" : "bubble.left.and.bubble.right.fill")
                                 .font(.system(size: 8))
                         }
                         Text(item.caption(chinese: chinese))
@@ -164,17 +199,13 @@ private struct LibraryGalleryCard: View {
                             .padding(.vertical, 3)
                             .background(Color.orange.opacity(0.88), in: Capsule())
                             .padding(6)
-                    } else {
-                        switch item {
-                        case .asset(_, let favorite) where favorite:
-                            Image(systemName: "heart.fill")
-                                .font(.caption).foregroundStyle(appearance.ink)
-                                .padding(8).background(.regularMaterial, in: Circle()).padding(8)
-                        case .project(_, _, let active) where active:
-                            ProgressView().tint(appearance.ink)
-                                .padding(8).background(.regularMaterial, in: Circle()).padding(8)
-                        default: EmptyView()
-                        }
+                    } else if item.isFavorite {
+                        Image(systemName: "heart.fill")
+                            .font(.caption).foregroundStyle(Color.pink)
+                            .padding(8).background(.regularMaterial, in: Circle()).padding(8)
+                    } else if case .project(_, _, let active, _) = item, active {
+                        ProgressView().tint(appearance.ink)
+                            .padding(8).background(.regularMaterial, in: Circle()).padding(8)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -192,11 +223,12 @@ private struct LibraryGalleryCard: View {
         switch item {
         case .asset(let asset, _):
             CraftThumbnailImage(url: asset.thumbURL ?? asset.sourceImageURL, inset: 7)
-        case .project(_, let url, _):
+        case .project(let project, let url, _, _):
             if let url {
                 CraftCachedImage(url: url).padding(6)
             } else {
-                placeholder("sparkles.rectangle.stack")
+                let hasChat = !project.turns.isEmpty
+                placeholder(hasChat ? "bubble.left.and.bubble.right" : "sparkles.rectangle.stack")
             }
         }
     }

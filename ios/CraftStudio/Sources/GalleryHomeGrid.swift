@@ -51,7 +51,10 @@ enum GalleryHomeCategory: String, CaseIterable, Identifiable {
 struct GalleryHomeGrid: View {
     let assets: [CraftAsset]
     let chinese: Bool
+    var isFavorite: ((CraftAsset) -> Bool)? = nil
     var onModify: ((CraftAsset) -> Void)? = nil
+    var onFavorite: ((CraftAsset) -> Void)? = nil
+    var onUnfavorite: ((CraftAsset) -> Void)? = nil
     var onArchive: ((CraftAsset) -> Void)? = nil
     let onSelect: (CraftAsset) -> Void
 
@@ -66,7 +69,7 @@ struct GalleryHomeGrid: View {
         LazyVStack(spacing: 10) {
             ForEach(Array(assets.enumerated()).filter { $0.offset % 2 == parity }, id: \.element.id) { index, asset in
                 Button { onSelect(asset) } label: {
-                    GalleryHomeTile(asset: asset, chinese: chinese, aspect: aspect(index: index, asset: asset))
+                    GalleryHomeTile(asset: asset, chinese: chinese, isFavorite: isFavorite?(asset) ?? false, aspect: aspect(index: index, asset: asset))
                 }
                 .buttonStyle(CraftPressStyle(scale: 0.97))
                 .accessibilityLabel(asset.name + ", " + GalleryHomeCategory.label(for: asset, chinese: chinese))
@@ -74,6 +77,19 @@ struct GalleryHomeGrid: View {
                 .accessibilityIdentifier("creation.asset." + asset.id)
                 .contextMenu {
                     if !asset.isExample {
+                        if isFavorite?(asset) == true {
+                            Button {
+                                onUnfavorite?(asset)
+                            } label: {
+                                Label(chinese ? "移出收藏" : "Remove from Favorites", systemImage: "heart.slash")
+                            }
+                        } else {
+                            Button {
+                                onFavorite?(asset)
+                            } label: {
+                                Label(chinese ? "加入收藏" : "Add to Favorites", systemImage: "heart")
+                            }
+                        }
                         Button {
                             onModify?(asset)
                         } label: {
@@ -106,6 +122,7 @@ private struct GalleryHomeTile: View {
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     let asset: CraftAsset
     let chinese: Bool
+    var isFavorite: Bool = false
     let aspect: CGFloat
 
     private var artworkURL: URL? {
@@ -154,6 +171,13 @@ private struct GalleryHomeTile: View {
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
                         .background(Color.orange.opacity(0.88), in: Capsule())
+                        .padding(6)
+                } else if isFavorite {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.pink)
+                        .padding(6)
+                        .background(.regularMaterial, in: Circle())
                         .padding(6)
                 }
             }

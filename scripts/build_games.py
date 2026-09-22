@@ -70,6 +70,26 @@ def main():
     if marker not in content:
         raise SystemExit("Godot HTML failure callback changed; update error forwarding before shipping.")
     content = content.replace(marker, marker + "\n\t\t\twindow.parent.postMessage({channel:'forma-error',message:String(err)},location.origin);")
+    prewarm_marker = "(function () {"
+    prewarm_code = """(function () {
+\tconst params = new URLSearchParams(window.location.search);
+\tif (params.get('prewarm') === '1') {
+\t\tPromise.all([fetch('index.wasm'), fetch('index.pck'), fetch('index.js')])
+\t\t\t.then(() => {
+\t\t\t\ttry { window.webkit?.messageHandlers?.craftGame?.postMessage({ action: 'prewarmed' }); } catch (e) {}
+\t\t\t\ttry { window.parent?.postMessage({ channel: 'forma-prewarmed' }, '*'); } catch (e) {}
+\t\t\t}).catch(console.error);
+\t\treturn;
+\t}"""
+    if prewarm_marker in content and "params.get('prewarm')" not in content:
+        content = content.replace(prewarm_marker, prewarm_code, 1)
+    progress_marker = "'onProgress': function (current, total) {"
+    progress_code = """'onProgress': function (current, total) {
+\t\t\t\tif (window.parent && window.parent !== window) {
+\t\t\t\t\twindow.parent.postMessage({ channel: 'forma-progress', current, total, percent: total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0 }, '*');
+\t\t\t\t}"""
+    if progress_marker in content and "forma-progress" not in content:
+        content = content.replace(progress_marker, progress_code, 1)
     html.write_text(content)
     size = sum((OUTPUT/name).stat().st_size for name in ["index.js", "index.wasm", "index.pck"])
     print(f"Web export ready: {OUTPUT} ({size/1024**2:.1f} MiB before HTTP compression)")

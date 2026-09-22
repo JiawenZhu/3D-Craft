@@ -6,6 +6,7 @@ const EN: Record<string,string> = {
   "当前角色":"Playing as",
   "正在带入":"Bringing in",
   "正在加载你的真实 3D 模型。准备好后，游戏才会开始。":"Loading your actual 3D model. The game starts once your model is ready.",
+  "下载游戏资源":"Downloading game assets",
   "返回模型":"Back to model",
   "让创作动起来":"FROM MODEL TO PLAY",
   "带进游戏，亲手试试。":"Take your model for a spin.",

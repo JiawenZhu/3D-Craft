@@ -346,14 +346,48 @@ class CloudCreations:
         clean = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
         return dict(restored=True, id=clean)
 
+    def archive_project(self, owner, project_id):
+        uid = uid_for(owner)
+        self.owned(uid, 'studioProjects', project_id)
+        now = time.time()
+        self.projects.ref(uid, 'studioProjects', project_id).update({'archivedAt': now})
+        for m in self.studio.records(owner, 'mobileCreations'):
+            if m.get('projectId') == project_id:
+                self.projects.ref(uid, 'mobileCreations', m['id']).update({'archivedAt': now})
+        return dict(archived=True, id=project_id, archivedAt=now)
+
+    def restore_project(self, owner, project_id):
+        uid = uid_for(owner)
+        self.owned(uid, 'studioProjects', project_id)
+        try:
+            from google.cloud import firestore
+            delete_op = firestore.DELETE_FIELD
+        except Exception:
+            delete_op = None
+        self.projects.ref(uid, 'studioProjects', project_id).update({'archivedAt': delete_op})
+        for m in self.studio.records(owner, 'mobileCreations'):
+            if m.get('projectId') == project_id:
+                self.projects.ref(uid, 'mobileCreations', m['id']).update({'archivedAt': delete_op})
+        return dict(restored=True, id=project_id)
+
     def purge_expired_archives(self, owner):
         now = time.time()
         purged = []
         for item in self.studio.records(owner, 'mobileCreations'):
             archived_at = item.get('archivedAt')
-            if archived_at and (now - seconds(archived_at) >= 30 * 86400):
+            sec = seconds(archived_at) if archived_at else None
+            if sec is not None and (now - sec >= 30 * 86400):
                 try:
                     self.delete_asset(owner, item['id'])
+                    purged.append(item['id'])
+                except Exception:
+                    pass
+        for item in self.studio.records(owner, 'studioProjects'):
+            archived_at = item.get('archivedAt')
+            sec = seconds(archived_at) if archived_at else None
+            if sec is not None and (now - sec >= 30 * 86400):
+                try:
+                    self.delete_project(owner, item['id'])
                     purged.append(item['id'])
                 except Exception:
                     pass

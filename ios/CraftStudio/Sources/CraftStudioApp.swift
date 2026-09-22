@@ -317,9 +317,16 @@ struct CraftRoot: View {
                     GalleryHomeGrid(
                         assets: galleryAssets,
                         chinese: store.isChinese,
+                        isFavorite: { store.isFavorite($0.id) },
                         onModify: { asset in
                             promptFocused = false
                             store.modifyAsset(asset)
+                        },
+                        onFavorite: { asset in
+                            store.addFavorite(asset.id)
+                        },
+                        onUnfavorite: { asset in
+                            store.removeFavorite(asset.id)
                         },
                         onArchive: { asset in
                             Task {

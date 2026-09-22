@@ -56,7 +56,11 @@ class MockDocRef:
         if not self._exists:
             from google.api_core.exceptions import NotFound
             raise NotFound("Document does not exist")
-        self._data.update(data)
+        for k, v in data.items():
+            if v is None or getattr(v, '__class__', None).__name__ == '_Sentinel' or 'Sentinel' in str(type(v)) or str(v).startswith('Sentinel'):
+                self._data.pop(k, None)
+            else:
+                self._data[k] = v
 
     def delete(self):
         self._data = {}

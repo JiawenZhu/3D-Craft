@@ -254,9 +254,60 @@ class RouteScopeTests(unittest.TestCase):
         self.studio.put('mobileCreations', 'model:a-legacy', projectId='mp-1', kind='3D object', createdAt=1_789_405_222_017,
                         modelStoragePath=f'users/{UID}/models/a-legacy.glb')  # older record, stored in milliseconds
         owned = self.client.get('/api/v1/assets', headers=self.key(['*'])).json()['owned']
-        self.assertEqual([a['id'] for a in owned], ['mj-new', 'a-legacy', 'mj-1'])
+        self.assertEqual([a['id'] for a in owned], ['mj-new', 'a-legacy', 'mj-1', 'mc-1'])
         self.assertEqual(owned[1]['createdAt'], 1_789_405_222.017)
         self.assertEqual(owned[0]['projectId'], 'mp-1')
+
+    def test_archive_and_restore_asset(self):
+        headers = self.key(['*', 'assets:delete'])
+        # Initially in active assets, not in archive
+        owned = self.client.get('/api/v1/assets', headers=headers).json()['owned']
+        self.assertIn('mj-1', [a['id'] for a in owned])
+        archived = self.client.get('/api/v1/archive', headers=headers).json()['owned']
+        self.assertNotIn('mj-1', [a['id'] for a in archived])
+
+        # Archive asset
+        res = self.client.post('/api/v1/assets/mj-1/archive', headers=headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()['archived'])
+
+        # Now in archive, not in active assets
+        owned = self.client.get('/api/v1/assets', headers=headers).json()['owned']
+        self.assertNotIn('mj-1', [a['id'] for a in owned])
+        archived = self.client.get('/api/v1/archive', headers=headers).json()['owned']
+        self.assertIn('mj-1', [a['id'] for a in archived])
+        self.assertTrue(archived[0]['isArchived'])
+        self.assertIsNotNone(archived[0]['daysRemaining'])
+
+        # Restore asset
+        res = self.client.post('/api/v1/assets/mj-1/restore', headers=headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()['restored'])
+
+        # Back in active assets, not in archive
+        owned = self.client.get('/api/v1/assets', headers=headers).json()['owned']
+        self.assertIn('mj-1', [a['id'] for a in owned])
+        archived = self.client.get('/api/v1/archive', headers=headers).json()['owned']
+        self.assertNotIn('mj-1', [a['id'] for a in archived])
+
+    def test_archive_and_restore_project(self):
+        headers = self.key(['*', 'assets:delete'])
+        # Archive project
+        res = self.client.post('/api/v1/projects/mp-1/archive', headers=headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()['archived'])
+
+        # Check mobile creations associated are also marked archived
+        snap = self.studio.doc('mobileCreations', 'model:mj-1')
+        self.assertIsNotNone(snap.get('archivedAt'))
+
+        # Restore project
+        res = self.client.post('/api/v1/projects/mp-1/restore', headers=headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()['restored'])
+
+        snap = self.studio.doc('mobileCreations', 'model:mj-1')
+        self.assertIsNone(snap.get('archivedAt'))
 
 if __name__ == '__main__':
     unittest.main()

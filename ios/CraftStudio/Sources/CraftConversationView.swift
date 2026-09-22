@@ -203,8 +203,35 @@ struct CraftConversationView: View {
             }
             Spacer()
             CreationCostButton(projectID: projectID, imageCount: count)
-            Button { settings = true } label: { Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44) }
-                .accessibilityLabel(store.t("Creation settings", "创作设置")).accessibilityIdentifier("chat.settings")
+            Menu {
+                if let project {
+                    Button {
+                        store.toggleFavorite(project.id)
+                    } label: {
+                        Label(store.isFavorite(project.id) ? store.t("Remove from Favorites", "移出收藏") : store.t("Add to Favorites", "加入收藏"),
+                              systemImage: store.isFavorite(project.id) ? "heart.slash" : "heart")
+                    }
+                }
+                Button { settings = true } label: {
+                    Label(store.t("Creation settings", "创作设置"), systemImage: "slider.horizontal.3")
+                }
+                if let project {
+                    Button(role: .destructive) {
+                        Task {
+                            await store.archiveProject(project)
+                            if isHome { store.activeConversationID = nil } else { dismiss() }
+                        }
+                    } label: {
+                        Label(store.t("Archive conversation", "归档此对话"), systemImage: "archivebox")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 20))
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel(store.t("Options", "选项"))
+            .accessibilityIdentifier("chat.options")
         }
         .foregroundStyle(appearance.ink).padding(.horizontal, 8).padding(.vertical, 4)
         .background(.regularMaterial)
@@ -629,6 +656,25 @@ struct CraftConversationView: View {
                 Section { PlannerModelPicker(); ImageModelPicker() }
                 Section { PricingDetailsToggle(); CreationCostButton(projectID: projectID, imageCount: count, iconOnly: false) }
                 Section { Button(store.t("Create concepts now", "现在生成概念图")) { settings = false; prepareImages() }.disabled(working || store.busy || thinking) }
+                if let project {
+                    Section {
+                        Button {
+                            store.toggleFavorite(project.id)
+                        } label: {
+                            Label(store.isFavorite(project.id) ? store.t("Remove from Favorites", "移出收藏") : store.t("Add to Favorites", "加入收藏"),
+                                  systemImage: store.isFavorite(project.id) ? "heart.slash" : "heart")
+                        }
+                        Button(role: .destructive) {
+                            settings = false
+                            Task {
+                                await store.archiveProject(project)
+                                if isHome { store.activeConversationID = nil } else { dismiss() }
+                            }
+                        } label: {
+                            Label(store.t("Archive this conversation", "归档此对话"), systemImage: "archivebox")
+                        }
+                    }
+                }
             }.navigationTitle(store.t("Creation settings", "创作设置")).navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button(store.t("Done", "完成")) { settings = false } } }
         }.tint(appearance.ink).craftAmbientHost()
