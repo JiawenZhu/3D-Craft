@@ -16,12 +16,28 @@ struct CraftAsset: Identifiable, Hashable, Codable {
     var fileSizeMb: Double
     var kind: String
     var isExample: Bool
+    var projectId: String?
+    var prompt: String?
+    var archivedAt: Double?
+    var creationKind: String?
+    var firestoreDocName: String?
+
     var modelURL: URL? { modelUrl.flatMap(URL.init(string:)) }
     var animationURL: URL? { animationUrl.flatMap(URL.init(string:)) }
     var isAnimated: Bool { animationUrl != nil }
+    var isConcept: Bool {
+        creationKind == "Concept image" || (modelUrl == nil && animationUrl == nil && (thumbUrl != nil || sourceImageUrl != nil))
+    }
+    var isArchived: Bool { archivedAt != nil }
+    var daysRemaining: Int {
+        guard let archivedAt else { return 30 }
+        let elapsed = Int((Date().timeIntervalSince1970 - archivedAt) / 86400)
+        return max(0, 30 - elapsed)
+    }
     var thumbURL: URL? { (thumbDisplayUrl ?? thumbUrl).flatMap(URL.init(string:)) }
-    init(id: String, name: String, modelUrl: String? = nil, thumbUrl: String? = nil, faces: Int = 0, fileSizeMb: Double = 0, kind: String = "character", isExample: Bool = false) {
+    init(id: String, name: String, modelUrl: String? = nil, thumbUrl: String? = nil, faces: Int = 0, fileSizeMb: Double = 0, kind: String = "character", isExample: Bool = false, animationUrl: String? = nil, sourceImageUrl: String? = nil, projectId: String? = nil, prompt: String? = nil, archivedAt: Double? = nil, creationKind: String? = nil, firestoreDocName: String? = nil) {
         self.id=id; self.name=name; self.modelUrl=modelUrl; self.thumbUrl=thumbUrl; self.faces=faces; self.fileSizeMb=fileSizeMb; self.kind=kind; self.isExample=isExample
+        self.animationUrl=animationUrl; self.sourceImageUrl=sourceImageUrl; self.projectId=projectId; self.prompt=prompt; self.archivedAt=archivedAt; self.creationKind=creationKind; self.firestoreDocName=firestoreDocName
     }
     init(_ d: [String:Any], base: String, example: Bool = false) {
         id=d["id"] as? String ?? UUID().uuidString; name=d["name"] as? String ?? "Untitled asset"
@@ -37,6 +53,11 @@ struct CraftAsset: Identifiable, Hashable, Codable {
         let n=name.lowercased()
         kind=d["kind"] as? String ?? (n.contains("car") || n.contains("taxi") || n.contains("van") ? "vehicle" : n.contains("dragon") || n.contains("bird") ? "flying" : "character")
         isExample=example
+        projectId = d["projectId"] as? String
+        prompt = d["prompt"] as? String
+        archivedAt = (d["archivedAt"] as? NSNumber)?.doubleValue ?? (d["archivedAt"] as? Double)
+        creationKind = d["creationKind"] as? String ?? d["kind"] as? String
+        firestoreDocName = d["firestoreDocName"] as? String
     }
     static var lantern: CraftAsset {
         var asset = CraftAsset(id:"bundled-lantern",name:"Lantern Explorer",modelUrl:Bundle.main.url(forResource:"lantern_cat",withExtension:"glb")?.absoluteString,thumbUrl:Bundle.main.url(forResource:"lantern_cat",withExtension:"jpg")?.absoluteString,faces:94108,fileSizeMb:10.37,isExample:true)
@@ -67,12 +88,21 @@ struct CraftProject: Identifiable, Codable {
     var brief: String { turns.last(where: { $0.status == "done" })?.brief ?? prompt }
 
     var id:String; var name:String; var prompt:String; var style:String; var imageUrl:String?; var concepts:[CraftConcept]
+    var archivedAt: Double?
+    var isArchived: Bool { archivedAt != nil }
+    var daysRemaining: Int {
+        guard let archivedAt else { return 30 }
+        let elapsed = Int((Date().timeIntervalSince1970 - archivedAt) / 86400)
+        return max(0, 30 - elapsed)
+    }
     init(_ d:[String:Any],base:String) {
         conversation = (d["conversation"] as? [[String:Any]] ?? []).compactMap { item in
             guard let data = try? JSONSerialization.data(withJSONObject: item) else { return nil }
             return try? JSONDecoder().decode(CraftChatTurn.self, from: data)
         }
-        id=d["id"] as? String ?? "";name=d["name"] as? String ?? "Untitled idea";prompt=d["prompt"] as? String ?? "";style=d["style"] as? String ?? "Stylized";imageUrl=resolved(d["imageUrl"] as? String,base:base);concepts=(d["concepts"] as? [[String:Any]] ?? []).map{CraftConcept($0,base:base)} }
+        id=d["id"] as? String ?? "";name=d["name"] as? String ?? "Untitled idea";prompt=d["prompt"] as? String ?? "";style=d["style"] as? String ?? "Stylized";imageUrl=resolved(d["imageUrl"] as? String,base:base);concepts=(d["concepts"] as? [[String:Any]] ?? []).map{CraftConcept($0,base:base)}
+        archivedAt = (d["archivedAt"] as? NSNumber)?.doubleValue ?? (d["archivedAt"] as? Double)
+    }
 }
 struct CraftJob: Identifiable, Codable {
     var sourcePrompt: String?

@@ -202,6 +202,7 @@ struct PendingGeneration: Codable, Equatable {
     }
     @Published var projects:[CraftProject]=[]
     @Published var assets:[CraftAsset]=[]
+    @Published var archivedAssets:[CraftAsset]=[]
     @Published var examples:[CraftAsset]=PublicGallery.bundled
     @Published var jobs:[CraftJob]=[]
     @Published var wallet=WalletState()
@@ -518,7 +519,11 @@ struct PendingGeneration: Codable, Equatable {
         guard uid != nil else { return }
         do {
             let saved = try await FirebaseCreationLibrary.load()
-            if CraftAccount.shared.uid == uid { assets = saved }
+            let archived = (try? await FirebaseCreationLibrary.loadArchived()) ?? []
+            if CraftAccount.shared.uid == uid {
+                assets = saved
+                archivedAssets = archived
+            }
         } catch { /* Keep the current cloud snapshot during transient failures. */ }
     }
     private var lastCloudSync = Date.distantPast
@@ -537,6 +542,7 @@ struct PendingGeneration: Codable, Equatable {
         do {
             try await refreshCreationState()
             if let cloudAssets = try? await FirebaseCreationLibrary.load(), CraftAccount.shared.uid == accountUID { assets = cloudAssets }
+            if let archived = try? await FirebaseCreationLibrary.loadArchived(), CraftAccount.shared.uid == accountUID { archivedAssets = archived }
             await refreshImageModelCatalog()
             await refreshPricing()
             guard CraftAccount.shared.uid == accountUID else { return }
@@ -547,6 +553,99 @@ struct PendingGeneration: Codable, Equatable {
             }
             syncCloudLibrary()
         }catch{if CraftAccount.shared.uid == accountUID { connectionFailed(error) }}
+    }
+
+    func modifyAsset(_ asset: CraftAsset) {
+        if let projectID = asset.projectId, projects.contains(where: { $0.id == projectID }) {
+            path = [.project(projectID)]
+            return
+        }
+        selectedTab = 0
+        if let prompt = asset.prompt, !prompt.isEmpty {
+            draftPrompt = prompt
+        } else if !asset.name.isEmpty && asset.name != "Untitled creation" && asset.name != "Untitled asset" {
+            draftPrompt = asset.name
+        }
+        focusComposerTrigger += 1
+        if let url = asset.sourceImageURL ?? asset.thumbURL {
+            Task {
+                if let (data, _) = try? await CraftCloudMedia.data(url), let img = UIImage(data: data) {
+                    await MainActor.run {
+                        self.saveDraftImage(img)
+                    }
+                }
+            }
+        }
+    }
+
+    func modifyProject(_ project: CraftProject) {
+        path = [.project(project.id)]
+    }
+
+    func archiveAsset(_ asset: CraftAsset) async {
+        let now = Date().timeIntervalSince1970
+        var archived = asset
+        archived.archivedAt = now
+        assets.removeAll { $0.id == asset.id }
+        if !archivedAssets.contains(where: { $0.id == asset.id }) {
+            archivedAssets.insert(archived, at: 0)
+        }
+        do {
+            try await FirebaseCreationLibrary.archive(asset: asset)
+            if connected {
+                _ = try? await request("/api/v1/assets/\(asset.id)/archive", method: "POST")
+            }
+        } catch {
+            assets.insert(asset, at: 0)
+            archivedAssets.removeAll { $0.id == asset.id }
+        }
+    }
+
+    func restoreAsset(_ asset: CraftAsset) async {
+        var restored = asset
+        restored.archivedAt = nil
+        archivedAssets.removeAll { $0.id == asset.id }
+        if !assets.contains(where: { $0.id == asset.id }) {
+            assets.insert(restored, at: 0)
+        }
+        do {
+            try await FirebaseCreationLibrary.restore(asset: asset)
+            if connected {
+                _ = try? await request("/api/v1/assets/\(asset.id)/restore", method: "POST")
+            }
+        } catch {
+            archivedAssets.insert(asset, at: 0)
+            assets.removeAll { $0.id == asset.id }
+        }
+    }
+
+    func deletePermanently(_ asset: CraftAsset) async {
+        assets.removeAll { $0.id == asset.id }
+        archivedAssets.removeAll { $0.id == asset.id }
+        do {
+            try await FirebaseCreationLibrary.deletePermanently(asset: asset)
+            if connected {
+                _ = try? await request("/api/v1/assets/\(asset.id)", method: "DELETE")
+            }
+        } catch { /* Handled */ }
+    }
+
+    func archiveProject(_ project: CraftProject) async {
+        projects.removeAll { $0.id == project.id }
+        if connected {
+            _ = try? await request("/projects/\(project.id)", method: "DELETE")
+        }
+    }
+
+    func restoreProject(_ project: CraftProject) async {
+        await refresh()
+    }
+
+    func deletePermanently(_ project: CraftProject) async {
+        projects.removeAll { $0.id == project.id }
+        if connected {
+            _ = try? await request("/projects/\(project.id)", method: "DELETE")
+        }
     }
     func syncCloudLibrary(force: Bool = false) {
         guard !cloudSyncing, (force || Date().timeIntervalSince(lastCloudSync) > 15), CraftAccount.shared.uid != nil else { return }

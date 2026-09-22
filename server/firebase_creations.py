@@ -314,27 +314,65 @@ class CloudCreations:
                     [] if shared else [path])
         return dict(deleted=True, id=concept_id)
 
-    def delete_asset(self, owner, asset_id):
-        uid = uid_for(owner)
-        clean = asset_id.removeprefix('model:').removeprefix('animation:')
-        record, item = None, None
-        for prefix in ('model:', 'animation:'):
+    def find_creation_record(self, uid, asset_id):
+        clean = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
+        for prefix in ('model:', 'animation:', 'concept:', ''):
             snap = self.projects.ref(uid, 'mobileCreations', prefix + clean).get()
             data = snap.to_dict() if snap.exists else None
             if data and data.get('ownerId') == uid:
-                record, item = prefix + clean, data
-                break
+                return prefix + clean, data
+        return None, None
+
+    def archive_asset(self, owner, asset_id):
+        uid = uid_for(owner)
+        record, item = self.find_creation_record(uid, asset_id)
         if item is None:
-            raise HTTPException(404, '3D object not found in your account.')
+            raise HTTPException(404, 'Creation not found in your account.')
+        now = time.time()
+        self.projects.ref(uid, 'mobileCreations', record).update({'archivedAt': now})
+        clean = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
+        return dict(archived=True, id=clean, archivedAt=now)
+
+    def restore_asset(self, owner, asset_id):
+        uid = uid_for(owner)
+        record, item = self.find_creation_record(uid, asset_id)
+        if item is None:
+            raise HTTPException(404, 'Creation not found in your account.')
+        try:
+            from google.cloud import firestore
+            self.projects.ref(uid, 'mobileCreations', record).update({'archivedAt': firestore.DELETE_FIELD})
+        except Exception:
+            self.projects.ref(uid, 'mobileCreations', record).update({'archivedAt': None})
+        clean = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
+        return dict(restored=True, id=clean)
+
+    def purge_expired_archives(self, owner):
+        now = time.time()
+        purged = []
+        for item in self.studio.records(owner, 'mobileCreations'):
+            archived_at = item.get('archivedAt')
+            if archived_at and (now - seconds(archived_at) >= 30 * 86400):
+                try:
+                    self.delete_asset(owner, item['id'])
+                    purged.append(item['id'])
+                except Exception:
+                    pass
+        return purged
+
+    def delete_asset(self, owner, asset_id):
+        uid = uid_for(owner)
+        clean = asset_id.removeprefix('model:').removeprefix('animation:').removeprefix('concept:')
+        record, item = self.find_creation_record(uid, asset_id)
+        if item is None:
+            raise HTTPException(404, 'Creation not found in your account.')
         refs = [self.projects.ref(uid, 'mobileCreations', record)]
         job = self.job(uid, clean)
         if job:
             self.ensure_idle([job])
             refs.append(self.projects.ref(uid, 'studioJobs', clean))
-        # Only this creation's own file is deleted; its preview is the concept
-        # image, which the project and any other creation still use.
         own = self.storage_path(uid, item.get('animationStoragePath') or item.get('modelStoragePath'))
         folder = 'animations' if item.get('kind') == 'Animated character' else 'models'
         paths = [own] if own and own.startswith(f'users/{uid}/{folder}/') else []
         self.remove(refs, paths)
         return dict(deleted=True, id=clean)
+

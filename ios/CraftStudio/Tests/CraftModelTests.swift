@@ -142,11 +142,13 @@ final class CraftModelTests:XCTestCase {
     func testAbsoluteModelURLIsPreserved(){XCTAssertEqual(resolved("https://example.com/a.glb",base:"http://127.0.0.1:8001"),"https://example.com/a.glb")}
 
     func testLibraryGalleryFiltersSeparate3DModelsAndAnimations() {
-        XCTAssertEqual(LibraryGalleryFilter.allCases.map(\.rawValue), ["all", "concepts", "models", "animations", "favorites"])
+        XCTAssertEqual(LibraryGalleryFilter.allCases.map(\.rawValue), ["all", "concepts", "models", "animations", "favorites", "archive"])
         XCTAssertEqual(LibraryGalleryFilter.animations.title(chinese: false), "Animations")
         XCTAssertEqual(LibraryGalleryFilter.animations.title(chinese: true), "动画")
         XCTAssertEqual(LibraryGalleryFilter.models.title(chinese: false), "3D models")
         XCTAssertEqual(LibraryGalleryFilter.models.title(chinese: true), "3D 模型")
+        XCTAssertEqual(LibraryGalleryFilter.archive.title(chinese: false), "Archive")
+        XCTAssertEqual(LibraryGalleryFilter.archive.title(chinese: true), "归档")
 
         let modelAsset = CraftAsset(id: "m-1", name: "Dragon 3D", modelUrl: "https://example.com/dragon.glb")
         var animAsset = CraftAsset(id: "a-1", name: "Dragon Jump")
@@ -159,5 +161,27 @@ final class CraftModelTests:XCTestCase {
         XCTAssertEqual(modelItem.caption(chinese: true), "3D 模型")
         XCTAssertEqual(animItem.caption(chinese: false), "Animation")
         XCTAssertEqual(animItem.caption(chinese: true), "动画")
+    }
+
+    func testArchivedAssetsAnd30DayRetention() {
+        let activeAsset = CraftAsset(id: "active-1", name: "Active Robot")
+        XCTAssertFalse(activeAsset.isArchived)
+        XCTAssertEqual(activeAsset.daysRemaining, 30)
+
+        let tenDaysAgo = Date().timeIntervalSince1970 - (10 * 86400)
+        let archivedAsset = CraftAsset(id: "archived-1", name: "Archived Car", archivedAt: tenDaysAgo)
+        XCTAssertTrue(archivedAsset.isArchived)
+        XCTAssertEqual(archivedAsset.daysRemaining, 20)
+
+        let item = LibraryGalleryItem.asset(archivedAsset, favorite: false)
+        XCTAssertTrue(item.isArchived)
+        XCTAssertEqual(item.caption(chinese: false), "20d left")
+        XCTAssertEqual(item.caption(chinese: true), "剩余 20 天")
+
+        let conceptAsset = CraftAsset(id: "concept-1", name: "Castle Concept", thumbUrl: "https://example.com/castle.jpg", creationKind: "Concept image")
+        XCTAssertTrue(conceptAsset.isConcept)
+        let conceptItem = LibraryGalleryItem.asset(conceptAsset, favorite: false)
+        XCTAssertEqual(conceptItem.caption(chinese: false), "Concept")
+        XCTAssertEqual(conceptItem.caption(chinese: true), "概念图")
     }
 }

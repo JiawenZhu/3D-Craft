@@ -12,7 +12,8 @@ enum GalleryHomeCategory: String, CaseIterable, Identifiable {
         }
     }
     func includes(_ asset: CraftAsset) -> Bool {
-        let character = ["character", "flying", "creature", "animal", "humanoid"].contains(asset.kind.lowercased())
+        if asset.isArchived { return false }
+        let character = ["character", "flying", "creature", "animal", "humanoid", "animated character"].contains(asset.kind.lowercased())
         return self == .userCreated || (self == .characters ? character : !character)
     }
     /// Public discovery and the owner's creations are distinct sources. Legacy
@@ -20,7 +21,7 @@ enum GalleryHomeCategory: String, CaseIterable, Identifiable {
     func assets(owned: [CraftAsset], examples: [CraftAsset]) -> [CraftAsset] {
         let source: [CraftAsset]
         if self == .userCreated {
-            source = owned.filter { !$0.isExample && $0.galleryExample != true }
+            source = owned.filter { !$0.isExample && $0.galleryExample != true && !$0.isArchived }
         } else {
             let curated = examples.filter { $0.galleryExample == true }
             source = curated.isEmpty ? examples.filter { $0.id == "bundled-lantern" } : curated
@@ -30,11 +31,17 @@ enum GalleryHomeCategory: String, CaseIterable, Identifiable {
     }
 
     static func label(for asset: CraftAsset, chinese: Bool) -> String {
+        if asset.isAnimated {
+            return chinese ? "动画" : "Animation"
+        }
+        if asset.isConcept {
+            return chinese ? "概念图" : "Concept"
+        }
         switch asset.kind.lowercased() {
         case "vehicle", "car": return chinese ? "载具" : "Vehicle"
         case "world", "environment", "scene", "building": return chinese ? "场景" : "World"
         case "character", "flying", "creature", "animal", "humanoid": return chinese ? "角色" : "Character"
-        default: return chinese ? "物件" : "Object"
+        default: return chinese ? "3D 模型" : "3D model"
         }
     }
 }
@@ -44,6 +51,8 @@ enum GalleryHomeCategory: String, CaseIterable, Identifiable {
 struct GalleryHomeGrid: View {
     let assets: [CraftAsset]
     let chinese: Bool
+    var onModify: ((CraftAsset) -> Void)? = nil
+    var onArchive: ((CraftAsset) -> Void)? = nil
     let onSelect: (CraftAsset) -> Void
 
     var body: some View {
@@ -63,6 +72,20 @@ struct GalleryHomeGrid: View {
                 .accessibilityLabel(asset.name + ", " + GalleryHomeCategory.label(for: asset, chinese: chinese))
                 .accessibilityHint(chinese ? "打开 3D 工作室" : "Open in the 3D studio")
                 .accessibilityIdentifier("creation.asset." + asset.id)
+                .contextMenu {
+                    if !asset.isExample {
+                        Button {
+                            onModify?(asset)
+                        } label: {
+                            Label(chinese ? "修改" : "Modify", systemImage: "sparkles")
+                        }
+                        Button(role: .destructive) {
+                            onArchive?(asset)
+                        } label: {
+                            Label(chinese ? "归档" : "Archive", systemImage: "archivebox")
+                        }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -88,7 +111,7 @@ private struct GalleryHomeTile: View {
     private var artworkURL: URL? {
         // Curated examples can include an intentional illustrated setting.
         // User asset thumbnails retain the existing transparent display path.
-        asset.isExample ? (asset.sourceImageURL ?? asset.thumbUrl.flatMap(URL.init(string:)) ?? asset.thumbURL) : asset.thumbURL
+        asset.isExample ? (asset.sourceImageURL ?? asset.thumbUrl.flatMap(URL.init(string:)) ?? asset.thumbURL) : (asset.thumbURL ?? asset.sourceImageURL)
     }
 
     var body: some View {
@@ -102,19 +125,37 @@ private struct GalleryHomeTile: View {
                         .frame(width: bounds.size.width, height: bounds.size.height)
                         .clipped()
                     } else {
-                        CraftThumbnailImage(url: asset.thumbURL, inset: 4)
+                        CraftThumbnailImage(url: artworkURL, inset: 4)
                             .frame(width: bounds.size.width, height: bounds.size.height)
                     }
                 }
             }
             .overlay(alignment: asset.kind == "vehicle" ? .bottomTrailing : .bottomLeading) {
-                Text(GalleryHomeCategory.label(for: asset, chinese: chinese))
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(appearance.ink)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(8)
+                HStack(spacing: 4) {
+                    if asset.isAnimated {
+                        Image(systemName: "film.fill").font(.system(size: 8))
+                    } else if asset.isConcept {
+                        Image(systemName: "photo.fill").font(.system(size: 8))
+                    }
+                    Text(GalleryHomeCategory.label(for: asset, chinese: chinese))
+                }
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(appearance.ink)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(.regularMaterial, in: Capsule())
+                .padding(8)
+            }
+            .overlay(alignment: .topTrailing) {
+                if asset.isArchived {
+                    Text(chinese ? "剩余 \(asset.daysRemaining) 天" : "\(asset.daysRemaining)d left")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.88), in: Capsule())
+                        .padding(6)
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(appearance.fill.opacity(0.10)))
@@ -131,3 +172,4 @@ private struct GalleryHomeTile: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+

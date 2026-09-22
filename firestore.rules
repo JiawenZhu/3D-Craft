@@ -21,7 +21,7 @@ service cloud.firestore {
       match /mobileCreations/{creationId} {
         allow read: if isOwner(uid);
         allow create, update: if isOwner(uid)
-          && request.resource.data.keys().hasOnly(['name','kind','createdAt','preview','source','ownerId','projectId','conceptIds','selectionKnown','prompt','modelStoragePath'])
+          && request.resource.data.keys().hasOnly(['name','kind','createdAt','preview','source','ownerId','projectId','conceptIds','selectionKnown','prompt','modelStoragePath','previewStoragePath','animationStoragePath','sourceImageStoragePath','archivedAt'])
           && request.resource.data.ownerId == uid
           && request.resource.data.source == 'ios'
           && (!('projectId' in request.resource.data) || request.resource.data.projectId is string)
@@ -29,8 +29,9 @@ service cloud.firestore {
           && (!('selectionKnown' in request.resource.data) || request.resource.data.selectionKnown is bool)
           && (!('prompt' in request.resource.data) || (request.resource.data.prompt is string && request.resource.data.prompt.size() <= 12000))
           && (!('modelStoragePath' in request.resource.data) || request.resource.data.modelStoragePath == '' || request.resource.data.modelStoragePath.matches('users/' + uid + '/models/[a-f0-9]{64}[.]glb'))
+          && (!('archivedAt' in request.resource.data) || request.resource.data.archivedAt is number)
           && request.resource.data.name is string && request.resource.data.name.size() <= 1000
-          && request.resource.data.kind in ['Concept image','3D object']
+          && request.resource.data.kind in ['Concept image','3D object','Animated character']
           && request.resource.data.createdAt is number
           && request.resource.data.preview is string && request.resource.data.preview.size() <= 650000
           && (request.resource.data.preview == '' || request.resource.data.preview.matches('data:image/jpeg;base64,[A-Za-z0-9+/=]+'));
