@@ -71,10 +71,28 @@ def body(words, image, effort='low'):
     return structured_body(SYSTEM,schema,'User asset description:\n'+words,image,effort,MAX_OUTPUT)
 
 
+def is_chinese_text(text: str) -> bool:
+    return any('\u4e00' <= char <= '\u9fff' for char in text)
+
+
 def chat_body(history, brief, style, image, effort='low'):
-    schema={k:v for k,v in CHAT_SCHEMA.items() if k!='additionalProperties'}
-    text=json.dumps({'selectedStyle':style,'currentBrief':brief,'conversation':history},ensure_ascii=False)
-    return structured_body(CHAT_SYSTEM,schema,text,image,effort,CHAT_MAX_OUTPUT)
+    schema = {k: v for k, v in CHAT_SCHEMA.items() if k != 'additionalProperties'}
+    latest_user_text = next((turn.get('text', '') for turn in reversed(history) if turn.get('role') == 'user'), '')
+    user_is_chinese = is_chinese_text(latest_user_text)
+    lang_directive = (
+        "User is communicating in Chinese (中文). All fields ('reply', 'suggestions', 'brief') MUST be in Chinese."
+        if user_is_chinese else
+        "User is communicating in English (or non-Chinese). All fields ('reply', 'suggestions', 'brief') MUST be strictly in English. Do NOT output Chinese words."
+    )
+    content_data = {
+        'selectedStyle': style,
+        'detectedUserLanguage': 'Chinese (zh-CN)' if user_is_chinese else 'English (en-US)',
+        'languageRequirement': lang_directive,
+        'currentBrief': brief,
+        'conversation': history
+    }
+    text = json.dumps(content_data, ensure_ascii=False)
+    return structured_body(CHAT_SYSTEM, schema, text, image, effort, CHAT_MAX_OUTPUT)
 
 
 def call(method, payload, model=MODEL):

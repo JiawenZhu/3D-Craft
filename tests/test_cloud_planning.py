@@ -66,6 +66,16 @@ class ProviderTests(unittest.TestCase):
         payload=p.chat_body(history,brief,'Stylized',None)
         self.assertEqual(payload['generationConfig']['maxOutputTokens'],p.CHAT_MAX_OUTPUT)
         self.assertEqual(len(payload['contents'][0]['parts']),1)
+        import json as _json
+        body_data = _json.loads(payload['contents'][0]['parts'][0]['text'])
+        self.assertEqual(body_data['detectedUserLanguage'], 'English (en-US)')
+        self.assertIn('strictly in English', body_data['languageRequirement'])
+
+        zh_history = [{'role': 'user', 'text': '做个吃鸡角色'}]
+        zh_payload = p.chat_body(zh_history, '', 'Stylized', None)
+        zh_body_data = _json.loads(zh_payload['contents'][0]['parts'][0]['text'])
+        self.assertEqual(zh_body_data['detectedUserLanguage'], 'Chinese (zh-CN)')
+        self.assertIn('中文', zh_body_data['languageRequirement'])
         valid={'reply':'Ready.','brief':'A garden swing.','ready':True,'suggestions':['Green','Green']}
         self.assertEqual(p.validate_answer(valid,'chat')['suggestions'],['Green'])
         for altered in ({'ready':'true'},{'brief':''},{'suggestions':[5]},{'suggestions':['a']*4}):

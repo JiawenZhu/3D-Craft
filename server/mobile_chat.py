@@ -22,7 +22,20 @@ class ChatTurnRequest(BaseModel):
 
 
 def plan_turn(owner, model, effort, history, image, style):
-    prompt = SYSTEM + "\nSelected style: " + style + "\nConversation (user content):\n" + json.dumps(history, ensure_ascii=False)
+    latest_user_text = next((turn.get("text", "") for turn in reversed(history) if turn.get("role") == "user"), "")
+    user_is_chinese = any("\u4e00" <= char <= "\u9fff" for char in latest_user_text)
+    lang_directive = (
+        "User is communicating in Chinese (中文). All fields ('reply', 'suggestions', 'brief') MUST be in Chinese."
+        if user_is_chinese else
+        "User is communicating in English (or non-Chinese). All fields ('reply', 'suggestions', 'brief') MUST be strictly in English. Do NOT use Chinese words."
+    )
+    content_data = {
+        "selectedStyle": style,
+        "detectedUserLanguage": "Chinese (zh-CN)" if user_is_chinese else "English (en-US)",
+        "languageRequirement": lang_directive,
+        "conversation": history
+    }
+    prompt = SYSTEM + "\nContext:\n" + json.dumps(content_data, ensure_ascii=False)
     if model == planning.DEFAULT_MODEL:
         parts = ([gemini._inline(image)] if image and image.is_file() else []) + [{"text": prompt}]
         data = gemini._call(gemini.GEMINI_TEXT_MODEL, {"contents": [{"role": "user", "parts": parts}],

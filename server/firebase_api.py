@@ -1096,6 +1096,7 @@ def v1_enhance_prompt(body: PromptEnhanceRequest, account=Depends(v1_owner)):
         from . import cloud_planner_provider
         system_inst = (
             "You are an expert 3D generative AI prompt engineer and creative director for 3D Craft. "
+            "MANDATORY LANGUAGE RULE: You MUST match the creator's language. If the creator prompt is in English, generate all fields ('enhancedPrompt', 'negativePrompt', 'suggestedStyle') 100% in English. If in Chinese, generate in Chinese. "
             "Given a creator's rough prompt, output a JSON object with: "
             "1. 'enhancedPrompt': an expanded, highly detailed description optimized for generative neural 3D and animation synthesis. "
             "2. 'negativePrompt': unwanted attributes to prevent deformities. "
