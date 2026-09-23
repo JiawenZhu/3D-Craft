@@ -23,9 +23,10 @@ gcloud builds submit --config=deploy/cloud-api/cloudbuild.yaml --project="$PROJE
 echo ""
 echo "==> Step 2: Finding the latest container image tag..."
 LATEST_IMAGE=$(gcloud artifacts docker images list "us-central1-docker.pkg.dev/$PROJECT_ID/craft-cloud/api" \
+  --include-tags \
   --sort-by=~CREATE_TIME \
   --limit=1 \
-  --format="value(IMAGE)")
+  --format="value(format('{0}:{1}', IMAGE, TAGS))")
 
 if [ -z "$LATEST_IMAGE" ]; then
   echo "Error: Could not retrieve latest image from Artifact Registry."
