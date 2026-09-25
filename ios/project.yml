@@ -18,7 +18,8 @@ settings:
     DEVELOPMENT_TEAM: C265XC3RH7
     GENERATE_INFOPLIST_FILE: YES
     MARKETING_VERSION: '2.0.1'
-    CURRENT_PROJECT_VERSION: '2026092401'
+    CURRENT_PROJECT_VERSION: '2026092402'
+    INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
 targets:
   CraftStudio:
     type: application
@@ -61,6 +62,7 @@ targets:
     info:
       path: CraftStudio/Configuration/Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CraftStudioAPIURL: https://3d-craft.web.app
@@ -95,6 +97,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: studio.craft.ios.widgets
         INFOPLIST_KEY_CFBundleDisplayName: 3D Craft
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         SKIP_INSTALL: YES
     entitlements:
       path: CraftStudioWidgets/CraftStudioWidgets.entitlements
@@ -104,6 +107,7 @@ targets:
     info:
       path: CraftStudioWidgets/Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
