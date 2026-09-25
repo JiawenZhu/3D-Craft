@@ -9,8 +9,8 @@
 <p align="center">
   <a href="https://3d-craft.web.app">Web studio</a> ·
   <a href="https://toolbox.marketingtools.apple.com/en-us/app-store/us/app/6811466883">App Store listing</a> ·
-  <a href="docs/design/image-to-3d-comparison/index.html">Image-to-3D comparison</a> ·
-  <a href="docs/design/video-provider-comparison/index.html">Video comparison</a>
+  <a href="https://3d-craft.web.app/docs/design/image-to-3d-comparison/index.html">Image-to-3D comparison</a> ·
+  <a href="https://3d-craft.web.app/docs/design/video-provider-comparison/index.html">Video comparison</a>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ Creation and animation are separate actions: selecting a concept does not silent
 | Games | Built-in browser games, game-building handoff, and community-submitted game links with review, voting, and reporting controls. |
 | Accounts and billing | Firebase accounts and cloud library; weekly/monthly Creator subscriptions and separate one-time Token packs through Apple purchases and RevenueCat. |
 
-The [image-to-3D comparison](docs/design/image-to-3d-comparison/index.html) and [video comparison](docs/design/video-provider-comparison/index.html) contain sample outputs and observations. They document particular test runs, not guaranteed results for every prompt or provider.
+The public [image-to-3D comparison](https://3d-craft.web.app/docs/design/image-to-3d-comparison/index.html) and [video comparison](https://3d-craft.web.app/docs/design/video-provider-comparison/index.html) contain interactive sample outputs and observations. They document particular test runs, not guaranteed results for every prompt or provider. The [3D methodology](docs/design/image-to-3d-comparison/README.md) and [video methodology](docs/design/video-provider-comparison/README.md) remain in this repository.
 
 ## Prices and Tokens
 

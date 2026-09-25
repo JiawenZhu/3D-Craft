@@ -1,6 +1,8 @@
 # 3D Craft image-to-3D provider comparison
 
-Open [the interactive comparison](index.html) through the repository's local HTTP server. The page loads optimized copies of each finished GLB on demand and lets you orbit it, switch between aligned front/side/back views, toggle clay shading, and download a preview copy. Its cards use local renders of the original outputs. [results.json](results.json) contains sanitized prediction IDs, timing, geometry, texture, and original file-size measurements. The raw provider files remain local because some exceed GitHub's file limit. The Atlas API credential and temporary signed media URLs are deliberately absent.
+**[View the public interactive comparison](https://3d-craft.web.app/docs/design/image-to-3d-comparison/index.html)** · [Back to 3D Craft](https://3d-craft.web.app/)
+
+Open [the public interactive comparison](https://3d-craft.web.app/docs/design/image-to-3d-comparison/index.html) to compare the finished models, example prices, and original file sizes. The page loads optimized copies of each finished GLB on demand and lets you orbit it, switch between aligned front/side/back views, toggle clay shading, and download a preview copy. Its cards use local renders of the original outputs. [results.json](results.json) contains sanitized prediction IDs, timing, geometry, texture, and original file-size measurements. The raw provider files remain local because some exceed GitHub's file limit. The Atlas API credential and temporary signed media URLs are deliberately absent.
 
 ## What was tested
 

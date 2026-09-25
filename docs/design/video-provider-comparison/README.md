@@ -1,6 +1,8 @@
 # Video provider comparison · 24 September 2026
 
-Open [the comparison page](index.html) to watch the clips and filter the full resolution/price table. The same five tested clips are bundled in the iOS app as labeled examples. The app now offers these Atlas animation models alongside its existing fal choices; the page itself never starts a generation.
+**[View the public video comparison](https://3d-craft.web.app/docs/design/video-provider-comparison/index.html)** · [Back to 3D Craft](https://3d-craft.web.app/)
+
+Open [the public comparison page](https://3d-craft.web.app/docs/design/video-provider-comparison/index.html) to watch the clips, see an example price beside each video, and filter the full resolution/price table. The same five tested Atlas clips are bundled in the iOS app as labeled examples. The app now offers these Atlas animation models alongside its existing fal choices; the page itself never starts a generation.
 
 ## Controlled sample
 
@@ -25,6 +27,6 @@ The comparison is for **image-to-video** APIs. Other tasks, models, duration ran
 
 ## Product implications
 
-Atlas Seedance 2.5 is the app's default animation choice for local version 2.5 testing: it preserves the character and loop boundary at a lower listed 480p rate than fal in this sample. Seedance 2.0 Mini is cheaper but changed lighting near the seam. MiniMax H3 is cheaper at 768p on fal, despite Atlas being cheaper on most other listed matching tiers. Wan Prime barely animated the requested action in this sample. Users can choose among the supported models and review the Token quote before generating.
+Atlas Seedance 2.5 preserved the character and loop boundary at a lower listed 480p rate than fal in this sample. The current iOS animation picker suggests Atlas MiniMax H3; this study is one historical comparison, not the app's current price list or default configuration. Seedance 2.0 Mini is cheaper but changed lighting near the seam. MiniMax H3 is cheaper at 768p on fal in the recorded rate card, despite Atlas being cheaper on most other matching tiers. Wan Prime barely animated the requested action in this sample. Users can choose among the supported models and review the current Token quote before generating.
 
 Existing Gemini image credits should be used before changing the image generator. Atlas Seedream 5.0 Pro is a different image model that needs subject-preservation tests. Tripo H3.1 was subsequently compared in the [3D study](../image-to-3d-comparison/README.md) and made the default 3D choice for local version 2.5 testing. App Token quotes use the pricing calculation rather than the old descriptive Seedance example.

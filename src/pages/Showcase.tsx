@@ -131,6 +131,7 @@ export function Showcase() {
         <nav>
           <a href="#explore">Characters & Objects</a>
           <a href="#how">How it works</a>
+          <a href="#comparisons">Compare models</a>
           <a href="#library">User Created</a>
           {user && <a href={API_ACCESS_PATH}>API access</a>}
           {user ? (
@@ -197,6 +198,37 @@ export function Showcase() {
                 <p>{body}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section className="showcase-comparisons" id="comparisons" aria-labelledby="comparisons-title">
+          <div className="comparisons-heading">
+            <span className="showcase-eyebrow"><Sparkles size={15} /> OPEN RESEARCH</span>
+            <h2 id="comparisons-title">See the results for yourself.</h2>
+            <p>Explore real outputs from the same blue-dragon reference. Rotate the 3D results, watch the video samples, and compare their measured costs. These are snapshots from specific tests; your result and current quote may differ.</p>
+          </div>
+          <div className="comparison-cards">
+            <a className="comparison-card" href="/docs/design/image-to-3d-comparison/index.html">
+              <div className="comparison-card-art comparison-card-art-3d">
+                <img src="/docs/design/image-to-3d-comparison/media/thumb-tripo.png" alt="Tripo H3.1 blue-dragon 3D sample" loading="lazy" />
+              </div>
+              <div className="comparison-card-copy">
+                <span>01 / INTERACTIVE 3D</span>
+                <h3>Image-to-3D comparison <ArrowUpRight size={21} /></h3>
+                <p>See 11 real results from one dragon picture. Compare the look and price, then rotate each finished 3D model.</p>
+              </div>
+            </a>
+            <a className="comparison-card" href="/docs/design/video-provider-comparison/index.html">
+              <div className="comparison-card-art comparison-card-art-video">
+                <img src="/docs/design/mascot-animations/source/cloud-dragon-960.jpg" alt="Blue-dragon reference used for six animation samples" loading="lazy" />
+                <span>Six real clips</span>
+              </div>
+              <div className="comparison-card-copy">
+                <span>02 / VIDEO MOTION</span>
+                <h3>Video model comparison <ArrowUpRight size={21} /></h3>
+                <p>Watch six versions of the same dragon animation, with example prices beside each video.</p>
+              </div>
+            </a>
           </div>
         </section>
 

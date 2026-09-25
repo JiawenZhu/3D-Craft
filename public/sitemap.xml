@@ -13,6 +13,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://3d-craft.web.app/docs/design/image-to-3d-comparison/index.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://3d-craft.web.app/docs/design/video-provider-comparison/index.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://3d-craft.web.app/api-access</loc>
     <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>

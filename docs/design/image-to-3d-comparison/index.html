@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>3D Craft · Image-to-3D field guide</title>
+<link rel="canonical" href="https://3d-craft.web.app/docs/design/image-to-3d-comparison/index.html">
+<title>Compare image-to-3D models · 3D Craft</title>
 <style>
   :root { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif; color: #172923; background: #f5f8f6; }
   * { box-sizing: border-box; }
@@ -36,6 +37,11 @@
   .insight p { margin: 0; color: #597064; font-size: 14px; line-height: 1.55; }
   .budget-note { display: flex; align-items: center; gap: 18px; margin-top: 16px; padding: 17px 21px; border: 1px solid #ddc9d2; border-radius: 18px; background: #fcf5f8; color: #684c5c; font-size: 14px; line-height: 1.5; }
   .budget-note strong { flex: none; color: #663d56; }
+  .quick-links { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+  .quick-links a { display:inline-block; padding:11px 16px; border:1px solid #cbdfd2; border-radius:99px; background:#fff; color:#28503b; font-size:13px; font-weight:750; text-decoration:none; }
+  .card-price { display:flex; align-items:baseline; gap:8px; margin:11px 0 5px; }
+  .card-price strong { font-size:23px; letter-spacing:-.04em; }
+  .card-price span { font-size:12px; color:#6c8071; }
   .studio { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(290px, .55fr); gap: 18px; }
   .stage { position: relative; height: 610px; overflow: hidden; border-radius: 29px; background: radial-gradient(circle at 50% 42%, #fff 0, #e6f4ed 56%, #d5ebe0 100%); border: 1px solid #d0e4d5; }
   .stage canvas { display: block; width: 100%; height: 100%; outline: none; }
@@ -57,9 +63,6 @@
   .model-card { min-width: 0; overflow: hidden; border: 1px solid #d9e5dd; border-radius: 23px; background: white; }
   .model-card.selected { outline: 2px solid #67b68a; }
   .model-card .visual { position: relative; width: 100%; aspect-ratio: 1.18; overflow: hidden; background: radial-gradient(circle, #fff 0, #edf8f1 66%, #e1f1e8 100%); display: grid; place-items: center; }
-  .model-card.over-budget { border-color: #ead6df; }
-  .model-card.over-budget .visual { background: radial-gradient(circle, #fff 0, #f9edf3 78%, #f2e2ec 100%); }
-  .budget-tag { position: absolute; top: 11px; left: 11px; padding: 6px 9px; border-radius: 99px; background: #fffdfdee; color: #804968; font-size: 10px; font-weight: 850; letter-spacing: .03em; }
   .model-card .visual img { display: block; width: 100%; height: 100%; object-fit: contain; }
   .model-card .visual .initial { color: #abc6b6; font-size: 58px; font-weight: 900; letter-spacing: -.08em; }
   .model-card .body { padding: 17px; }
@@ -97,44 +100,43 @@
 </head>
 <body>
 <main class="shell">
-  <div class="topline"><span>3D Craft / Research notebook</span><a href="../video-provider-comparison/index.html">Video model comparison ↗</a></div>
+  <div class="topline"><a href="/">← 3D Craft</a><a href="../video-provider-comparison/index.html">Video model comparison ↗</a></div>
   <header class="hero">
-    <div><div class="eyebrow">24 September 2026 · one app concept</div><h1>One image.<br><span>Ten 3D outcomes.</span></h1><p>We sent the same Cloud Dragon concept from 3D Craft’s gallery through AtlasCloud’s image-to-3D endpoints and compare optimized previews of the finished meshes with the app’s existing Rodin result. Rotate each model, inspect the side and back, then judge whether its shape, texture, cost, and original size fit the iPhone workflow.</p></div>
+    <div><div class="eyebrow">24 September 2026 · one dragon, 11 results</div><h1>One picture.<br><span>Many 3D results.</span></h1><p>See what ten Atlas models and one fal model made from the same Cloud Dragon picture. Compare the finished images and example prices, then rotate each model to see its sides and back. Choose the look and cost that fit your project.</p><nav class="quick-links" aria-label="On this page"><a href="#gallery">Compare pictures and prices ↓</a><a href="#viewer">Explore a model in 3D ↓</a><a href="#costs">See detailed costs ↓</a></nav></div>
     <div class="source-card"><img src="../gallery-samples/cloud-dragon.png" alt="Original Cloud Dragon concept used for each image-to-3D model"><div class="caption"><span><b>Cloud Dragon</b> · original concept</span><span>1254 × 1254 PNG</span></div></div>
   </header>
 
-  <section class="insights" aria-label="Main findings">
-    <div class="insight mint"><span class="kicker">Purpose</span><h3>See the actual meshes</h3><p>The source image alone cannot reveal back-side invention, missing wings, flattened geometry, or heavy textures. Every finished GLB is available in the interactive viewer below.</p></div>
-    <div class="insight violet"><span class="kicker">Fair comparison</span><h3>One concept, one run each</h3><p>Atlas used the unchanged 1254-pixel image; the app's Rodin baseline used its 1024-pixel normalization. These are single-shot product outputs, not a tuned best-of-many contest.</p></div>
-    <div class="insight"><span class="kicker">Current baseline</span><h3>Rodin · $0.40</h3><p>3D Craft’s existing Cloud Dragon model has 91,878 triangles and a 2048-pixel PBR texture. It gives us an app-specific reference for the new candidates.</p></div>
-  </section>
-  <div class="budget-note"><strong>Our test cap: under $1</strong><span>We will not spend our own credits on new tests above this amount. HI3D Quality ($1.105) and Master ($5.185) remain selectable in the app for users who choose to spend their Tokens. This page never starts a generation.</span></div>
-
-  <section class="section" id="viewer">
-    <div class="sectionhead"><div><span class="kicker">01 / Inspect the models</span><h2>The shape tells the story</h2></div><p>Drag to orbit. Scroll to zoom. Use Front, Side, and Back for repeatable views. The model files load only when selected, so this page remains usable on a phone.</p></div>
-    <div class="studio">
-      <div class="stage"><canvas id="modelCanvas" aria-label="Interactive 3D model viewer"></canvas><span class="badge" id="stageBadge">Current app baseline</span><span class="status" id="stageStatus">Loading Rodin model…</span></div>
-      <div class="viewer-info"><span class="kicker" id="selectedProvider">FAL / CURRENT APP</span><h3 id="selectedName">Rodin</h3><div class="sub" id="selectedSubtitle">Existing Cloud Dragon gallery asset</div><p id="selectedNote">The model currently used by 3D Craft’s gallery. Use it as the baseline when comparing the Atlas results.</p><div class="metric-grid" id="selectedMetrics"></div><div class="viewer-controls"><button class="pill" data-view="front">Front</button><button class="pill" data-view="side">Side</button><button class="pill" data-view="back">Back</button><button class="pill" id="spinButton">Pause rotation</button><button class="pill" id="clayButton">Clay view</button><a class="pill dark" id="downloadModel" href="../../../public/gallery/cloud-dragon.glb" download>Download preview GLB</a></div></div>
-    </div>
-    <div class="method"><b>Viewer note:</b> These are optimized display copies; the size and triangle metrics describe the original provider outputs. Lighting, centering, scale, and camera distance are normalized for inspection. Tripo's camera is turned 90° so its image-facing side appears under Front.</div>
+  <section class="insights" aria-label="What to compare">
+    <div class="insight mint"><span class="kicker">Look at the front</span><h3>Does it resemble your picture?</h3><p>Compare the face, wings, colors, and overall shape with the source image above.</p></div>
+    <div class="insight violet"><span class="kicker">Turn it around</span><h3>Check the unseen sides</h3><p>A model can look right from the front but add details to its back. Open any result in the 3D viewer to decide for yourself.</p></div>
+    <div class="insight"><span class="kicker">Check the numbers</span><h3>Compare price and size</h3><p>Each card shows the example generation price and original file size. Your current Token quote appears in the app before you generate.</p></div>
   </section>
 
   <section class="section" id="gallery">
-    <div class="sectionhead"><div><span class="kicker">02 / Every image model</span><h2>Choose an outcome</h2></div><p>Ten Atlas image endpoints from the linked 3D catalog, plus 3D Craft’s Rodin baseline. The Meshy “multi-image” test uses only the same one source, because a matched back/side set was not available for this concept.</p></div>
+    <div class="sectionhead"><div><span class="kicker">01 / Pictures and prices</span><h2>Compare every result</h2></div><p>These are real results from one request per model. The price is an example in US dollars for the settings used here, not your current Token quote. Tap “View rotating 3D” to inspect the actual shape.</p></div>
     <div class="model-grid" id="modelGrid"></div>
   </section>
 
+  <section class="section" id="viewer">
+    <div class="sectionhead"><div><span class="kicker">02 / Explore in 3D</span><h2>See every angle</h2></div><p>Drag to turn the model, scroll or pinch to zoom, or use the Front, Side, and Back buttons. The model loads when selected.</p></div>
+    <div class="studio">
+      <div class="stage"><canvas id="modelCanvas" aria-label="Interactive 3D model viewer"></canvas><span class="badge" id="stageBadge">Gallery example</span><span class="status" id="stageStatus">Loading Rodin model…</span></div>
+      <div class="viewer-info"><span class="kicker" id="selectedProvider">FAL / GALLERY EXAMPLE</span><h3 id="selectedName">Rodin</h3><div class="sub" id="selectedSubtitle">Existing Cloud Dragon gallery asset</div><p id="selectedNote">Face, wings, and tail stay close to the picture; the back has fewer added details.</p><div class="metric-grid" id="selectedMetrics"></div><div class="viewer-controls"><button class="pill" data-view="front">Front</button><button class="pill" data-view="side">Side</button><button class="pill" data-view="back">Back</button><button class="pill" id="spinButton">Pause rotation</button><button class="pill" id="clayButton">Clay view</button><a class="pill dark" id="downloadModel" href="media/rodin.glb" download>Download preview GLB</a></div></div>
+    </div>
+    <div class="method"><b>About this viewer:</b> These 3D previews were made smaller so they load more easily. File size and surface-detail numbers describe the original results. All models use the same lighting and scale here. Tripo was turned to show its picture-facing side under “Front.”</div>
+  </section>
+
   <section class="section" id="costs">
-    <div class="sectionhead"><div><span class="kicker">03 / Cost and mobile weight</span><h2>Price is only the beginning</h2></div><p>USD per completed run for the tested configuration. Published prices came from Atlas’s detailed pricing controls, not the generic “from $0.02” model cards. File size and triangles are measured on the delivered GLBs.</p></div>
-    <div class="tablebox"><table><thead><tr><th>Model</th><th>Tested mode</th><th>Listed cost</th><th>API-reported cost</th><th>vs Rodin</th><th>Elapsed</th><th>Triangles</th><th>GLB size</th><th>Color texture</th><th>Observed result</th></tr></thead><tbody id="comparisonRows"></tbody></table></div>
+    <div class="sectionhead"><div><span class="kicker">03 / More detail</span><h2>Compare the numbers</h2></div><p>Prices are in US dollars for the settings used in this test. A larger original file may take longer to download. “Triangles” are the small pieces making up a 3D surface; more pieces do not always make a result look better.</p></div>
+    <div class="tablebox"><table><thead><tr><th>Model</th><th>Settings tested</th><th>Example price</th><th>Price reported by service</th><th>vs gallery example</th><th>Test wait</th><th>Surface pieces</th><th>Original file size</th><th>Color image size</th><th>What we saw</th></tr></thead><tbody id="comparisonRows"></tbody></table></div>
     <div class="method"><b>Billing:</b> The ten listed Atlas configurations total $10.573. The account balance fell by exactly that amount after submission; this is an aggregate observation, not ten itemized invoices. Several API results report their own price, shown separately where available. Texture and PBR options differ by API, so compare the stated modes and delivered meshes together.</div>
   </section>
 
   <section class="section" id="decision">
-    <div class="sectionhead"><div><span class="kicker">04 / Product implications</span><h2>What belongs in 3D Craft?</h2></div><p>The existing flow is concept image → selected source → confirmation → generation → GLB review. A provider change must preserve that source handoff, user billing, and model export.</p></div>
+    <div class="sectionhead"><div><span class="kicker">04 / Make your own choice</span><h2>What matters for your creation?</h2></div><p>There is no single model that fits every picture or budget. Use the pictures, 3D viewer, and price table together.</p></div>
     <div class="comparison">
-      <div class="callout"><h3>For the first provider pilot</h3><p id="pilotConclusion">Keep Rodin as the current default. Tripo saves $0.18 per listed run and Seed3D saves $0.047, making them the only cheaper Atlas candidates from this test. Both need mesh and texture optimization before iPhone use, so net savings are not yet proven. Hunyuan Rapid is light but costs more and resembles the source less. Exclude HI3D Quality and Master on cost.</p><ul><li>Keep the original selected image and generation metadata with the finished asset.</li><li>Store provider prediction IDs, poll to a terminal status, and settle Tokens only after a usable mesh is verified.</li><li>Check GLB orientation, texture maps, vertex count, and download size on a physical iPhone.</li></ul></div>
-      <div class="callout"><h3>Limits of this round</h3><ul><li>One dragon is not enough to rank all subjects. A character with thin accessories and a hard-surface prop should be the next two inputs.</li><li>HI3D accepts up to four views and Meshy offers a multi-image endpoint, but this page does not claim a multi-view fidelity result from a single source.</li><li>The same Atlas catalog also lists four <strong>text-to-3D</strong> endpoints. They require a prompt rather than this image and are excluded from the same-input quality ranking.</li><li>Geometry density does not indicate rigging, animation, printability, or game performance. Those require separate checks.</li></ul></div>
+      <div class="callout"><h3>Look, price, and download size</h3><p>Start with the result that looks right to you, then rotate it to see whether the back and sides meet your needs. Compare the price and original file size before choosing it in the app. The app shows its current Token price before a generation begins.</p></div>
+      <div class="callout"><h3>What this test cannot tell you</h3><p>We tested one dragon once with each model. A person, prop, or another picture may turn out differently. Meshy’s “multi-image” result used only one picture, so it does not show what extra views could improve. The higher-priced HI3D examples are completed samples, and all listed models remain available in the app.</p></div>
     </div>
   </section>
 
@@ -142,7 +144,7 @@
     <div class="sectionhead"><div><span class="kicker">05 / Sources and reproducibility</span><h2>Check each claim</h2></div><p>Model and price availability checked 24 September 2026. Live pricing can change. The test credential and temporary signed provider URLs are not included in this report.</p></div>
     <div class="sources" id="sourceLinks"></div>
   </section>
-  <footer>Local review artifact for 3D Craft · No app provider or production pricing was changed by this comparison.</footer>
+  <footer>3D Craft research snapshot · Prices and model availability can change · <a href="/">Back to 3D Craft</a></footer>
 </main>
 <script type="module">
 import * as THREE from 'three';
@@ -152,29 +154,42 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const sourceRoot='https://www.atlascloud.ai/models/';
 const entries=[
-  {id:'rodin',name:'Rodin',provider:'fal / current app',model:'fal-ai/hyper3d/rodin',url:'https://fal.ai/models/fal-ai/hyper3d/rodin',file:'../../../public/gallery/cloud-dragon.glb',price:.4,mode:'High · PBR · one image',note:'Existing gallery result. This is the baseline already generated by 3D Craft.',baseline:true},
-  {id:'seed3d',name:'Seed3D 2.0',provider:'Atlas / ByteDance',model:'bytedance/seed3d-v2.0/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-seed3d.glb',price:.353,mode:'High subdivision · GLB',note:'ByteDance single-image textured mesh returned inside a ZIP.'},
-  {id:'tripo',name:'Tripo H3.1',provider:'Atlas / Tripo',model:'tripo-h3.1/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-tripo.glb',price:.22,mode:'Standard geometry · texture · PBR',facingYaw:90,note:'Low listed price with a very large default mesh; inspect fidelity and mobile weight together.'},
-  {id:'hunyuan-rapid',name:'Hunyuan Rapid',provider:'Atlas / Tencent',model:'tencent/hunyuan3d-rapid/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-hunyuan-rapid.glb',price:.5,mode:'Image · PBR on',note:'Faster, lighter Tencent tier with PBR material maps enabled.'},
-  {id:'hunyuan-pro',name:'Hunyuan Pro',provider:'Atlas / Tencent',model:'tencent/hunyuan3d-pro/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-hunyuan-pro.glb',price:.7,mode:'Normal · PBR on · default faces',note:'Higher-detail Tencent tier with a configurable polygon budget.'},
-  {id:'hi3d-fast',name:'HI3D v2.1 Fast',provider:'Atlas / HI3D',model:'hi3d/v2.1-fast/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-hi3d-fast.glb',price:.425,mode:'One image · texture · PBR',note:'Fastest 1536³ tier in the four-model HI3D family.'},
-  {id:'hi3d-pro',name:'HI3D v2.1 Pro',provider:'Atlas / HI3D',model:'hi3d/v2.1-pro/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-hi3d-pro.glb',price:.765,mode:'One image · texture · PBR',note:'More refinement on the 1536³ HI3D geometry family.'},
-  {id:'hi3d-quality',name:'HI3D v3.0 Quality',provider:'Atlas / HI3D',model:'hi3d/v3.0-quality/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-hi3d-quality.glb',price:1.105,mode:'One image · texture · PBR',note:'2048³ tier intended to retain fine structures.'},
-  {id:'hi3d-master',name:'HI3D v3.0 Master',provider:'Atlas / HI3D',model:'hi3d/v3.0-master/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-hi3d-master.glb',price:5.185,mode:'One image · texture · PBR',note:'Highest listed tier and far above the app’s usual per-model spend.'},
-  {id:'meshy-single',name:'Meshy v7',provider:'Atlas / Meshy',model:'meshy-v7/image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-meshy-single.glb',price:.66,mode:'One image · texture · PBR · 2K',note:'Single-image Meshy endpoint with standard texture generation.'},
-  {id:'meshy-multi',name:'Meshy v7 Multi',provider:'Atlas / Meshy',model:'meshy-v7/multi-image-to-3d',file:'../../../ios/CraftStudio/Resources/ModelComparisons/comparison-meshy-multi.glb',price:.66,mode:'One reference in multi endpoint',note:'Same front source sent through the multi-image endpoint; this is not a multi-view quality test.'},
+  {id:'rodin',name:'Rodin',provider:'fal / gallery baseline',model:'fal-ai/hyper3d/rodin',url:'https://fal.ai/models/fal-ai/hyper3d/rodin',file:'media/rodin.glb',price:.4,mode:'High · PBR · one image',note:'Existing gallery result. This is the baseline already generated by 3D Craft.',baseline:true},
+  {id:'seed3d',name:'Seed3D 2.0',provider:'Atlas / ByteDance',model:'bytedance/seed3d-v2.0/image-to-3d',file:'media/seed3d.glb',price:.353,mode:'High subdivision · GLB',note:'ByteDance single-image textured mesh returned inside a ZIP.'},
+  {id:'tripo',name:'Tripo H3.1',provider:'Atlas / Tripo',model:'tripo-h3.1/image-to-3d',file:'media/tripo.glb',price:.22,mode:'Standard geometry · texture · PBR',facingYaw:90,note:'Low listed price with a very large default mesh; inspect fidelity and mobile weight together.'},
+  {id:'hunyuan-rapid',name:'Hunyuan Rapid',provider:'Atlas / Tencent',model:'tencent/hunyuan3d-rapid/image-to-3d',file:'media/hunyuan-rapid.glb',price:.5,mode:'Image · PBR on',note:'Faster, lighter Tencent tier with PBR material maps enabled.'},
+  {id:'hunyuan-pro',name:'Hunyuan Pro',provider:'Atlas / Tencent',model:'tencent/hunyuan3d-pro/image-to-3d',file:'media/hunyuan-pro.glb',price:.7,mode:'Normal · PBR on · default faces',note:'Higher-detail Tencent tier with a configurable polygon budget.'},
+  {id:'hi3d-fast',name:'HI3D v2.1 Fast',provider:'Atlas / HI3D',model:'hi3d/v2.1-fast/image-to-3d',file:'media/hi3d-fast.glb',price:.425,mode:'One image · texture · PBR',note:'Fastest 1536³ tier in the four-model HI3D family.'},
+  {id:'hi3d-pro',name:'HI3D v2.1 Pro',provider:'Atlas / HI3D',model:'hi3d/v2.1-pro/image-to-3d',file:'media/hi3d-pro.glb',price:.765,mode:'One image · texture · PBR',note:'More refinement on the 1536³ HI3D geometry family.'},
+  {id:'hi3d-quality',name:'HI3D v3.0 Quality',provider:'Atlas / HI3D',model:'hi3d/v3.0-quality/image-to-3d',file:'media/hi3d-quality.glb',price:1.105,mode:'One image · texture · PBR',note:'2048³ tier intended to retain fine structures.'},
+  {id:'hi3d-master',name:'HI3D v3.0 Master',provider:'Atlas / HI3D',model:'hi3d/v3.0-master/image-to-3d',file:'media/hi3d-master.glb',price:5.185,mode:'One image · texture · PBR',note:'Highest listed tier and far above the app’s usual per-model spend.'},
+  {id:'meshy-single',name:'Meshy v7',provider:'Atlas / Meshy',model:'meshy-v7/image-to-3d',file:'media/meshy-single.glb',price:.66,mode:'One image · texture · PBR · 2K',note:'Single-image Meshy endpoint with standard texture generation.'},
+  {id:'meshy-multi',name:'Meshy v7 Multi',provider:'Atlas / Meshy',model:'meshy-v7/multi-image-to-3d',file:'media/meshy-multi.glb',price:.66,mode:'One reference in multi endpoint',note:'Same front source sent through the multi-image endpoint; this is not a multi-view quality test.'},
 ];
+const observations={
+  rodin:'Face, wings, and tail stay close to the picture; the back has fewer added details.',
+  seed3d:'The front and back stay close to the original dragon. The original file is larger.',
+  tripo:'The face and wings are recognizable. The original file has many surface pieces.',
+  'hunyuan-rapid':'The original file is smaller. The face changes and the back gains extra spines.',
+  'hunyuan-pro':'The front outline is clear, while the face is softer and the back adds spines.',
+  'hi3d-fast':'The front has clear wings and tail. The back adds clusters of spines.',
+  'hi3d-pro':'The front stays close to the picture. The back has larger added spines.',
+  'hi3d-quality':'The front has fine detail. The back includes prominent added spines.',
+  'hi3d-master':'The front has fine surface detail. The back adds spines, and this is the largest original file.',
+  'meshy-single':'The front and wings are clear. The back adds spines not shown in the picture.',
+  'meshy-multi':'Looks similar to the single-image Meshy result. This test supplied only one picture.',
+};
 for(const entry of entries) if(!entry.url)entry.url=sourceRoot+entry.model;
-let outcomes={};try{outcomes=await (await fetch('results.json')).json()}catch{}
-const fmtMoney=n=>n==null?'—':'$'+Number(n).toFixed(n<1?3:2);
+let outcomes={};
+const fmtMoney=n=>n==null?'—':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:3});
 const fmtInt=n=>n==null?'—':Number(n).toLocaleString('en-US');
-const fmtSize=n=>n==null?'—':(n/1024/1024).toFixed(1)+' MB';
+const fmtSize=n=>n==null?'—':(n/1e6).toFixed(1)+' MB';
 const fmtTime=n=>n==null?'—':n>=60?Math.floor(n/60)+'m '+Math.round(n%60)+'s':Math.round(n)+'s';
 const result=e=>outcomes[e.id]||{};
 
-function renderCards(){const grid=document.querySelector('#modelGrid');grid.innerHTML='';for(const e of entries){const o=result(e);const card=document.createElement('article');card.className='model-card'+(e.id===selectedId?' selected':'')+(e.price>=1?' over-budget':'');const ready=e.baseline||o.status==='completed';card.innerHTML=`<div class="visual">${e.price>=1?'<span class="budget-tag">Over $1 cap</span>':''}${o.thumbnail?`<img src="${o.thumbnail}" alt="${e.name} Cloud Dragon model preview" loading="lazy">`:`<span class="initial">${e.name.slice(0,2).toUpperCase()}</span>`}</div><div class="body"><span class="provider">${e.provider}</span><h3>${e.name}</h3><p>${o.verdict||e.note}</p><div class="facts"><span>${fmtMoney(e.price)}</span><span>${o.triangles!=null?fmtInt(o.triangles)+' triangles':(ready?'Model ready':o.status||'Awaiting result')}</span></div><button class="pill ${e.id===selectedId?'dark':''}" type="button">${ready?(e.price>=1?'Inspect completed result':'Inspect in 3D'):'Result pending'}</button></div>`;card.querySelector('button').disabled=!ready;card.querySelector('button').onclick=()=>selectModel(e.id);grid.append(card)}}
-function renderTable(){const rows=document.querySelector('#comparisonRows');rows.innerHTML='';for(const e of entries){const o=result(e);const tr=document.createElement('tr');const diff=e.price/.4;tr.innerHTML=`<td><a href="${e.url}" target="_blank" rel="noopener">${e.name}</a></td><td>${e.mode}</td><td class="cost ${e.price>=1?'caution':''}">${fmtMoney(e.price)}${e.price>=1?'<small> · excluded</small>':''}</td><td>${fmtMoney(o.reportedPriceUSD)}</td><td class="${diff>2?'caution':''}">${e.baseline?'Baseline':diff<1?(Math.round((1-diff)*100)+'% less'):(Math.round((diff-1)*100)+'% more')}</td><td>${fmtTime(o.elapsedSeconds)}</td><td>${fmtInt(o.triangles)}</td><td class="${o.bytes>40e6?'caution':''}">${fmtSize(o.bytes)}</td><td>${o.baseColorTexture?o.baseColorTexture.join(' × '):'—'}</td><td class="observation">${o.verdict||e.note}</td>`;rows.append(tr)}}
-function renderSources(){const c=document.querySelector('#sourceLinks');c.innerHTML='<p><a href="https://www.atlascloud.ai/models?type=Text-to-3D%2CImage-to-3D">Atlas 3D model catalog</a> · the ten image endpoints and four text endpoints</p><p><a href="https://www.atlascloud.ai/pricing/models">Atlas live pricing</a> · detailed Price Examples and configuration tiers</p><p><a href="../gallery-samples/README.md">3D Craft gallery generation record</a> · existing Rodin baseline and original image</p><p><a href="README.md">Methodology and limitations</a> · <a href="results.json">Sanitized prediction IDs and measurements</a></p>'+entries.map(e=>`<p><a href="${e.url}">${e.name} ${e.baseline?'on fal':'on Atlas'}</a></p>`).join('')}
+function renderCards(){const grid=document.querySelector('#modelGrid');grid.innerHTML='';for(const e of entries){const o=result(e);const card=document.createElement('article');card.className='model-card'+(e.id===selectedId?' selected':'');const ready=e.baseline||o.status==='completed';card.innerHTML=`<div class="visual">${o.thumbnail?`<img src="${o.thumbnail}" alt="${e.name} Cloud Dragon 3D result" loading="lazy">`:`<span class="initial">${e.name.slice(0,2).toUpperCase()}</span>`}</div><div class="body"><span class="provider">${e.provider}</span><h3>${e.name}</h3><div class="card-price"><strong>${fmtMoney(e.price)}</strong><span>example price / model</span></div><p>${observations[e.id]}</p><div class="facts"><span>Original file ${fmtSize(o.bytes)}</span></div><button class="pill ${e.id===selectedId?'dark':''}" type="button">${ready?'View rotating 3D':'Result pending'}</button></div>`;card.querySelector('button').disabled=!ready;card.querySelector('button').onclick=()=>{selectModel(e.id);document.querySelector('#viewer').scrollIntoView({behavior:'smooth',block:'start'})};grid.append(card)}}
+function renderTable(){const rows=document.querySelector('#comparisonRows');rows.innerHTML='';for(const e of entries){const o=result(e);const tr=document.createElement('tr');const diff=e.price/.4;tr.innerHTML=`<td><a href="${e.url}" target="_blank" rel="noopener">${e.name}</a></td><td>${e.mode}</td><td class="cost">${fmtMoney(e.price)}</td><td>${fmtMoney(o.reportedPriceUSD)}</td><td>${e.baseline?'Gallery example':diff<1?(Math.round((1-diff)*100)+'% less'):(Math.round((diff-1)*100)+'% more')}</td><td>${fmtTime(o.elapsedSeconds)}</td><td>${fmtInt(o.triangles)}</td><td>${fmtSize(o.bytes)}</td><td>${o.baseColorTexture?o.baseColorTexture.join(' × '):'—'}</td><td class="observation">${observations[e.id]}</td>`;rows.append(tr)}}
+function renderSources(){const c=document.querySelector('#sourceLinks');c.innerHTML='<p><a href="https://www.atlascloud.ai/models?type=Text-to-3D%2CImage-to-3D">Atlas 3D model catalog</a> · the ten image endpoints and four text endpoints</p><p><a href="https://www.atlascloud.ai/pricing/models">Atlas live pricing</a> · detailed Price Examples and configuration tiers</p><p><a href="https://github.com/JiawenZhu/3D-Craft/blob/master/docs/design/gallery-samples/README.md">3D Craft gallery generation record</a> · existing Rodin baseline and original image</p><p><a href="https://github.com/JiawenZhu/3D-Craft/blob/master/docs/design/image-to-3d-comparison/README.md">Methodology and limitations</a> · <a href="results.json">Sanitized prediction IDs and measurements</a></p>'+entries.map(e=>`<p><a href="${e.url}">${e.name} ${e.baseline?'on fal':'on Atlas'}</a></p>`).join('')}
 
 let selectedId='rodin',currentRoot=null,clay=false,spin=true,loadToken=0;
 const canvas=document.querySelector('#modelCanvas'),stage=canvas.parentElement,renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
@@ -188,12 +203,13 @@ function disposeRoot(){if(!currentRoot)return;scene.remove(currentRoot);currentR
 function status(message){document.querySelector('#stageStatus').textContent=message}
 function setView(which){const p={front:[0,.15,1],side:[1,.15,0],back:[0,.15,-1]}[which];if(!p)return;const yaw=THREE.MathUtils.degToRad(entries.find(e=>e.id===selectedId)?.facingYaw||0),c=Math.cos(yaw),s=Math.sin(yaw);spin=false;controls.autoRotate=false;document.querySelector('#spinButton').textContent='Resume rotation';camera.position.set((p[0]*c+p[2]*s)*fitRadius*2.8,p[1]*fitRadius*2.8,(p[2]*c-p[0]*s)*fitRadius*2.8);camera.lookAt(0,0,0);controls.target.set(0,0,0);controls.update()}
 function applyClay(){if(!currentRoot)return;currentRoot.traverse(node=>{if(!node.isMesh)return;if(clay){node.userData.originalMaterial=node.material;node.material=new THREE.MeshStandardMaterial({color:0xaab7ad,roughness:.83,metalness:0,side:THREE.DoubleSide})}else{node.material.dispose();node.material=node.userData.originalMaterial;delete node.userData.originalMaterial}})}
-async function selectModel(id){const e=entries.find(x=>x.id===id);if(!e)return;selectedId=id;const o=result(e);document.querySelector('#selectedProvider').textContent=e.provider.toUpperCase();document.querySelector('#selectedName').textContent=e.name;document.querySelector('#selectedSubtitle').textContent=e.model;document.querySelector('#selectedNote').textContent=o.verdict||e.note;document.querySelector('#stageBadge').textContent=e.baseline?'Current app baseline':e.price>=1?'Over $1 cap · completed test':'Atlas generated result';document.querySelector('#selectedMetrics').innerHTML=[['Listed cost',fmtMoney(e.price)],['Triangles',fmtInt(o.triangles)],['GLB file',fmtSize(o.bytes)],['Elapsed',fmtTime(o.elapsedSeconds)]].map(([k,v])=>`<div class="metric"><strong>${v}</strong><span>${k}</span></div>`).join('');document.querySelector('#downloadModel').href=e.file;renderCards();const token=++loadToken;status('Loading '+e.name+'…');clay=false;document.querySelector('#clayButton').textContent='Clay view';loader.load(e.file,gltf=>{if(token!==loadToken)return;disposeRoot();currentRoot=gltf.scene;scene.add(currentRoot);const bounds=new THREE.Box3().setFromObject(currentRoot),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());if(!Number.isFinite(size.length())||size.length()===0){status('This GLB has no displayable geometry');return}currentRoot.position.sub(center);const maxDim=Math.max(size.x,size.y,size.z),scale=2.5/maxDim;currentRoot.scale.setScalar(scale);fitRadius=2.5;camera.near=.01;camera.far=100;camera.updateProjectionMatrix();setView('front');status('Drag to orbit · scroll to zoom');window.dispatchEvent(new CustomEvent('model-ready',{detail:{id}}))},undefined,err=>{if(token===loadToken)status('Could not load this GLB: '+(err?.message||'unknown error'))})}
+async function selectModel(id){const e=entries.find(x=>x.id===id);if(!e)return;selectedId=id;const o=result(e);document.querySelector('#selectedProvider').textContent=e.provider.toUpperCase();document.querySelector('#selectedName').textContent=e.name;document.querySelector('#selectedSubtitle').textContent=e.model;document.querySelector('#selectedNote').textContent=observations[e.id];document.querySelector('#stageBadge').textContent=e.baseline?'Gallery example':'Finished 3D result';document.querySelector('#selectedMetrics').innerHTML=[['Example price',fmtMoney(e.price)],['Surface pieces',fmtInt(o.triangles)],['Original file',fmtSize(o.bytes)],['Test time',fmtTime(o.elapsedSeconds)]].map(([k,v])=>`<div class="metric"><strong>${v}</strong><span>${k}</span></div>`).join('');document.querySelector('#downloadModel').href=e.file;renderCards();const token=++loadToken;status('Loading '+e.name+'…');clay=false;document.querySelector('#clayButton').textContent='Clay view';loader.load(e.file,gltf=>{if(token!==loadToken)return;disposeRoot();currentRoot=gltf.scene;scene.add(currentRoot);const bounds=new THREE.Box3().setFromObject(currentRoot),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());if(!Number.isFinite(size.length())||size.length()===0){status('This GLB has no displayable geometry');return}currentRoot.position.sub(center);const maxDim=Math.max(size.x,size.y,size.z),scale=2.5/maxDim;currentRoot.scale.setScalar(scale);fitRadius=2.5;camera.near=.01;camera.far=100;camera.updateProjectionMatrix();setView('front');status('Drag to orbit · scroll to zoom');window.dispatchEvent(new CustomEvent('model-ready',{detail:{id}}))},undefined,err=>{if(token===loadToken)status('Could not load this GLB: '+(err?.message||'unknown error'))})}
 for(const button of document.querySelectorAll('[data-view]'))button.onclick=()=>setView(button.dataset.view);
 document.querySelector('#spinButton').onclick=()=>{spin=!spin;controls.autoRotate=spin;document.querySelector('#spinButton').textContent=spin?'Pause rotation':'Resume rotation'};
 document.querySelector('#clayButton').onclick=()=>{clay=!clay;applyClay();document.querySelector('#clayButton').textContent=clay?'Textured view':'Clay view'};
 window.craftViewer={select:selectModel,capture:()=>{controls.update();renderer.render(scene,camera);return canvas.toDataURL('image/png')},models:entries.map(e=>e.id)};
-renderCards();renderTable();renderSources();selectModel('rodin');
+async function initialize(){try{outcomes=await (await fetch('results.json')).json()}catch{}renderCards();renderTable();renderSources();selectModel('rodin')}
+initialize();
 </script>
 </body>
 </html>
