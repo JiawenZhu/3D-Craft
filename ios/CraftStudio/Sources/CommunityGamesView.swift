@@ -43,7 +43,7 @@ struct CommunityGamesView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var account = CraftAccount.shared
-    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .emerald
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @State private var category: CommunityCategory = .fun
     @State private var games: [CommunityGame] = []
     @State private var mine = false

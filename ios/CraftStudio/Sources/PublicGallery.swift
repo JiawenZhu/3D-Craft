@@ -24,7 +24,7 @@ import SwiftUI
 
 /// Signed-out users can explore examples; creation and the private library still require an account.
 struct PublicDiscoveryView: View {
-    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .emerald
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @EnvironmentObject var store: CraftStore
     @State private var category: GalleryHomeCategory = .characters
     @State private var categoryCount = 0

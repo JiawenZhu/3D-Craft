@@ -56,6 +56,11 @@ import StoreKitTest
             if ProcessInfo.processInfo.arguments.contains("--preview-intro") { CraftIntroductionView(onFinish: {}) }
             else if ProcessInfo.processInfo.arguments.contains("--preview-paywall") { PaywallView() }
             else if ProcessInfo.processInfo.arguments.contains("--preview-community") { NavigationStack { CommunityGamesView() }.craftAmbientHost() }
+            else if ProcessInfo.processInfo.arguments.contains("--preview-animation-models") {
+                AnimationGenerationSheet(concept: CraftConcept(["id":"preview","projectId":"preview","name":"Cloud Dragon",
+                    "imageUrl":Bundle.main.url(forResource:"minimax-h3",withExtension:"jpg",subdirectory:"VideoComparisons")?.absoluteString ?? ""],base:""),
+                    chinese:store.isChinese) { _,_,_,_ in }
+            }
             else if ProcessInfo.processInfo.arguments.contains("--preview-model-prompt") {
                 ModelGenerationSheet(concept: CraftConcept(["id":"preview","projectId":"preview","name":"Lantern Explorer",
                     "imageUrl":Bundle.main.url(forResource:"lantern_cat",withExtension:"jpg")?.absoluteString ?? ""],base:""), chinese:store.isChinese) { _,_,_,_,_ in }

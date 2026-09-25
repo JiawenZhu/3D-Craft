@@ -220,6 +220,9 @@ private struct CraftVideoExample: Identifiable {
     var quoteDuration: String { id == "minimax-h3" ? "5" : "4" }
 
     static let all: [Self] = [
+        .init(id: "atlas-minimax-h3", name: "MiniMax H3", provider: "Atlas",
+              note: "Smooth gaze and head movement; this sample was rendered at 768p.",
+              sample: "minimax-h3", sampleDetails: "Dragon sample · 768p · 4 seconds"),
         .init(id: "atlas-seedance-2.5", name: "Seedance 2.5", provider: "Atlas",
               note: "Best source fidelity and loop continuity in our single Dragon comparison.",
               sample: "seedance-2.5", sampleDetails: "Dragon sample · 480p · 4 seconds"),
@@ -232,9 +235,6 @@ private struct CraftVideoExample: Identifiable {
         .init(id: "atlas-wan-3.0-prime", name: "Wan 3.0 Prime", provider: "Atlas",
               note: "Preserved the pose, though its movement was subtle in this sample.",
               sample: "wan-3.0-prime", sampleDetails: "Dragon sample · 480p · 4 seconds"),
-        .init(id: "atlas-minimax-h3", name: "MiniMax H3", provider: "Atlas",
-              note: "Smooth gaze and head movement; this sample was rendered at 768p.",
-              sample: "minimax-h3", sampleDetails: "Dragon sample · 768p · 4 seconds"),
         .init(id: "minimax-h3", name: "MiniMax H3", provider: "fal",
               note: "Existing app option. Atlas's sample above is from a different provider.",
               sample: nil, sampleDetails: "No matching sample in this comparison"),
@@ -263,7 +263,6 @@ struct AnimationGenerationSheet: View {
     @State private var showShortfallModal = false
     @State private var shortfallNeeded = 0
     @State private var showTokenPacks = false
-    @State private var showModelChoices = false
     @State private var playingSample = false
     @State private var choicePrices: [String: Int] = [:]
     @State private var unavailableChoices: Set<String> = []
@@ -279,20 +278,25 @@ struct AnimationGenerationSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text(t("Bring this character to life", "让这个角色动起来"))
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text(t("A short silent loop that starts and ends on the same pose, so it repeats cleanly. Use it in a game, a video, or anywhere you like.",
-                           "生成一段无声循环动画，首尾同一姿势，可以无缝重复播放。可用于游戏、视频或任何你喜欢的地方。"))
-                        .font(.subheadline).foregroundStyle(.secondary)
-
                     if let url = URL(string: concept.imageUrl) {
-                        CraftThumbnailImage(url: url).scaledToFit()
-                            .frame(height: 180).frame(maxWidth: .infinity)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        HStack(spacing: 12) {
+                            CraftThumbnailImage(url: url).scaledToFill()
+                                .frame(width: 68, height: 68).clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(t("Your character", "你的角色"))
+                                    .font(.subheadline.weight(.semibold))
+                                Text(t("The videos below are examples from each model.",
+                                       "下方视频是各模型的示例。"))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(10)
+                        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 16))
                     }
 
-                    modelChoice
+                    modelComparison
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text(t("What should it do?", "让它做什么？")).font(.subheadline.weight(.semibold))
@@ -335,7 +339,10 @@ struct AnimationGenerationSheet: View {
                 }
             }
             .safeAreaInset(edge: .bottom) { generateButton }
-            .onAppear { if model != suggestedModel { model = suggestedModel } }
+            .onAppear {
+                if model != suggestedModel { model = suggestedModel }
+                playingSample = !reduceMotion && selectedExample.sample != nil
+            }
             .onChange(of: model) { _, newModel in
                 if newModel == "minimax-h3" {
                     duration = "5"
@@ -347,10 +354,9 @@ struct AnimationGenerationSheet: View {
                     duration = "4"
                     resolution = "480p"
                 }
-                playingSample = false
+                playingSample = !reduceMotion && selectedExample.sample != nil
             }
             .task(id: model + resolution + duration) { await refreshCost() }
-            .sheet(isPresented: $showModelChoices) { modelChoices }
             .sheet(isPresented: $showShortfallModal) {
                 TokenShortfallModalView(needed: shortfallNeeded, available: store.wallet.available) {
                     showTokenPacks = true
@@ -362,26 +368,47 @@ struct AnimationGenerationSheet: View {
                     .craftAmbientHost()
             }
         }
+        .tint(appearance.ink)
     }
 
-    private var modelChoice: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(t("Animation model", "动画模型")).font(.subheadline.weight(.semibold))
-            Button { showModelChoices = true } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(selectedExample.name).font(.headline)
-                        Text(selectedExample.provider).font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                }
-                .padding(14)
-                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 16))
+    private var modelComparison: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(t("Compare animation models", "比较动画模型"))
+                    .font(.headline)
+                Spacer()
+                Text(t("Tap to preview", "点击预览"))
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("animation.model")
-            Text(selectedExample.note).font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                samplePreview
+                Text(t("Choose a model", "选择模型"))
+                    .font(.subheadline.weight(.semibold))
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(alignment: .top, spacing: 10) {
+                            ForEach(CraftVideoExample.all) { example in
+                                modelCard(example).id(example.id)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .onAppear { proxy.scrollTo(model, anchor: .center) }
+                    .onChange(of: model) { _, choice in
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            proxy.scrollTo(choice, anchor: .center)
+                        }
+                    }
+                }
+                Text(selectedExample.note)
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(t("These are Dragon examples from the named provider. Your character and result will differ. fal models have no matching sample yet.",
+                       "这些是对应服务商的龙角色样片。你的角色和结果会有所不同。fal 模型暂时没有对应样片。"))
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+
             if model.hasPrefix("atlas-"), !loading, cost == nil {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(t("Atlas is unavailable for these settings. You can choose fal and review its Token cost before generating.",
@@ -396,98 +423,123 @@ struct AnimationGenerationSheet: View {
                 .padding(12)
                 .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
             }
-            if let sample = selectedExample.sample,
-               let url = Bundle.main.url(forResource: sample, withExtension: "mp4", subdirectory: "VideoComparisons") {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18).fill(appearance.washSoft)
-                    if let poster = Bundle.main.url(forResource: sample, withExtension: "jpg", subdirectory: "VideoComparisons"),
-                       let bitmap = UIImage(contentsOfFile: poster.path) {
-                        Image(uiImage: bitmap).resizable().scaledToFit()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                    if playingSample && !reduceMotion {
-                        CraftLoopingVideo(url: url, playing: true, videoGravity: .resizeAspect)
+        }
+    }
+
+    @ViewBuilder private var samplePreview: some View {
+        if let sample = selectedExample.sample,
+           let url = Bundle.main.url(forResource: sample, withExtension: "mp4", subdirectory: "VideoComparisons") {
+            ZStack {
+                RoundedRectangle(cornerRadius: 18).fill(appearance.washSoft)
+                if let poster = Bundle.main.url(forResource: sample, withExtension: "jpg", subdirectory: "VideoComparisons"),
+                   let bitmap = UIImage(contentsOfFile: poster.path) {
+                    Image(uiImage: bitmap).resizable().scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                if playingSample && !reduceMotion {
+                    CraftLoopingVideo(url: url, playing: true, videoGravity: .resizeAspect)
+                        .id(sample)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(alignment: .topLeading) {
+                HStack(spacing: 6) {
+                    Text("\(selectedExample.provider) · \(selectedExample.name)")
+                        .font(.caption.weight(.semibold))
+                    if let cost {
+                        Text("· \(cost) Tokens").font(.caption.weight(.medium))
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .accessibilityLabel(selectedExample.sampleDetails)
-                HStack {
-                    Text(selectedExample.sampleDetails)
-                        .font(.caption.weight(.medium))
-                    Spacer()
-                    Button {
-                        playingSample.toggle()
-                    } label: {
-                        Label(playingSample ? t("Pause", "暂停") : t("Play sample", "播放样片"),
-                              systemImage: playingSample ? "pause.fill" : "play.fill")
-                    }
-                    .disabled(reduceMotion)
-                }
+                .foregroundStyle(appearance.ink)
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(.ultraThinMaterial, in: Capsule())
                 .padding(10)
-                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
-                Text(t("One Dragon test clip. Your character and result will differ.",
-                       "这是一次龙角色测试样片；你的角色和结果会有所不同。"))
-                    .font(.caption2).foregroundStyle(.secondary)
             }
+            .accessibilityLabel("\(selectedExample.provider) \(selectedExample.name): \(selectedExample.sampleDetails)")
+            HStack {
+                Text(selectedExample.sampleDetails).font(.caption.weight(.medium))
+                Spacer()
+                Button {
+                    playingSample.toggle()
+                } label: {
+                    Label(playingSample ? t("Pause", "暂停") : t("Play sample", "播放样片"),
+                          systemImage: playingSample ? "pause.fill" : "play.fill")
+                }
+                .disabled(reduceMotion)
+            }
+            .padding(10)
+            .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
+        } else {
+            VStack(spacing: 10) {
+                Image(systemName: "video.slash")
+                    .font(.system(size: 38, weight: .light))
+                Text(t("No matching fal sample yet", "暂时没有对应的 fal 样片"))
+                    .font(.subheadline.weight(.semibold))
+                Text(t("You can still choose this model. Review the price below before generating.",
+                       "仍可选择此模型。生成前请查看下方价格。"))
+                    .font(.caption).multilineTextAlignment(.center)
+            }
+            .foregroundStyle(appearance.ink)
+            .padding(24)
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 18))
         }
     }
 
-    private var modelChoices: some View {
-        NavigationStack {
-            List {
-                Section(t("Atlas · Recommended", "Atlas · 推荐")) {
-                    ForEach(CraftVideoExample.all.filter { $0.provider == "Atlas" }) { example in
-                        modelChoiceRow(example)
-                    }
-                }
-                Section(t("fal · Alternative if Atlas is busy", "fal · Atlas 繁忙时可选")) {
-                    ForEach(CraftVideoExample.all.filter { $0.provider == "fal" }) { example in
-                        modelChoiceRow(example)
-                    }
-                }
-            }
-            .navigationTitle(t("Choose animation model", "选择动画模型"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) {
-                Button(t("Done", "完成")) { showModelChoices = false }
-            }}
-        }
-    }
-
-    private func modelChoiceRow(_ example: CraftVideoExample) -> some View {
+    private func modelCard(_ example: CraftVideoExample) -> some View {
         Button {
             model = example.id
-            showModelChoices = false
+            playingSample = !reduceMotion && example.sample != nil
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: example.id == model ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(appearance.ink)
-                    .padding(.top, 3)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(example.name).font(.headline)
-                        Spacer(minLength: 4)
-                        if let tokens = choicePrices[example.id] {
-                            Text("\(tokens) Tokens").font(.subheadline.weight(.semibold))
-                                .foregroundStyle(appearance.ink).monospacedDigit()
-                        } else if unavailableChoices.contains(example.id) {
-                            Text(t("Unavailable", "暂不可用"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        } else {
-                            ProgressView().controlSize(.mini)
-                        }
+            HStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12).fill(appearance.washSoft)
+                    if let sample = example.sample,
+                       let poster = Bundle.main.url(forResource: sample, withExtension: "jpg", subdirectory: "VideoComparisons"),
+                       let bitmap = UIImage(contentsOfFile: poster.path) {
+                        Image(uiImage: bitmap).resizable().scaledToFill()
+                            .frame(width: 80, height: 80).clipped()
+                    } else {
+                        Image(systemName: "video.slash")
+                            .font(.title3).foregroundStyle(.secondary)
                     }
-                    Text("\(example.provider) · \(example.quoteDuration)s · \(example.quoteResolution)")
-                        .font(.caption2).foregroundStyle(.secondary)
-                    Text(example.note).font(.caption).foregroundStyle(.secondary)
                 }
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(example.name).font(.caption.weight(.semibold))
+                        .lineLimit(2)
+                    HStack(spacing: 3) {
+                        Text(example.provider)
+                        if example.id == model { Image(systemName: "checkmark.circle.fill") }
+                    }
+                    .font(.caption2).foregroundStyle(appearance.ink)
+                    if let tokens = choicePrices[example.id] {
+                        Text("\(tokens) Tokens").font(.caption2.weight(.semibold))
+                            .monospacedDigit()
+                    } else if unavailableChoices.contains(example.id) {
+                        Text(t("Price unavailable", "价格暂不可用"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    } else {
+                        ProgressView().controlSize(.mini)
+                    }
+                    Text("\(example.quoteDuration)s · \(example.quoteResolution)")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
             }
-            .padding(.vertical, 5)
-            .contentShape(Rectangle())
+            .frame(width: 204, height: 88, alignment: .leading)
+            .padding(8)
+            .background(example.id == model ? appearance.washStrong : appearance.washSoft,
+                        in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(example.id == model ? appearance.ink : Color.clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("animation.model.\(example.id)")
         .task(id: example.id) {
             guard choicePrices[example.id] == nil && !unavailableChoices.contains(example.id) else { return }
             if let tokens = await store.animationCost(model: example.id,

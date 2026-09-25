@@ -222,7 +222,7 @@ struct CraftSignInView: View {
     @ObservedObject private var account = CraftAccount.shared
     @EnvironmentObject private var store: CraftStore
     @Environment(\.dismiss) private var dismiss
-    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .emerald
+    @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @State private var email = ""
     @State private var password = ""
     @State private var register = false
