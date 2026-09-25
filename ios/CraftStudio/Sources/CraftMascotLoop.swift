@@ -82,6 +82,7 @@ struct CraftMascotLoop: View {
 struct CraftLoopingVideo: UIViewRepresentable {
     let url: URL
     let playing: Bool
+    var videoGravity: AVLayerVideoGravity = .resizeAspectFill
 
     func makeUIView(context: Context) -> PlayerView {
         let view = PlayerView()
@@ -91,7 +92,7 @@ struct CraftLoopingVideo: UIViewRepresentable {
         player.audiovisualBackgroundPlaybackPolicy = .pauses
         view.looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: url))
         view.playerLayer.player = player
-        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer.videoGravity = videoGravity
         // Hidden until a frame is ready so the poster underneath shows first.
         view.playerLayer.opacity = 0
         view.readyObservation = view.playerLayer.observe(\.isReadyForDisplay, options: [.initial, .new]) { layer, _ in
@@ -102,6 +103,7 @@ struct CraftLoopingVideo: UIViewRepresentable {
 
     func updateUIView(_ view: PlayerView, context: Context) {
         guard let player = view.playerLayer.player else { return }
+        view.playerLayer.videoGravity = videoGravity
         if playing { player.play() } else { player.pause() }
     }
 

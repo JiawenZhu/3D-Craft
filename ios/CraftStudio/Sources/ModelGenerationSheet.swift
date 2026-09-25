@@ -44,7 +44,7 @@ struct ModelGenerationSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var engine = "tripo"
     @State private var showEngineChooser = false
-    @State private var showExample3D = false
+    @State private var showExample3D = true
     @State private var quality = "default"
     @State private var effort = "high"
     @State private var imageReady = false
@@ -140,7 +140,7 @@ struct ModelGenerationSheet: View {
             .onChange(of: engine) { _, _ in
                 if !supportsMultiView { useMultiView = false }
                 checkedIDs = Set(eligibleViews.prefix(5).map(\.id))
-                showExample3D = false
+                showExample3D = true
             }
             .onChange(of: useMultiView) { _, enabled in
                 if enabled { checkedIDs = Set(eligibleViews.prefix(5).map(\.id)) }
@@ -417,23 +417,32 @@ struct ModelGenerationSheet: View {
             if let option = engineExample, let imageURL = exampleURL(option, fileExtension: "png"),
                let image = UIImage(contentsOfFile: imageURL.path) {
                 if showExample3D, let modelURL = exampleURL(option, fileExtension: "glb") {
-                    ModelViewport(modelURL: modelURL, softStage: true, idleMotion: false)
-                        .frame(height: 280)
+                    ModelViewport(modelURL: modelURL, chinese: chinese, softStage: true, idleMotion: false)
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1, contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .padding(.horizontal, -10)
                         .id(option.id)
                         .accessibilityIdentifier("model.example3D")
                 } else {
                     Image(uiImage: image).resizable().scaledToFit()
-                        .frame(maxWidth: .infinity).frame(height: 220)
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1, contentMode: .fit)
                         .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 18))
                         .clipped()
+                        .padding(.horizontal, -10)
                 }
                 if exampleURL(option, fileExtension: "glb") != nil {
-                    Button(showExample3D ? t("Show image", "显示图片") : t("Explore 3D sample", "查看 3D 示例")) {
-                        showExample3D.toggle()
+                    HStack {
+                        Text(showExample3D ? t("Drag to rotate · Pinch to zoom", "拖动旋转 · 双指缩放") : t("Still image of the sample", "示例静态图片"))
+                            .font(.caption).foregroundStyle(.secondary)
+                        Spacer(minLength: 8)
+                        Button(showExample3D ? t("Show image", "显示图片") : t("Explore 3D", "查看 3D")) {
+                            showExample3D.toggle()
+                        }
+                        .font(.subheadline.weight(.semibold)).tint(lilac)
+                        .accessibilityIdentifier("model.exampleToggle")
                     }
-                    .font(.subheadline.weight(.semibold)).tint(lilac)
-                    .accessibilityIdentifier("model.exampleToggle")
                 }
                 if let size = option.originalSize, let triangles = option.triangles {
                     Text(t("Original result", "原始结果") + " · \(size) · \(triangles) " + t("triangles", "三角面"))

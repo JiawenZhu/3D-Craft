@@ -377,35 +377,35 @@ struct AnimationGenerationSheet: View {
             Text(selectedExample.note).font(.caption).foregroundStyle(.secondary)
             if let sample = selectedExample.sample,
                let url = Bundle.main.url(forResource: sample, withExtension: "mp4", subdirectory: "VideoComparisons") {
-                ZStack(alignment: .bottom) {
+                ZStack {
                     RoundedRectangle(cornerRadius: 18).fill(appearance.washSoft)
                     if let poster = Bundle.main.url(forResource: sample, withExtension: "jpg", subdirectory: "VideoComparisons"),
                        let bitmap = UIImage(contentsOfFile: poster.path) {
                         Image(uiImage: bitmap).resizable().scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                     if playingSample && !reduceMotion {
-                        CraftLoopingVideo(url: url, playing: true)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        CraftLoopingVideo(url: url, playing: true, videoGravity: .resizeAspect)
                     }
-                    HStack {
-                        Text(selectedExample.sampleDetails)
-                            .font(.caption.weight(.medium))
-                        Spacer()
-                        Button {
-                            playingSample.toggle()
-                        } label: {
-                            Label(playingSample ? t("Pause", "暂停") : t("Play sample", "播放样片"),
-                                  systemImage: playingSample ? "pause.fill" : "play.fill")
-                        }
-                        .disabled(reduceMotion)
-                    }
-                    .padding(10)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-                    .padding(8)
                 }
-                .frame(height: 220)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
                 .accessibilityLabel(selectedExample.sampleDetails)
+                HStack {
+                    Text(selectedExample.sampleDetails)
+                        .font(.caption.weight(.medium))
+                    Spacer()
+                    Button {
+                        playingSample.toggle()
+                    } label: {
+                        Label(playingSample ? t("Pause", "暂停") : t("Play sample", "播放样片"),
+                              systemImage: playingSample ? "pause.fill" : "play.fill")
+                    }
+                    .disabled(reduceMotion)
+                }
+                .padding(10)
+                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
                 Text(t("One Dragon test clip. Your character and result will differ.",
                        "这是一次龙角色测试样片；你的角色和结果会有所不同。"))
                     .font(.caption2).foregroundStyle(.secondary)
