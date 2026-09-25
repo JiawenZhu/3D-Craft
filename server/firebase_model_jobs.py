@@ -299,6 +299,7 @@ class CloudModelJobs:
                 preview=self.image_path(uid,data['views'][0]['imageUrl'])
                 tx.create(self.projects.ref(uid,'mobileCreations','model:'+jid),dict(ownerId=uid,source='ios',
                     storageVersion=2,name=data['name'],kind='3D object',projectId=data['views'][0]['projectId'],
+                    engine=data.get('options', {}).get('engine'),
                     conceptIds=[v['id'] for v in data['views']],previewStoragePath=preview,
                     modelStoragePath=f'users/{uid}/models/{jid}.glb',createdAt=self.now()))
             return state

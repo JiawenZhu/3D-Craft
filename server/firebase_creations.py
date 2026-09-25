@@ -14,6 +14,7 @@ from fastapi import HTTPException
 from google.api_core.exceptions import NotFound
 from pydantic import BaseModel, ConfigDict, Field
 from . import cloud_concept_provider
+from . import atlas_model_provider
 from .firebase_billing import CloudBilling
 from .firebase_concepts import CloudConcepts, ConceptRequest, TERMINAL as CONCEPT_TERMINAL
 from .firebase_model_jobs import CloudModelJobs, ModelRequest, TERMINAL as MODEL_TERMINAL
@@ -77,8 +78,9 @@ def api_download_url(asset_id):
     return f'/api/v1/assets/{asset_id}/download'
 
 
-def model_jobs_ready():
-    return os.getenv('CRAFT_MODEL_JOBS_ENABLED') == '1' and bool(os.getenv('FAL_KEY'))
+def model_jobs_ready(engine='rodin'):
+    key = 'ATLAS_API_KEY' if atlas_model_provider.is_atlas_engine(engine) else 'FAL_KEY'
+    return os.getenv('CRAFT_MODEL_JOBS_ENABLED') == '1' and bool(os.getenv(key))
 
 
 def continue_to_model(studio, uid, concept_job_id):
@@ -92,7 +94,7 @@ def continue_to_model(studio, uid, concept_job_id):
     if not job.get('concepts'):
         return
     try:
-        if not model_jobs_ready():
+        if not model_jobs_ready(auto['engine']):
             raise HTTPException(503, 'Cloud 3D generation is temporarily unavailable. The concept image is kept.')
         body = ModelRequest(idempotencyKey=auto_key(concept_job_id), engine=auto['engine'],
                             quality=auto['quality'], effort=auto['effort'])
@@ -108,8 +110,9 @@ def continue_to_model(studio, uid, concept_job_id):
     public.update({'modelJobId': model['id']})
 
 
-def animation_jobs_ready():
-    return os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') == '1' and bool(os.getenv('FAL_KEY'))
+def animation_jobs_ready(model='seedance-2.5'):
+    key = 'ATLAS_API_KEY' if model.startswith('atlas-') else 'FAL_KEY'
+    return os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') == '1' and bool(os.getenv(key))
 
 
 def continue_to_animation(studio, uid, concept_job_id):
@@ -123,10 +126,10 @@ def continue_to_animation(studio, uid, concept_job_id):
     if not job.get('concepts'):
         return
     try:
-        if not animation_jobs_ready():
+        settings = auto.get('settings') or {}
+        if not animation_jobs_ready(settings.get('model', 'seedance-2.5')):
             raise HTTPException(503, 'Character animation is temporarily unavailable. The concept image is kept.')
         from .firebase_animations import CloudAnimations, AnimationRequest
-        settings = auto.get('settings') or {}
         candidate_body = AnimationRequest(
             idempotencyKey=auto_key(concept_job_id),
             model=settings.get('model', 'seedance-2.5'),
@@ -281,6 +284,18 @@ class CloudCreations:
             raise HTTPException(422, 'Name cannot be empty.')
         self.projects.ref(uid, 'studioProjects', project_id).update({'name': clean, 'updatedAt': time.time()})
         return self.project(owner, project_id)
+
+    def rename_asset(self, owner, asset_id, name):
+        uid = uid_for(owner)
+        record, item = self.find_creation_record(uid, asset_id)
+        if item is None:
+            raise HTTPException(404, 'Creation not found in your account.')
+        clean = name.strip()
+        if not clean:
+            raise HTTPException(422, 'Name cannot be empty.')
+        self.projects.ref(uid, 'mobileCreations', record).update({'name': clean, 'updatedAt': time.time()})
+        return {'id': record.split(':', 1)[-1], 'name': clean,
+                'kind': item.get('kind')}
 
     # ---------- delete (permanent) ----------
 
@@ -438,6 +453,8 @@ class CloudCreations:
         record, item = self.find_creation_record(uid, asset_id)
         if item is None:
             raise HTTPException(404, 'Creation not found in your account.')
+        if item.get('kind') == 'Concept image':
+            return self.delete_concept(owner, clean)
         refs = [self.projects.ref(uid, 'mobileCreations', record)]
         job = self.job(uid, clean)
         if job:
@@ -503,5 +520,4 @@ class CloudCreations:
             })
         result.sort(key=lambda a: a.get('favoritedAt') or a.get('createdAt') or 0, reverse=True)
         return {'favorites': result}
-
 

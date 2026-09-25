@@ -292,6 +292,7 @@ class CloudAnimations:
                 tx.create(self.projects.ref(uid, 'mobileCreations', 'animation:' + jid),
                           dict(ownerId=uid, source='ios', storageVersion=2, name=data['name'],
                                kind='Animated character', projectId=data['projectId'],
+                               model=data.get('options', {}).get('model'),
                                conceptIds=[data['conceptId']], previewStoragePath=self.image_path(uid, data['imageUrl']),
                                animationStoragePath=f'users/{uid}/animations/{jid}.mp4', createdAt=self.now()))
             return state

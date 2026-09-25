@@ -106,7 +106,8 @@ API keys are accepted **ONLY** on explicit `/api/v1/` routes. They cannot access
 | `GET` | `/api/v1/wallet` | `wallet:read` | Check account Token balance & ledger (production only). |
 | `GET` | `/api/v1/image-models` | `assets:read` | List concept image generation models & token quotes. |
 | `GET` | `/api/v1/planning/quote` | `assets:read` | Get token quote for prompt assistance. |
-| `GET` | `/api/v1/pricing` | `assets:read` | Complete pipeline pricing catalog. |
+| `GET` | `/api/v1/pricing` | `assets:read` | 3D and video model IDs, provider rates, and supported video resolutions. |
+| `GET` | `/api/v1/models` | `assets:read` | Selectable model IDs, provider availability, resolutions, and quote links. |
 | `GET` | `/api/v1/projects` | `assets:read` | List user's studio projects. |
 | `POST` | `/api/v1/projects` | `concepts:write` | Create a new project (Form: `prompt`, `name`, `style`, `image`). |
 | `POST` | `/api/v1/projects/{id}/references` | `prompt:write` | Add reference image to project. |
@@ -119,8 +120,9 @@ API keys are accepted **ONLY** on explicit `/api/v1/` routes. They cannot access
 | `POST` | `/api/v1/concepts/{id}/model` | `models:write` | Submit 3D reconstruction job (JSON: `ModelRequest`). Requires `models:write`. |
 | `GET` | `/api/v1/jobs` | `assets:read` | List reconstruction and concept jobs. |
 | `GET` | `/api/v1/jobs/{ident}` | `assets:read` | Poll job status, progress, and download GLB model URL. |
-| `GET` | `/api/v1/assets` | `assets:read` | List owned 3D assets with downloadable GLB links and `downloadUrl`. |
-| `GET` | `/api/v1/assets/{asset_id}/download` | `assets:read` | **Direct bearer-key download** for 3D model (`.glb`) or preview. |
+| `GET` | `/api/v1/assets` | `assets:read` | List owned 3D objects, videos and concept images with download links and recorded model IDs. |
+| `GET` | `/api/v1/assets/{asset_id}` | `assets:read` | Read one owned asset and its download link. |
+| `GET` | `/api/v1/assets/{asset_id}/download` | `assets:read` | **Direct bearer-key download** for GLB, MP4, or concept image. |
 | `GET` | `/api/v1/creations/quote` | `assets:read` | Maximum Tokens for one image + one 3D model. |
 | `POST` | `/api/v1/creations` | `models:write` | **One step**: prompt → concept image → 3D model. `projectId` reprompts an existing project. |
 | `GET` | `/api/v1/creations/{id}` | `assets:read` | Poll stage (`concepts` → `model` → `done`/`failed`), progress and download links. |
@@ -129,12 +131,22 @@ API keys are accepted **ONLY** on explicit `/api/v1/` routes. They cannot access
 | `GET` | `/api/v1/concepts/{id}/image` | `assets:read` | **Direct bearer-key download** of a concept image (JPEG). |
 | `DELETE` | `/api/v1/projects/{id}` | `assets:delete` | **Permanently** delete a project with all its images, jobs and 3D models. |
 | `DELETE` | `/api/v1/concepts/{id}` | `assets:delete` | **Permanently** delete one image. 3D models made from it keep working. |
-| `DELETE` | `/api/v1/assets/{id}` | `assets:delete` | **Permanently** delete one 3D object. Its source image is kept. |
-| `GET` | `/api/v1/animations/quote` | `assets:read` | Tokens for one looping character animation. |
-| `POST` | `/api/v1/concepts/{id}/animation` | `models:write` | **Animate a character**: a short silent MP4 loop from one of your images. |
-| `GET` | `/api/v1/openapi.json` | None | Full OpenAPI 3.1.0 schema with schemas. |
+| `PATCH` | `/api/v1/assets/{id}` | `models:write` | Rename a 3D object, video, or concept image. |
+| `POST` | `/api/v1/assets/{id}/archive` | `assets:delete` | Archive an asset for up to 30 days. |
+| `POST` | `/api/v1/assets/{id}/restore` | `models:write` | Restore an archived asset. |
+| `GET` | `/api/v1/archive` | `assets:read` | List archived assets. |
+| `DELETE` | `/api/v1/assets/{id}` | `assets:delete` | **Permanently** delete a 3D object, video, or concept image. Source concepts are kept when a model or video is deleted. |
+| `GET` | `/api/v1/animations/quote` | `assets:read` | Tokens for a chosen video model, resolution and duration. |
+| `POST` | `/api/v1/concepts/{id}/animation` | `animations:write` | Animate one of your concept images. |
+| `POST` | `/api/v1/animations` | `animations:write` | Animate from a prompt, concept ID, or existing asset ID. |
+| `GET` | `/api/v1/animations/{id}` | `assets:read` | Poll video generation status. |
+| `GET` | `/api/v1/openapi.json` | None | Public OpenAPI 3.1 contract. |
 
 Everything created through the API appears in the user's 3D Craft app exactly like work made there: the prompt, images and 3D result show in the project's conversation. `GET /api/v1/assets` lists newest first.
+
+Choose an image-to-3D engine with the `engine` field. Atlas options are `tripo`, `seed3d`, `hunyuan-rapid`, `hunyuan-pro`, `hi3d-fast`, `hi3d-pro`, `hi3d-quality`, `hi3d-master`, `meshy-single`, and `meshy-multi`. fal options are `rodin`, `trellis-2`, `hunyuan3d-2.1`, and `hunyuan3d-2-white`. To create a new version, reuse `projectId` with a new prompt, or submit a different engine against an existing concept image. Request a fresh quote before each paid generation.
+
+Choose a video model with the `model` field. Atlas options are `atlas-seedance-2.0-mini`, `atlas-seedance-2.0`, `atlas-seedance-2.5`, `atlas-minimax-h3`, and `atlas-wan-3.0-prime`. fal options are `seedance-2.5` and `minimax-h3`. Atlas MiniMax H3 uses `768p` or `2K`; the other Atlas models use `480p` or `720p`. Atlas clips currently require square aspect and 4 or 6 seconds. The quote response reports whether the selected provider is available. If an Atlas model is unavailable, choose a fal model and request a new quote before generating; the API never switches providers or charges a different model without the caller choosing it.
 
 Deletes return `409` while a creation in that project is still running; retry once it finishes.
 
@@ -163,13 +175,14 @@ curl -s "$API$(jq -r '.concepts[0].imageUrl' /tmp/c.json)" -H "Authorization: Be
 
 ### Animate a character into a looping clip
 ```bash
-# Price first (square 480p 4s is the cheapest shape)
-curl -s "$API/api/v1/animations/quote" -H "Authorization: Bearer $KEY"
+# Price the exact model and settings you intend to use
+curl -s "$API/api/v1/animations/quote?model=atlas-minimax-h3&resolution=768p&duration=4&aspect=1:1" \
+  -H "Authorization: Bearer $KEY"
 
 # Animate an image you already own; poll /jobs/{id} until status is done
 curl -s -X POST "$API/api/v1/concepts/CONCEPT_ID/animation" -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
-  -d '{"idempotencyKey":"agent-anim-0001","motion":"it waves and smiles","maxTokens":54}'
+  -d '{"idempotencyKey":"agent-anim-0001","model":"atlas-minimax-h3","resolution":"768p","duration":"4","aspect":"1:1","motion":"it waves and smiles","maxTokens":200}'
 
 # The finished loop downloads like any other creation
 curl -s "$API/api/v1/assets/ANIMATION_JOB_ID/download" -H "Authorization: Bearer $KEY" -o character.mp4
@@ -184,6 +197,10 @@ curl -s -X POST "$API/api/v1/creations" -H "Authorization: Bearer $KEY" -H "Cont
 # Rename
 curl -s -X PATCH "$API/api/v1/projects/PROJECT_ID" -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" -d '{"name":"Ice dragon"}'
+
+# Rename an individual model or video
+curl -s -X PATCH "$API/api/v1/assets/ASSET_ID" -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" -d '{"name":"Ice dragon animation"}'
 
 # Permanently delete (key must have the assets:delete scope)
 curl -s -X DELETE "$API/api/v1/projects/PROJECT_ID" -H "Authorization: Bearer $KEY"

@@ -79,6 +79,13 @@ class ReadAndUpdateTests(unittest.TestCase):
         self.assertEqual(self.service.rename(OWNER, 'mp-1', '  Fire dragon ')['name'], 'Fire dragon')
         self.assertEqual(self.service.concept_image(OWNER, 'mc-1'), b'jpg')
 
+    def test_rename_asset_updates_only_the_owners_library_record(self):
+        self.assertEqual(self.service.rename_asset(OWNER, 'mj-1', '  Blue dragon  ')['name'], 'Blue dragon')
+        self.assertEqual(self.studio.doc('mobileCreations', 'model:mj-1')['name'], 'Blue dragon')
+        with self.assertRaises(HTTPException) as caught:
+            self.service.rename_asset('firebase:user_bob', 'mj-1', 'Stolen')
+        self.assertEqual(caught.exception.status_code, 404)
+
 
 class OneStepTests(unittest.TestCase):
     def setUp(self):
@@ -173,6 +180,32 @@ class ContinueToModelTests(unittest.TestCase):
         with patch.object(creations.CloudModelJobs, 'create') as make_model:
             creations.continue_to_model(self.studio, UID, 'cj-1')
         make_model.assert_not_called()
+
+    def test_atlas_only_configuration_continues_to_3d(self):
+        self.private.set({'autoModel': dict(engine='tripo', quality='default', effort='high')})
+        self.job('done')
+        with patch.dict('os.environ', {'CRAFT_MODEL_JOBS_ENABLED': '1', 'ATLAS_API_KEY': 'test'}, clear=True), \
+             patch.object(creations.CloudModelJobs, 'create', return_value={'id': 'mj-atlas'}) as make_model:
+            creations.continue_to_model(self.studio, UID, 'cj-1')
+        self.assertEqual(make_model.call_args.args[2].engine, 'tripo')
+        self.assertEqual(self.public.get().to_dict()['modelJobId'], 'mj-atlas')
+
+
+class ContinueToAnimationTests(unittest.TestCase):
+    def test_atlas_only_configuration_continues_to_video(self):
+        studio = Studio()
+        public, private = creations.CloudConcepts(studio).refs(UID, 'cj-1')
+        private.set({'autoAnimation': {
+            'settings': {'model': 'atlas-minimax-h3', 'resolution': '768p', 'duration': '4', 'aspect': '1:1'},
+            'maxTokens': 200,
+        }})
+        public.set({'ownerId': UID, 'projectId': 'mp-1', 'status': 'done', 'concepts': [{'id': 'mc-1'}]})
+        with patch.dict('os.environ', {'CRAFT_ANIMATION_JOBS_ENABLED': '1', 'ATLAS_API_KEY': 'test'}, clear=True):
+            from server import firebase_animations
+            with patch.object(firebase_animations.CloudAnimations, 'create', return_value={'id': 'an-atlas'}) as make_video:
+                creations.continue_to_animation(studio, UID, 'cj-1')
+        self.assertEqual(make_video.call_args.args[2].model, 'atlas-minimax-h3')
+        self.assertEqual(public.get().to_dict()['animationJobId'], 'an-atlas')
 
 
 class StatusTests(unittest.TestCase):

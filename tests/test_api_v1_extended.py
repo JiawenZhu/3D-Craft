@@ -1,10 +1,14 @@
 import unittest
+from typing import get_args
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 from server import api_keys
 from server import firebase_api as api
 from server import firebase_creations as creations
+from server.firebase_animations import AnimationRequest
+from server.firebase_model_jobs import ModelRequest
+from server.openapi_v1 import ANIMATION_MODELS, MODEL_ENGINES
 from tests.fixtures import OWNER, ProjectFixture, Studio, UID
 
 
@@ -105,6 +109,90 @@ class ExtendedApiV1Tests(unittest.TestCase):
         self.assertEqual(res_auto.status_code, 200)
         self.assertEqual(res_auto.content, b'jpg')
         self.assertEqual(res_auto.headers['content-type'], 'image/jpeg')
+
+    def test_all_provider_models_are_exposed_in_public_api_contract(self):
+        spec = self.client.get('/api/v1/openapi.json').json()
+        schemas = spec['components']['schemas']
+        self.assertEqual(set(MODEL_ENGINES), set(get_args(ModelRequest.model_fields['engine'].annotation)))
+        self.assertEqual(set(ANIMATION_MODELS), set(get_args(AnimationRequest.model_fields['model'].annotation)))
+        self.assertEqual(set(ANIMATION_MODELS), set(get_args(api.DirectAnimationRequest.model_fields['model'].annotation)))
+        self.assertEqual(schemas['ModelRequest']['properties']['engine']['enum'], MODEL_ENGINES)
+        self.assertEqual(schemas['DirectAnimationRequest']['properties']['model']['enum'], ANIMATION_MODELS)
+        self.assertIn('patch', spec['paths']['/api/v1/assets/{asset_id}'])
+        self.assertIn('get', spec['paths']['/api/v1/assets/{asset_id}'])
+        self.assertIn('/api/v1/pricing', spec['paths'])
+        self.assertIn('/api/v1/models', spec['paths'])
+
+    def test_pricing_and_assets_identify_the_selected_models(self):
+        headers = self.key(['assets:read'])
+        catalog = self.client.get('/api/v1/pricing', headers=headers)
+        self.assertEqual(catalog.status_code, 200)
+        self.assertTrue(set(MODEL_ENGINES).issubset(catalog.json()['models']))
+        self.assertTrue(set(ANIMATION_MODELS[:5]).issubset(catalog.json()['models']))
+        self.studio.db.collection('users').document(UID).collection('mobileCreations').document('model:mj-1').update({'engine': 'tripo'})
+        self.studio.db.collection('users').document(UID).collection('mobileCreations').document('animation:' + self.anim_id).update({'model': 'atlas-seedance-2.5'})
+        assets = {entry['id']: entry for entry in self.client.get('/api/v1/assets', headers=headers).json()['owned']}
+        self.assertEqual(assets['mj-1']['engine'], 'tripo')
+        self.assertEqual(assets[self.anim_id]['model'], 'atlas-seedance-2.5')
+        self.assertEqual(self.client.get(f'/api/v1/assets/{self.anim_id}', headers=headers).json()['model'], 'atlas-seedance-2.5')
+        self.assertEqual(self.client.get('/api/v1/assets/foreign-id', headers=headers).status_code, 404)
+        models = self.client.get('/api/v1/models', headers=headers)
+        self.assertEqual(models.status_code, 200)
+        self.assertEqual({row['id'] for row in models.json()['imageTo3D']}, set(MODEL_ENGINES))
+        self.assertEqual({row['id'] for row in models.json()['video']}, set(ANIMATION_MODELS))
+        h3 = next(row for row in models.json()['video'] if row['id'] == 'atlas-minimax-h3')
+        self.assertEqual(h3['resolutions'], ['768p', '2K'])
+
+    def test_atlas_animation_requires_its_provider_before_charge(self):
+        headers = self.key(['animations:write'])
+        body = {'idempotencyKey': 'atlas-video-001', 'conceptId': 'mc-1',
+                'model': 'atlas-minimax-h3', 'resolution': '768p', 'maxTokens': 200}
+        with patch.dict('os.environ', {'CRAFT_ANIMATION_JOBS_ENABLED': '1', 'FAL_KEY': 'test'}, clear=True), \
+             patch.object(api.CloudAnimations, 'create') as create:
+            response = self.client.post('/api/v1/animations', json=body, headers=headers)
+        self.assertEqual(response.status_code, 503)
+        create.assert_not_called()
+        with patch.dict('os.environ', {'CRAFT_ANIMATION_JOBS_ENABLED': '1', 'ATLAS_API_KEY': 'test'}, clear=True), \
+             patch.object(api.CloudAnimations, 'create', return_value={'id': 'an-new'}) as create:
+            response = self.client.post('/api/v1/animations', json=body, headers=headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(create.call_args.args[2].model, 'atlas-minimax-h3')
+
+    def test_atlas_3d_one_step_rejects_missing_provider_before_project_creation(self):
+        headers = self.key(['models:write'])
+        body = {'idempotencyKey': 'atlas-model-001', 'prompt': 'Blue dragon',
+                'engine': 'tripo', 'maxTokens': 200}
+        with patch.dict('os.environ', {'CRAFT_MODEL_JOBS_ENABLED': '1', 'FAL_KEY': 'test'}, clear=True), \
+             patch.object(api, 'concepts_ready', return_value=True), \
+             patch.object(api.CloudCreations, 'create') as create:
+            response = self.client.post('/api/v1/creations', json=body, headers=headers)
+        self.assertEqual(response.status_code, 503)
+        create.assert_not_called()
+        with patch.dict('os.environ', {'CRAFT_MODEL_JOBS_ENABLED': '1', 'ATLAS_API_KEY': 'test'}, clear=True), \
+             patch.object(api, 'concepts_ready', return_value=True), \
+             patch.object(api.CloudCreations, 'create', return_value={'id': 'cj-new'}) as create:
+            response = self.client.post('/api/v1/creations', json=body, headers=headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(create.call_args.args[1].engine, 'tripo')
+
+    def test_asset_rename_and_delete_covers_video_and_concept(self):
+        write = self.key(['models:write'])
+        renamed = self.client.patch(f'/api/v1/assets/{self.anim_id}',
+                                    json={'name': '  Dragon dance  '}, headers=write)
+        self.assertEqual(renamed.status_code, 200, renamed.text)
+        self.assertEqual(renamed.json()['name'], 'Dragon dance')
+        self.assertEqual(self.studio.doc('mobileCreations', 'animation:' + self.anim_id)['name'], 'Dragon dance')
+        read_only = self.key(['assets:read'])
+        self.assertEqual(self.client.patch(f'/api/v1/assets/{self.anim_id}',
+                                           json={'name': 'No'}, headers=read_only).status_code, 403)
+        delete = self.key(['assets:delete'])
+        self.assertEqual(self.client.delete(f'/api/v1/assets/{self.anim_id}', headers=delete).status_code, 200)
+        self.assertIsNone(self.studio.doc('mobileCreations', 'animation:' + self.anim_id))
+        self.assertNotIn(f'users/{UID}/animations/{self.anim_id}.mp4', self.studio.blobs)
+        self.assertEqual(self.client.delete('/api/v1/assets/mc-1', headers=delete).status_code, 200)
+        self.assertIsNone(self.studio.doc('studioConcepts', 'mc-1'))
+        self.assertIsNone(self.studio.doc('mobileCreations', 'concept:mc-1'))
+        self.assertIn(f'users/{UID}/images/mc-1.jpg', self.studio.blobs)
 
     # -------------------------------------------------------------
     # 2. Animation Status and Direct Download Route

@@ -106,6 +106,19 @@ def catalog(today=None):
             "0 app credits. Uses your own ChatGPT plan; its account limits apply. Only studio-provided generation is charged.",
             "0 App 积分。使用你自己的 ChatGPT 订阅额度，受账户限制；仅工作室提供的生成服务扣费。"),
     }
+    atlas_video = {
+        'atlas-seedance-2.0-mini': ('Seedance 2.0 Mini', 'bytedance/seedance-2.0-mini/image-to-video'),
+        'atlas-seedance-2.0': ('Seedance 2.0', 'bytedance/seedance-2.0/image-to-video'),
+        'atlas-seedance-2.5': ('Seedance 2.5', 'bytedance/seedance-2.5/image-to-video'),
+        'atlas-minimax-h3': ('MiniMax H3', 'minimax/h3/image-to-video'),
+        'atlas-wan-3.0-prime': ('Wan 3.0 Prime', 'alibaba/wan-3.0-prime/image-to-video'),
+    }
+    for key, (name, endpoint) in atlas_video.items():
+        rates = ATLAS_ANIMATION_RATES[key]
+        models[key] = row(name + ' · Atlas', 'second', min(rates.values()),
+                          'Price varies by output resolution and duration. Request an animation quote for the chosen settings.',
+                          '价格因输出分辨率和时长而异。请按所选设置获取动画报价。', atlas + endpoint,
+                          ratePerSecondUsd=rates, supportedResolutions=list(rates))
     expected = {"rodin":"fal-ai/hyper3d/rodin", "trellis-2":"fal-ai/trellis-2", "hunyuan3d-2.1":"fal-ai/hunyuan3d/v2"}
     for key, endpoint in expected.items():
         if FAL_ENDPOINTS.get(key) != endpoint:

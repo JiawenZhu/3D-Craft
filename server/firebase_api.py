@@ -26,13 +26,13 @@ from . import cloud_animation_provider
 from . import firebase_creations
 import time
 from .firebase_community import CloudCommunity, Submission, Vote, Report, GameLink, Category
-from . import cloud_model_provider, pricing
+from . import cloud_model_provider, atlas_model_provider, pricing
 from pydantic import BaseModel, Field
 from typing import Literal, Optional
 from .account_deletion import ensure_active, request_deletion, erase_account, verify_worker
 
 app = FastAPI(title='3D Craft Cloud API')
-app.add_middleware(CORSMiddleware, allow_origins=['https://3d-craft.web.app'], allow_methods=['GET','POST','PUT','DELETE'], allow_headers=['Authorization','Content-Type'])
+app.add_middleware(CORSMiddleware, allow_origins=['https://3d-craft.web.app'], allow_methods=['GET','POST','PUT','PATCH','DELETE'], allow_headers=['Authorization','Content-Type'])
 
 @lru_cache
 def studio(): return FirebaseStudio()
@@ -89,10 +89,11 @@ ROUTE_SCOPES = [
     (re.compile(r"^/api/v1/assets/[^/]+/restore$"), {"POST": "models:write"}),
     (re.compile(r"^/api/v1/archive$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/assets$"), {"GET": "assets:read"}),
-    (re.compile(r"^/api/v1/assets/[^/]+$"), {"DELETE": "assets:delete"}),
+    (re.compile(r"^/api/v1/assets/[^/]+$"), {"GET": "assets:read", "PATCH": "models:write", "DELETE": "assets:delete"}),
     (re.compile(r"^/api/v1/jobs/[^/]+$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/jobs$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/pricing$"), {"GET": "assets:read"}),
+    (re.compile(r"^/api/v1/models$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/image-models$"), {"GET": "assets:read"}),
     (re.compile(r"^/api/v1/openapi.json$"), {"GET": "assets:read"}),
 ]
@@ -207,15 +208,20 @@ def model_ready():
     return os.getenv('CRAFT_MODEL_JOBS_ENABLED') == '1' and (bool(os.getenv('ATLAS_API_KEY')) or bool(os.getenv('FAL_KEY')))
 
 
+def model_engine_ready(engine):
+    key = 'ATLAS_API_KEY' if atlas_model_provider.is_atlas_engine(engine) else 'FAL_KEY'
+    return os.getenv('CRAFT_MODEL_JOBS_ENABLED') == '1' and bool(os.getenv(key))
+
+
 @app.post('/api/mobile/concepts/{concept_id}/model')
 def mobile_generate_model(concept_id: str, body: ModelRequest, account=Depends(owner)):
-    if not model_ready(): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
+    if not model_engine_ready(body.engine): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
     return public_shape(CloudModelJobs(studio()).create(account,concept_id,body),account)
 
 
 @app.post('/api/v1/concepts/{concept_id}/model')
 def v1_generate_model(concept_id: str, body: ModelRequest, account=Depends(v1_owner)):
-    if not model_ready(): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
+    if not model_engine_ready(body.engine): raise HTTPException(503,'Cloud 3D generation is temporarily unavailable. No Tokens were charged.')
     return public_shape(v1_charge(account, lambda: CloudModelJobs(studio()).create(account,concept_id,body,environment=v1_environment(account))),account)
 
 
@@ -405,6 +411,30 @@ def v1_provider_pricing(account=Depends(v1_owner)):
     return pricing.catalog()
 
 
+@app.get('/api/v1/models')
+def v1_models(account=Depends(v1_owner)):
+    from typing import get_args
+    catalog = pricing.catalog()['models']
+    engines = get_args(ModelRequest.model_fields['engine'].annotation)
+    animations = get_args(AnimationRequest.model_fields['model'].annotation)
+    video_catalog_keys = {'seedance-2.5': 'seedance-2.5-i2v', 'minimax-h3': 'minimax-h3-i2v'}
+    return {
+        'imageTo3D': [dict(id=engine, name=catalog[engine]['name'],
+                           provider='Atlas' if atlas_model_provider.is_atlas_engine(engine) else 'fal',
+                           available=model_engine_ready(engine),
+                           providerUsd=catalog[engine].get('unitUsd'),
+                           quoteUrl=f'/api/v1/creations/quote?engine={engine}')
+                      for engine in engines],
+        'video': [dict(id=model, name=catalog[video_catalog_keys.get(model, model)]['name'],
+                       provider='Atlas' if model.startswith('atlas-') else 'fal',
+                       available=animation_model_ready(model),
+                       resolutions=list(pricing.ATLAS_ANIMATION_RATES[model]) if model.startswith('atlas-') else
+                       (['480p', '768p'] if model == 'minimax-h3' else ['480p', '720p']),
+                       quoteUrl=f'/api/v1/animations/quote?model={model}')
+                  for model in animations],
+    }
+
+
 @app.get('/api/mobile/projects')
 def mobile_projects(account=Depends(owner), archived: bool = False):
     CloudCreations(studio()).purge_expired_archives(account)
@@ -503,7 +533,7 @@ def v1_creation_quote(engine: firebase_creations.Engine = 'rodin', effort: fireb
 
 @app.post('/api/v1/creations')
 def v1_create(body: CreationRequest, account=Depends(v1_owner)):
-    if not generation_ready():
+    if not concepts_ready() or not model_engine_ready(body.engine):
         raise HTTPException(503, 'Cloud creation is temporarily unavailable. No Tokens were charged.')
     return v1_charge(account, lambda: CloudCreations(studio()).create(account, body, environment=v1_environment(account)))
 
@@ -592,9 +622,38 @@ def mobile_assets(account=Depends(owner), archived: bool = False):
     return {'owned':result,'examples':[]}
 
 
+def v1_asset_entry(item, account):
+    uid = account.removeprefix('firebase:')
+    kind = item.get('kind')
+    archived_at = firebase_creations.seconds(item.get('archivedAt'))
+    animated = kind == 'Animated character'
+    is_concept = kind == 'Concept image'
+    clean_id = item['id'].removeprefix('animation:' if animated else ('concept:' if is_concept else 'model:'))
+    def media(field):
+        path = item.get(field) or ''
+        return public_shape('gs://'+BUCKET+'/'+path,account) if isinstance(path, str) and path.startswith(f'users/{uid}/') else None
+    return {'id':clean_id,'name':item.get('name','Untitled creation'),'creationKind':kind,
+            'kind': 'animation' if animated else ('concept' if is_concept else 'model'),
+            'engine': item.get('engine') if not animated and not is_concept else None,
+            'model': item.get('model') if animated else None,
+            'animationUrl':media('animationStoragePath') if animated else None,
+            'videoUrl':media('animationStoragePath') if animated else None,
+            'modelUrl':media('modelStoragePath') if not animated and not is_concept else None,
+            'thumbUrl':media('previewStoragePath') or item.get('preview'),
+            'sourceImageUrl':media('previewStoragePath') if is_concept else None,
+            'projectId':item.get('projectId'),'conceptIds':item.get('conceptIds') or [],
+            'prompt':item.get('prompt') or '',
+            'createdAt':firebase_creations.seconds(item.get('createdAt')),
+            'archivedAt':archived_at,
+            'daysRemaining': max(0, 30 - int((time.time() - archived_at) / 86400)) if archived_at else None,
+            'isArchived': archived_at is not None,
+            'downloadUrl':f'/api/v1/assets/{clean_id}/download' + ('?kind=video' if animated else ('?kind=preview' if is_concept else '')),
+            'previewDownloadUrl':f'/api/v1/assets/{clean_id}/download?kind=preview',
+            'isExample':False}
+
+
 @app.get('/api/v1/assets')
 def v1_assets(account=Depends(v1_owner), archived: bool = False):
-    uid = account.removeprefix('firebase:')
     CloudCreations(studio()).purge_expired_archives(account)
     result = []
     for item in studio().records(account,'mobileCreations'):
@@ -602,31 +661,19 @@ def v1_assets(account=Depends(v1_owner), archived: bool = False):
         if kind not in ('3D object','Animated character', 'Concept image'): continue
         archived_at = firebase_creations.seconds(item.get('archivedAt'))
         if (archived_at is not None) != archived: continue
-        animated = kind == 'Animated character'
-        is_concept = kind == 'Concept image'
-        clean_id = item['id'].removeprefix('animation:' if animated else ('concept:' if is_concept else 'model:'))
-        def media(field):
-            path = item.get(field,'')
-            return public_shape('gs://'+BUCKET+'/'+path,account) if path.startswith(f'users/{uid}/') else None
-        result.append({'id':clean_id,'name':item.get('name','Untitled creation'),'creationKind':kind,
-                       'kind': 'animation' if animated else ('concept' if is_concept else 'model'),
-                       'animationUrl':media('animationStoragePath') if animated else None,
-                       'videoUrl':media('animationStoragePath') if animated else None,
-                       'modelUrl':media('modelStoragePath') if not animated and not is_concept else None,
-                       'thumbUrl':media('previewStoragePath') or item.get('preview'),
-                       'sourceImageUrl':media('previewStoragePath') if is_concept else None,
-                       'projectId':item.get('projectId'),'conceptIds':item.get('conceptIds') or [],
-                       'prompt':item.get('prompt') or '',
-                       'createdAt':firebase_creations.seconds(item.get('createdAt')),
-                       'archivedAt':archived_at,
-                       'daysRemaining': max(0, 30 - int((time.time() - archived_at) / 86400)) if archived_at else None,
-                       'isArchived': archived_at is not None,
-                       'downloadUrl':f'/api/v1/assets/{clean_id}/download' + ('?kind=video' if animated else ('?kind=preview' if is_concept else '')),
-                       'previewDownloadUrl':f'/api/v1/assets/{clean_id}/download?kind=preview',
-                       'isExample':False})
+        result.append(v1_asset_entry(item, account))
     # Newest first, so an agent's latest creation is always the first entry.
     result.sort(key=lambda a: a['createdAt'] or 0, reverse=True)
     return {'owned':result,'examples':[]}
+
+
+@app.get('/api/v1/assets/{asset_id}')
+def v1_asset(asset_id: str, account=Depends(v1_owner)):
+    uid = account.removeprefix('firebase:')
+    record, item = CloudCreations(studio()).find_creation_record(uid, asset_id)
+    if item is None or item.get('kind') not in ('3D object', 'Animated character', 'Concept image'):
+        raise HTTPException(404, 'Creation not found in your account.')
+    return v1_asset_entry({**item, 'id': record}, account)
 
 
 @app.get('/api/mobile/archive')
@@ -655,6 +702,11 @@ def v1_restore_asset(asset_id: str, account=Depends(v1_owner)):
 @app.delete('/api/v1/assets/{asset_id}')
 def v1_delete_asset(asset_id: str, account=Depends(v1_owner)):
     return CloudCreations(studio()).delete_asset(account, asset_id)
+
+
+@app.patch('/api/v1/assets/{asset_id}')
+def v1_rename_asset(asset_id: str, body: RenameRequest, account=Depends(v1_owner)):
+    return CloudCreations(studio()).rename_asset(account, asset_id, body.name)
 
 
 @app.get('/api/v1/assets/{asset_id}/download')
@@ -748,8 +800,10 @@ class DirectAnimationRequest(BaseModel):
     assetId: Optional[str] = None
     prompt: Optional[str] = None
     motion: Optional[str] = None
-    model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5'
-    resolution: Literal['480p', '720p', '768p'] = '480p'
+    model: Literal['seedance-2.5', 'minimax-h3', 'atlas-seedance-2.0-mini',
+                   'atlas-seedance-2.0', 'atlas-seedance-2.5',
+                   'atlas-minimax-h3', 'atlas-wan-3.0-prime'] = 'seedance-2.5'
+    resolution: Literal['480p', '720p', '768p', '2K'] = '480p'
     duration: Literal['4', '5', '6'] = '4'
     aspect: Literal['1:1', '16:9', '9:16'] = '1:1'
     maxTokens: int = Field(default=200, ge=1, le=1000)
@@ -757,7 +811,7 @@ class DirectAnimationRequest(BaseModel):
 
 @app.post('/api/v1/animations')
 def v1_create_animation(body: DirectAnimationRequest, account=Depends(v1_owner)):
-    if not animations_ready():
+    if not animation_model_ready(body.model):
         raise HTTPException(503, 'Character animation is temporarily unavailable. No Tokens were charged.')
     uid = account.removeprefix('firebase:')
 

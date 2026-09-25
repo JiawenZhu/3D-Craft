@@ -5,6 +5,18 @@ coding agents (Claude, ChatGPT, Muse, or custom automation tools).
 """
 from typing import Any, Dict
 
+MODEL_ENGINES = [
+    'tripo', 'seed3d', 'hunyuan-rapid', 'hunyuan-pro',
+    'hi3d-fast', 'hi3d-pro', 'hi3d-quality', 'hi3d-master',
+    'meshy-single', 'meshy-multi',
+    'rodin', 'trellis-2', 'hunyuan3d-2.1', 'hunyuan3d-2-white',
+]
+ANIMATION_MODELS = [
+    'atlas-seedance-2.0-mini', 'atlas-seedance-2.0', 'atlas-seedance-2.5',
+    'atlas-minimax-h3', 'atlas-wan-3.0-prime', 'seedance-2.5', 'minimax-h3',
+]
+ANIMATION_RESOLUTIONS = ['480p', '720p', '768p', '2K']
+
 
 def get_openapi_v1_spec() -> Dict[str, Any]:
     spec = {
@@ -124,8 +136,8 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
                         },
                         "engine": {
                             "type": "string",
-                            "enum": ["rodin", "trellis-2", "hunyuan3d-2.1", "hunyuan3d-2-white"],
-                            "default": "rodin",
+                            "enum": MODEL_ENGINES,
+                            "default": "tripo",
                         },
                         "quality": {
                             "type": "string",
@@ -177,8 +189,12 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
                     "properties": {
                         "id": {"type": "string"},
                         "name": {"type": "string"},
+                        "kind": {"type": "string", "enum": ["model", "animation", "concept"]},
+                        "engine": {"type": "string", "nullable": True, "description": "Image-to-3D engine for newly created models"},
+                        "model": {"type": "string", "nullable": True, "description": "Animation model for newly created videos"},
                         "modelUrl": {"type": "string", "nullable": True, "description": "Cloud storage media URL"},
-                        "downloadUrl": {"type": "string", "nullable": True, "description": "Direct bearer-key authorized download endpoint for the GLB binary"},
+                        "videoUrl": {"type": "string", "nullable": True},
+                        "downloadUrl": {"type": "string", "nullable": True, "description": "Bearer-key authorized GLB, MP4, or image download endpoint"},
                         "thumbUrl": {"type": "string", "nullable": True},
                         "isExample": {"type": "boolean"},
                     },
@@ -383,11 +399,11 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
             },
             "/api/v1/assets": {
                 "get": {
-                    "summary": "List owned 3D assets",
-                    "description": "Returns owned 3D assets with downloadable GLB model URLs.",
+                    "summary": "List owned 3D objects, videos, and concept images",
+                    "description": "Returns owned creations with model or animation identifiers when recorded and downloadable media URLs.",
                     "responses": {
                         "200": {
-                            "description": "Owned 3D models with media URLs",
+                            "description": "Owned 3D objects, videos, and concept images with media URLs",
                             "content": {
                                 "application/json": {
                                     "schema": {
@@ -476,7 +492,7 @@ CREATION_SCHEMAS: Dict[str, Any] = {
             "projectId": {"type": "string", "description": "Reprompt: add a new image and 3D model to this existing project."},
             "name": {"type": "string", "maxLength": 120, "description": "Project name in the app. Defaults to the prompt."},
             "style": {"type": "string", "maxLength": 100},
-            "engine": {"type": "string", "enum": ["rodin", "trellis-2", "hunyuan3d-2.1", "hunyuan3d-2-white"], "default": "rodin"},
+            "engine": {"type": "string", "enum": MODEL_ENGINES, "default": "rodin"},
             "quality": {"type": "string", "enum": ["default", "speedy"], "default": "default"},
             "effort": {"type": "string", "enum": ["extreme-low", "low", "medium", "high", "extreme-high"], "default": "high"},
             "maxTokens": {"type": "integer", "minimum": 1, "maximum": 1000,
@@ -530,10 +546,11 @@ ANIMATION_PATHS: Dict[str, Any] = {
     "/api/v1/animations/quote": {
         "get": {
             "summary": "Quote a character animation",
-            "description": "Tokens for one looping Seedance clip. Square 480p is the cheapest; cost scales with pixels and seconds.",
+            "description": "Provider-specific Token quote for one looping clip. Choose a supported model, resolution, duration, and aspect together; unsupported combinations have no quote.",
             "parameters": [
-                {"name": "resolution", "in": "query", "required": False, "schema": {"type": "string", "enum": ["480p", "720p"], "default": "480p"}},
-                {"name": "duration", "in": "query", "required": False, "schema": {"type": "string", "enum": ["4", "6"], "default": "4"}},
+                {"name": "model", "in": "query", "required": False, "schema": {"type": "string", "enum": ANIMATION_MODELS, "default": "seedance-2.5"}},
+                {"name": "resolution", "in": "query", "required": False, "schema": {"type": "string", "enum": ANIMATION_RESOLUTIONS, "default": "480p"}},
+                {"name": "duration", "in": "query", "required": False, "schema": {"type": "string", "enum": ["4", "5", "6"], "default": "4"}},
                 {"name": "aspect", "in": "query", "required": False, "schema": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1"}},
             ],
             "responses": {"200": {"description": "maxTokens, provider cost and whether the service is available"}},
@@ -545,7 +562,7 @@ ANIMATION_PATHS: Dict[str, Any] = {
             "description": (
                 "Turns one of the account's images into a short silent MP4 that ends on its first frame, so it "
                 "loops cleanly. Poll GET /api/v1/jobs/{id} until status is done, then download the clip from "
-                "GET /api/v1/assets/{id}/download. Requires models:write."
+                "GET /api/v1/assets/{id}/download. Requires animations:write."
             ),
             "parameters": [_id("concept_id")],
             "requestBody": {"required": True, "content": {"application/json": {"schema": {
@@ -555,8 +572,9 @@ ANIMATION_PATHS: Dict[str, Any] = {
                     "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 120},
                     "motion": {"type": "string", "maxLength": 600,
                                "description": "What the character should do. Left out, it breathes and blinks gently."},
-                    "resolution": {"type": "string", "enum": ["480p", "720p"], "default": "480p"},
-                    "duration": {"type": "string", "enum": ["4", "6"], "default": "4"},
+                    "model": {"type": "string", "enum": ANIMATION_MODELS, "default": "seedance-2.5"},
+                    "resolution": {"type": "string", "enum": ANIMATION_RESOLUTIONS, "default": "480p"},
+                    "duration": {"type": "string", "enum": ["4", "5", "6"], "default": "4"},
                     "aspect": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1"},
                     "maxTokens": {"type": "integer", "minimum": 1, "maximum": 1000,
                                   "description": "Spending cap; take it from GET /api/v1/animations/quote."},
@@ -577,8 +595,8 @@ CREATION_PATHS: Dict[str, Any] = {
             "summary": "Quote a one-step creation",
             "description": "Maximum Tokens for one concept image plus one 3D model. Pass maxTokens as the cap.",
             "parameters": [
-                {"name": "engine", "in": "query", "required": False, "schema": {"type": "string", "default": "rodin"}},
-                {"name": "effort", "in": "query", "required": False, "schema": {"type": "string", "default": "high"}},
+                {"name": "engine", "in": "query", "required": False, "schema": {"type": "string", "enum": MODEL_ENGINES, "default": "rodin"}},
+                {"name": "effort", "in": "query", "required": False, "schema": {"type": "string", "enum": ["extreme-low", "low", "medium", "high", "extreme-high"], "default": "high"}},
             ],
             "responses": {"200": {"description": "conceptTokens, modelTokens, maxTokens, expiresAt"}},
         }
@@ -649,9 +667,25 @@ CREATION_PATHS: Dict[str, Any] = {
         }
     },
     "/api/v1/assets/{asset_id}": {
+        "get": {
+            "summary": "Read one owned 3D object, video, or concept image",
+            "parameters": [_id("asset_id")],
+            "responses": {"200": {"description": "Asset details", **_json("AssetItem")},
+                          "404": {"description": "Asset not found in this account"}},
+        },
+        "patch": {
+            "summary": "Rename a 3D object, video, or concept image",
+            "description": "Updates the name shown in the owner's library. Requires models:write.",
+            "parameters": [_id("asset_id")],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": {
+                "type": "object", "required": ["name"],
+                "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 120}}}}}},
+            "responses": {"200": {"description": "Updated asset name"},
+                          "404": {"description": "Asset not found in this account"}},
+        },
         "delete": {
-            "summary": "Delete one 3D object",
-            "description": DELETE_NOTE + " The concept image it was made from is kept.",
+            "summary": "Delete one 3D object, animation, or concept image",
+            "description": DELETE_NOTE + " Deleting a 3D object or video keeps its source concept image; deleting a concept removes its image when no other creation uses it.",
             "parameters": [_id("asset_id")],
             "responses": {"200": {"description": "Deleted", **_json("DeleteResult")}},
         }
@@ -668,8 +702,8 @@ EXTENDED_SCHEMAS: Dict[str, Any] = {
             "assetId": {"type": "string", "description": "ID of an existing creation asset."},
             "prompt": {"type": "string", "maxLength": 4000, "description": "Text prompt to generate a character and animate it in one step."},
             "motion": {"type": "string", "maxLength": 600, "description": "Specific character actions and turnaround motions."},
-            "model": {"type": "string", "enum": ["seedance-2.5", "minimax-h3"], "default": "seedance-2.5"},
-            "resolution": {"type": "string", "enum": ["480p", "720p", "768p"], "default": "480p"},
+            "model": {"type": "string", "enum": ANIMATION_MODELS, "default": "seedance-2.5"},
+            "resolution": {"type": "string", "enum": ANIMATION_RESOLUTIONS, "default": "480p"},
             "duration": {"type": "string", "enum": ["4", "5", "6"], "default": "4"},
             "aspect": {"type": "string", "enum": ["1:1", "16:9", "9:16"], "default": "1:1"},
             "maxTokens": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
@@ -747,6 +781,42 @@ EXTENDED_SCHEMAS: Dict[str, Any] = {
 }
 
 EXTENDED_PATHS: Dict[str, Any] = {
+    "/api/v1/models": {
+        "get": {
+            "summary": "List selectable 3D and video models",
+            "description": "Returns exact model IDs, providers, configured availability, supported video resolutions, and quote links. Availability reflects server configuration, not a provider's live queue status.",
+            "responses": {"200": {"description": "Selectable imageTo3D and video models"}},
+        },
+    },
+    "/api/v1/pricing": {
+        "get": {
+            "summary": "Compare supported 3D and animation model prices",
+            "description": "Lists verified provider rates and model identifiers. Generation charges depend on the selected settings; use the creation or animation quote endpoint for a Token spending cap.",
+            "responses": {"200": {"description": "Provider price catalogue"}},
+        },
+    },
+    "/api/v1/archive": {
+        "get": {
+            "summary": "List archived creations",
+            "responses": {"200": {"description": "Archived 3D objects, videos, and concept images"}},
+        },
+    },
+    "/api/v1/assets/{asset_id}/archive": {
+        "post": {
+            "summary": "Archive a 3D object, video, or concept image",
+            "description": "Hide an asset from the active library for up to 30 days. Requires assets:delete.",
+            "parameters": [_id("asset_id")],
+            "responses": {"200": {"description": "Asset archived"}},
+        },
+    },
+    "/api/v1/assets/{asset_id}/restore": {
+        "post": {
+            "summary": "Restore an archived creation",
+            "description": "Move an archived 3D object, video, or concept image back to the active library. Requires models:write.",
+            "parameters": [_id("asset_id")],
+            "responses": {"200": {"description": "Asset restored"}},
+        },
+    },
     "/api/v1/animations": {
         "post": {
             "summary": "Create an animated character video loop in one step",
@@ -872,4 +942,3 @@ EXTENDED_PATHS: Dict[str, Any] = {
         },
     },
 }
-

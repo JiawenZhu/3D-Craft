@@ -71,6 +71,10 @@ The API works with scripts or clients that support custom HTTP requests, a Beare
 | <code>POST /api/v1/creations</code> | Start a prompt-to-concept-to-3D job with an idempotency key and spending cap. |
 | <code>GET /api/v1/creations/{id}</code> | Check the creation's stage, progress, and result. |
 | <code>GET /api/v1/animations/quote</code> | Get a quote for a chosen animation model and settings. |
+| <code>POST /api/v1/animations</code> | Create a video from a prompt, concept, or existing asset using a selected Atlas or fal model. |
+| <code>GET /api/v1/pricing</code> | Compare supported 3D and video model IDs and provider rates. |
+| <code>GET /api/v1/models</code> | List selectable models, available providers, supported video resolutions, and quote links. |
+| <code>GET /api/v1/assets</code>, <code>PATCH /api/v1/assets/{id}</code>, <code>DELETE /api/v1/assets/{id}</code> | List, rename, or delete owned 3D objects, videos, and concept images. Deletion requires a key with <code>assets:delete</code>. |
 | <code>GET /api/keys</code>, <code>POST /api/keys</code> | List or create account-owned API keys. |
 
 For a one-step creation, first request a quote for the same engine and effort. Pass its <code>maxTokens</code> in the POST body; the server rejects a cap below the current quote. For example, after obtaining a quote, a client can send:
@@ -86,6 +90,8 @@ For a one-step creation, first request a quote for the same engine and effort. P
 ~~~
 
 The value <code>100</code> above is only an example spending cap, **not** a current quote. Use the returned value from the quote endpoint in a real request. The iOS flow retains its explicit concept-selection and 3D-confirmation steps; this API endpoint is an optional one-step automation workflow.
+
+The API accepts the Atlas image-to-3D engines and Atlas Seedance, MiniMax H3, and Wan video models alongside the existing fal models. Pass the model ID explicitly and quote the exact settings before starting work. See the [API key guide](docs/API_KEYS.md) for model IDs, supported video resolutions, asset management, and examples.
 
 ## Run locally
 
