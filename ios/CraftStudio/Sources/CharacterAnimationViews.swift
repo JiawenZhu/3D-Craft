@@ -208,6 +208,39 @@ struct AnimatedCharacterDetailView: View {
     }
 }
 
+private struct CraftVideoExample: Identifiable {
+    let id: String
+    let name: String
+    let provider: String
+    let note: String
+    let sample: String?
+    let sampleDetails: String
+
+    static let all: [Self] = [
+        .init(id: "atlas-seedance-2.5", name: "Seedance 2.5", provider: "Atlas",
+              note: "Best source fidelity and loop continuity in our single Dragon comparison.",
+              sample: "seedance-2.5", sampleDetails: "Dragon sample · 480p · 4 seconds"),
+        .init(id: "atlas-seedance-2.0-mini", name: "Seedance 2.0 Mini", provider: "Atlas",
+              note: "Lowest cost. Expressive motion, with a visible lighting change at the loop seam.",
+              sample: "mini", sampleDetails: "Dragon sample · 480p · 4 seconds"),
+        .init(id: "atlas-seedance-2.0", name: "Seedance 2.0", provider: "Atlas",
+              note: "Clear head movement and a relatively stable silhouette in this sample.",
+              sample: "seedance-2.0", sampleDetails: "Dragon sample · 480p · 4 seconds"),
+        .init(id: "atlas-wan-3.0-prime", name: "Wan 3.0 Prime", provider: "Atlas",
+              note: "Preserved the pose, though its movement was subtle in this sample.",
+              sample: "wan-3.0-prime", sampleDetails: "Dragon sample · 480p · 4 seconds"),
+        .init(id: "atlas-minimax-h3", name: "MiniMax H3", provider: "Atlas",
+              note: "Smooth gaze and head movement; this sample was rendered at 768p.",
+              sample: "minimax-h3", sampleDetails: "Dragon sample · 768p · 4 seconds"),
+        .init(id: "minimax-h3", name: "MiniMax H3", provider: "fal",
+              note: "Existing app option. Atlas's sample above is from a different provider.",
+              sample: nil, sampleDetails: "No matching sample in this comparison"),
+        .init(id: "seedance-2.5", name: "Seedance 2.5", provider: "fal",
+              note: "Existing app option. Atlas's sample above is from a different provider.",
+              sample: nil, sampleDetails: "No matching sample in this comparison"),
+    ]
+}
+
 /// Confirms what the character will do, how long the loop is, and what it costs
 /// before any Tokens are reserved.
 struct AnimationGenerationSheet: View {
@@ -217,15 +250,22 @@ struct AnimationGenerationSheet: View {
     @EnvironmentObject private var store: CraftStore
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.dismiss) private var dismiss
-    @State private var model = "minimax-h3"
+    @State private var model = "atlas-seedance-2.5"
     @State private var motion = ""
     @State private var resolution = "480p"
-    @State private var duration = "5"
+    @State private var duration = "4"
     @State private var cost: Int?
     @State private var loading = true
     @State private var showShortfallModal = false
     @State private var shortfallNeeded = 0
     @State private var showTokenPacks = false
+    @State private var showModelChoices = false
+    @State private var playingSample = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var selectedExample: CraftVideoExample {
+        CraftVideoExample.all.first { $0.id == model } ?? CraftVideoExample.all[0]
+    }
 
     private func t(_ en: String, _ zh: String) -> String { chinese ? zh : en }
 
@@ -246,16 +286,7 @@ struct AnimationGenerationSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        picker(t("Animation Model", "动画模型"), selection: $model,
-                               options: [("minimax-h3", t("MiniMax Hailuo 02", "MiniMax 海螺 02")),
-                                         ("seedance-2.5", t("Seedance 2.5", "Seedance 2.5"))],
-                               identifier: "animation.model")
-                        Text(model == "minimax-h3"
-                             ? t("Vivid expressions · Stable accessories · High value", "表情生动自然 · 配饰结构稳定 · 高性价比")
-                             : t("Fluid cloth physics · Dramatic jump hangtime", "流体布料质感 · 舒展跳跃滞空"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
+                    modelChoice
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text(t("What should it do?", "让它做什么？")).font(.subheadline.weight(.semibold))
@@ -277,6 +308,8 @@ struct AnimationGenerationSheet: View {
 
                     let resolutionOptions: [(String, String)] = model == "minimax-h3"
                         ? [("480p", t("Standard (480P)", "标清 (480P)")), ("768p", t("High (768P)", "高清 (768P)"))]
+                        : model == "atlas-minimax-h3"
+                        ? [("768p", t("Standard (768P)", "标准 (768P)")), ("2K", t("High (2K)", "高清 (2K)"))]
                         : [("480p", t("Standard (480P)", "标准 (480P)")), ("720p", t("High (720P)", "高清 (720P)"))]
 
                     picker(t("Quality", "画质"), selection: $resolution,
@@ -299,15 +332,18 @@ struct AnimationGenerationSheet: View {
             .onChange(of: model) { _, newModel in
                 if newModel == "minimax-h3" {
                     duration = "5"
-                    if resolution == "720p" { resolution = "768p" }
-                    else if resolution != "480p" && resolution != "768p" { resolution = "480p" }
+                    resolution = "480p"
+                } else if newModel == "atlas-minimax-h3" {
+                    duration = "4"
+                    resolution = "768p"
                 } else {
-                    if duration == "5" { duration = "4" }
-                    if resolution == "768p" { resolution = "720p" }
-                    else if resolution != "480p" && resolution != "720p" { resolution = "480p" }
+                    duration = "4"
+                    resolution = "480p"
                 }
+                playingSample = false
             }
             .task(id: model + resolution + duration) { await refreshCost() }
+            .sheet(isPresented: $showModelChoices) { modelChoices }
             .sheet(isPresented: $showShortfallModal) {
                 TokenShortfallModalView(needed: shortfallNeeded, available: store.wallet.available) {
                     showTokenPacks = true
@@ -318,6 +354,90 @@ struct AnimationGenerationSheet: View {
                 CreatorPlansView(startOnTopups: true)
                     .craftAmbientHost()
             }
+        }
+    }
+
+    private var modelChoice: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(t("Animation model", "动画模型")).font(.subheadline.weight(.semibold))
+            Button { showModelChoices = true } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(selectedExample.name).font(.headline)
+                        Text(selectedExample.provider).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                }
+                .padding(14)
+                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("animation.model")
+            Text(selectedExample.note).font(.caption).foregroundStyle(.secondary)
+            if let sample = selectedExample.sample,
+               let url = Bundle.main.url(forResource: sample, withExtension: "mp4", subdirectory: "VideoComparisons") {
+                ZStack(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 18).fill(appearance.washSoft)
+                    if let poster = Bundle.main.url(forResource: sample, withExtension: "jpg", subdirectory: "VideoComparisons"),
+                       let bitmap = UIImage(contentsOfFile: poster.path) {
+                        Image(uiImage: bitmap).resizable().scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                    if playingSample && !reduceMotion {
+                        CraftLoopingVideo(url: url, playing: true)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                    HStack {
+                        Text(selectedExample.sampleDetails)
+                            .font(.caption.weight(.medium))
+                        Spacer()
+                        Button {
+                            playingSample.toggle()
+                        } label: {
+                            Label(playingSample ? t("Pause", "暂停") : t("Play sample", "播放样片"),
+                                  systemImage: playingSample ? "pause.fill" : "play.fill")
+                        }
+                        .disabled(reduceMotion)
+                    }
+                    .padding(10)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .padding(8)
+                }
+                .frame(height: 220)
+                .accessibilityLabel(selectedExample.sampleDetails)
+                Text(t("One Dragon test clip. Your character and result will differ.",
+                       "这是一次龙角色测试样片；你的角色和结果会有所不同。"))
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var modelChoices: some View {
+        NavigationStack {
+            List(CraftVideoExample.all) { example in
+                Button {
+                    model = example.id
+                    showModelChoices = false
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: example.id == model ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(appearance.ink)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(example.name).font(.headline)
+                            Text("\(example.provider) · \(example.note)")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 5)
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle(t("Choose animation model", "选择动画模型"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) {
+                Button(t("Done", "完成")) { showModelChoices = false }
+            }}
         }
     }
 
@@ -696,4 +816,3 @@ You are a senior indie game developer. Use Codex / Cloud Code to build a complet
         }
     }
 }
-

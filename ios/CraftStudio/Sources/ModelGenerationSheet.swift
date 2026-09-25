@@ -1,6 +1,35 @@
 import SwiftUI
 import UIKit
 
+/// Preview facts describe the original Cloud Dragon comparison outputs. The
+/// bundled GLBs are smaller display copies, never the files sold to users.
+private struct CraftEngineExample: Identifiable {
+    let id: String
+    let title: String
+    let slug: String?
+    let originalSize: String?
+    let triangles: String?
+    let observation: String?
+
+    static let all: [Self] = [
+        .init(id: "tripo", title: "Tripo H3.1", slug: "tripo", originalSize: "45.6 MB", triangles: "1.46M", observation: "Lowest tested price. Recognizable face and wings; large mesh needs optimization for mobile."),
+        .init(id: "seed3d", title: "Seed3D 2.0", slug: "seed3d", originalSize: "47.1 MB", triangles: "1.00M", observation: "Front and back stay close to the source; the output is much heavier than Rodin."),
+        .init(id: "rodin", title: "Rodin (Ultra)", slug: "rodin", originalSize: "10.4 MB", triangles: "91.9K", observation: "Balanced source likeness and the smallest finished Dragon file in this test."),
+        .init(id: "hunyuan-rapid", title: "Hunyuan Rapid", slug: "hunyuan-rapid", originalSize: "12.6 MB", triangles: "49.3K", observation: "Light and fast, but its face and unseen back differ more from the source."),
+        .init(id: "hunyuan-pro", title: "Hunyuan Pro", slug: "hunyuan-pro", originalSize: "53.9 MB", triangles: "500K", observation: "Clean front silhouette; softer likeness and invented detail on the back."),
+        .init(id: "hi3d-fast", title: "HI3D v2.1 Fast", slug: "hi3d-fast", originalSize: "61.1 MB", triangles: "2.00M", observation: "Clear wings and tail, with extra rear spines and a large phone download."),
+        .init(id: "hi3d-pro", title: "HI3D v2.1 Pro", slug: "hi3d-pro", originalSize: "58.7 MB", triangles: "2.00M", observation: "Source-like front and complete wings; large rear spines remain."),
+        .init(id: "hi3d-quality", title: "HI3D v3.0 Quality", slug: "hi3d-quality", originalSize: "48.4 MB", triangles: "2.00M", observation: "Detailed front, but the back adds prominent spines. Premium priced."),
+        .init(id: "hi3d-master", title: "HI3D v3.0 Master", slug: "hi3d-master", originalSize: "115 MB", triangles: "5.00M", observation: "More surface detail did not resolve the invented rear spines. Highest price."),
+        .init(id: "meshy-single", title: "Meshy v7", slug: "meshy-single", originalSize: "46.3 MB", triangles: "1.34M", observation: "Readable front and complete wings; extra back spines and a heavy mesh."),
+        .init(id: "meshy-multi", title: "Meshy v7 Multi", slug: "meshy-multi", originalSize: "47.0 MB", triangles: "1.42M", observation: "The sample used one image, so it does not establish a multi-view benefit."),
+        .init(id: "trellis-2", title: "TRELLIS.2", slug: nil, originalSize: nil, triangles: nil, observation: nil),
+        .init(id: "hunyuan3d-2.1", title: "Hunyuan 3D 2", slug: nil, originalSize: nil, triangles: nil, observation: nil),
+        .init(id: "hunyuan3d-2-white", title: "Hunyuan 3D 2 · White mesh", slug: nil, originalSize: nil, triangles: nil, observation: nil),
+        .init(id: "hybrid", title: "Hybrid", slug: nil, originalSize: nil, triangles: nil, observation: nil),
+    ]
+}
+
 /// Confirm the selected source and settings, with provider cost estimates
 /// displayed separately from the existing app Token reservation.
 struct ModelGenerationSheet: View {
@@ -13,7 +42,9 @@ struct ModelGenerationSheet: View {
     let onGenerate: (_ engine: String, _ quality: String, _ effort: String, _ selectedIDs: [String], _ prompt: String?) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var engine = "rodin"
+    @State private var engine = "tripo"
+    @State private var showEngineChooser = false
+    @State private var showExample3D = false
     @State private var quality = "default"
     @State private var effort = "high"
     @State private var imageReady = false
@@ -57,6 +88,7 @@ struct ModelGenerationSheet: View {
         }
     }
     private var supportsMultiView: Bool {
+        if isAtlasEngine { return false }
         guard offersMultiView, eligibleViews.contains(where: { $0.id == concept.id }) else { return false }
         return ["hunyuan3d-2.1","hunyuan3d-2-white","hybrid"].contains(engine) ? eligibleViews.count == 3 : eligibleViews.count >= 2
     }
@@ -70,9 +102,11 @@ struct ModelGenerationSheet: View {
     }
     private var tokenCost: Int? { store.modelTokenCost(engine, views: max(1, selectedIDs.count), effort: effort) }
     private var tokenLabel: String { store.modelTokenLabel(engine, views: max(1, selectedIDs.count), effort: effort) }
+    private var engineExample: CraftEngineExample? { CraftEngineExample.all.first { $0.id == engine } }
+    private var isAtlasEngine: Bool { engineExample?.slug != nil && engine != "rodin" }
     private var supportsPrompt: Bool { engine == "rodin" }
     private var trimmedPrompt: String { modelPrompt.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var promptValid: Bool { modelPrompt.unicodeScalars.count <= 800 && (supportsPrompt || trimmedPrompt.isEmpty) }
+    private var promptValid: Bool { !supportsPrompt || modelPrompt.unicodeScalars.count <= 800 }
     private var ready: Bool { imageReady && !submitted && !improvingPrompt && selectionValid && tokenCost != nil && promptValid }
 
     var body: some View {
@@ -82,6 +116,7 @@ struct ModelGenerationSheet: View {
                     headline
                     sourceCard
                     settingsCard
+                    exampleCard
                     promptCard
                     costCard
                     if tokenCost == nil {
@@ -105,6 +140,7 @@ struct ModelGenerationSheet: View {
             .onChange(of: engine) { _, _ in
                 if !supportsMultiView { useMultiView = false }
                 checkedIDs = Set(eligibleViews.prefix(5).map(\.id))
+                showExample3D = false
             }
             .onChange(of: useMultiView) { _, enabled in
                 if enabled { checkedIDs = Set(eligibleViews.prefix(5).map(\.id)) }
@@ -134,6 +170,7 @@ struct ModelGenerationSheet: View {
             CreatorPlansView(startOnTopups: true)
                 .craftAmbientHost()
         }
+        .sheet(isPresented: $showEngineChooser) { engineChooser }
     }
 
     // MARK: - Sections
@@ -192,22 +229,26 @@ struct ModelGenerationSheet: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 settingLabel(t("3D engine", "3D 引擎"), icon: "cube.transparent")
-                Picker(t("3D engine", "3D 引擎"), selection: $engine) {
-                    Text("Rodin (Ultra) · " + store.modelTokenLabel("rodin", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("rodin", views: max(1, selectedIDs.count), effort: effort) : "")).tag("rodin")
-                    Text("TRELLIS.2 · " + store.modelTokenLabel("trellis-2", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("trellis-2", views: max(1, selectedIDs.count), effort: effort) : "")).tag("trellis-2")
-                    Text(t("Hunyuan 2 · Textured · ", "Hunyuan 2 · 带纹理 · ") + store.modelTokenLabel("hunyuan3d-2.1", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hunyuan3d-2.1", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hunyuan3d-2.1")
-                    Text(t("Hunyuan 2 · White mesh · ", "Hunyuan 2 · 白模 · ") + store.modelTokenLabel("hunyuan3d-2-white", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hunyuan3d-2-white", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hunyuan3d-2-white")
-                    if store.cloudModelEngineIDs.contains("hybrid") {
-                        Text("Hybrid · " + store.modelTokenLabel("hybrid", views: max(1, selectedIDs.count), effort: effort) + (store.showPriceDetails ? " · " + store.modelPriceLabel("hybrid", views: max(1, selectedIDs.count), effort: effort) : "")).tag("hybrid")
+                Button { showEngineChooser = true } label: {
+                    HStack(spacing: 10) {
+                        Text(engineExample?.title ?? engine).font(.subheadline.weight(.semibold))
+                        Spacer(minLength: 4)
+                        Text(tokenLabel).font(.subheadline.weight(.semibold))
+                        Image(systemName: "chevron.up.chevron.down").font(.caption.weight(.bold))
                     }
-                }.pickerStyle(.menu).tint(lilac).frame(maxWidth: .infinity, alignment: .leading).accessibilityIdentifier("modelEnginePicker")
+                    .foregroundStyle(lilac)
+                    .padding(14)
+                    .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("modelEnginePicker")
             }
 
             if engine == "hunyuan3d-2-white" {
                 Text(t("White mesh · geometry only, without color or texture.", "白模 · 仅生成几何形状，不含颜色或纹理。"))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if offersMultiView {
+            if offersMultiView && !isAtlasEngine {
                 Divider().opacity(0.4)
                 Toggle(t("Use checked views", "使用已勾选视角"), isOn: $useMultiView)
                     .font(.subheadline.weight(.medium))
@@ -261,8 +302,12 @@ struct ModelGenerationSheet: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            if isAtlasEngine {
+                Text(t("This provider uses its tested image-to-3D preset. It accepts one selected image.",
+                       "此服务使用已测试的图像转 3D 预设，接受一张所选图片。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
             Divider().opacity(0.4)
-
             settingLabel(t("Quality mode", "质量模式"), icon: "slider.horizontal.3")
             CraftSegmented(options: [.init("default", t("Default", "标准")),
                                      .init("speedy", t("Speedy", "快速"))],
@@ -289,6 +334,7 @@ struct ModelGenerationSheet: View {
             }
             Text(t("Higher effort may take longer. Available detail depends on the engine; it does not guarantee a perfect mesh. Engine availability is checked when you submit.", "更高精度可能需要更长时间，实际细节取决于引擎，不保证模型完全无瑕疵。提交时会检查引擎是否可用。"))
                 .font(.caption).foregroundStyle(.secondary)
+            }
         }
         .padding(18)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -296,6 +342,119 @@ struct ModelGenerationSheet: View {
         .animation(CraftMotion.gated(.glide, reduceMotion), value: useMultiView)
         .animation(CraftMotion.gated(.glide, reduceMotion), value: selectionValid)
         .craftEntrance(4)
+    }
+
+    private func exampleURL(_ example: CraftEngineExample, fileExtension ext: String) -> URL? {
+        guard let slug = example.slug else { return nil }
+        return Bundle.main.url(forResource: "comparison-\(slug)", withExtension: ext, subdirectory: "ModelComparisons")
+    }
+
+    private var engineChooser: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    ForEach(CraftEngineExample.all.filter { $0.id != "hybrid" || store.cloudModelEngineIDs.contains("hybrid") }) { option in
+                        Button {
+                            engine = option.id
+                            showEngineChooser = false
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                if let url = exampleURL(option, fileExtension: "png"), let image = UIImage(contentsOfFile: url.path) {
+                                    Image(uiImage: image).resizable().scaledToFill()
+                                        .frame(width: 72, height: 72).clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                } else {
+                                    Image(systemName: "cube.transparent.fill")
+                                        .font(.title2).foregroundStyle(lilac)
+                                        .frame(width: 72, height: 72)
+                                        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 12))
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(alignment: .firstTextBaseline) {
+                                        Text(option.title).font(.subheadline.bold())
+                                        Spacer(minLength: 4)
+                                        if engine == option.id { Image(systemName: "checkmark.circle.fill").foregroundStyle(lilac) }
+                                    }
+                                    Text(store.modelTokenLabel(option.id))
+                                        .font(.subheadline.weight(.semibold)).foregroundStyle(lilac)
+                                    if let size = option.originalSize, let triangles = option.triangles {
+                                        Text("\(size) · \(triangles) \(t("triangles", "三角面"))")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    if let price = store.modelPrices[option.id]?.texturedUsd, price >= 1 {
+                                        Text(t("Premium cost · confirm Tokens before generating", "较高成本 · 生成前请确认 Token"))
+                                            .font(.caption2.weight(.semibold)).foregroundStyle(coral)
+                                    }
+                                }
+                            }
+                            .foregroundStyle(.primary)
+                            .padding(12)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+                            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(engine == option.id ? lilac.opacity(0.55) : appearance.hairline, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("modelOption.\(option.slug ?? option.id)")
+                    }
+                }
+                .padding(16)
+            }
+            .background { StudioAtmosphere() }
+            .navigationTitle(t("Choose a 3D model", "选择 3D 模型"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(t("Done", "完成")) { showEngineChooser = false } } }
+        }
+        .presentationDetents([.large])
+        .preferredColorScheme(.light)
+    }
+
+    private var exampleCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(t("Cloud Dragon example", "云龙示例"), systemImage: "cube.fill")
+                .font(.headline).foregroundStyle(lilac)
+            Text(t("Compare a real result from the same reference. Your own creation will vary.",
+                   "对比同一参考图生成的真实结果。你的作品可能不同。"))
+                .font(.caption).foregroundStyle(.secondary)
+            if let option = engineExample, let imageURL = exampleURL(option, fileExtension: "png"),
+               let image = UIImage(contentsOfFile: imageURL.path) {
+                if showExample3D, let modelURL = exampleURL(option, fileExtension: "glb") {
+                    ModelViewport(modelURL: modelURL, softStage: true, idleMotion: false)
+                        .frame(height: 280)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .id(option.id)
+                        .accessibilityIdentifier("model.example3D")
+                } else {
+                    Image(uiImage: image).resizable().scaledToFit()
+                        .frame(maxWidth: .infinity).frame(height: 220)
+                        .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 18))
+                        .clipped()
+                }
+                if exampleURL(option, fileExtension: "glb") != nil {
+                    Button(showExample3D ? t("Show image", "显示图片") : t("Explore 3D sample", "查看 3D 示例")) {
+                        showExample3D.toggle()
+                    }
+                    .font(.subheadline.weight(.semibold)).tint(lilac)
+                    .accessibilityIdentifier("model.exampleToggle")
+                }
+                if let size = option.originalSize, let triangles = option.triangles {
+                    Text(t("Original result", "原始结果") + " · \(size) · \(triangles) " + t("triangles", "三角面"))
+                        .font(.caption.weight(.semibold))
+                }
+                if let observation = option.observation {
+                    Text(observation).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(t("The interactive sample is optimized for display. File size and triangle count above describe the original output.",
+                       "可交互示例已针对显示优化。上方文件大小与三角面数量指原始输出。"))
+                    .font(.caption2).foregroundStyle(.secondary)
+            } else {
+                Text(t("No Cloud Dragon comparison sample is available for this engine yet.",
+                       "此引擎暂无云龙对比示例。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 26))
+        .craftDepth(.card)
     }
 
     private var promptCard: some View {

@@ -19,6 +19,7 @@ venv/
 *.pem
 *.key
 *.glb
+!ios/CraftStudio/Resources/ModelComparisons/*.glb
 *.obj
 *.fbx
 *.ply
@@ -88,6 +89,10 @@ ios/.build-test/
 *.ipa
 *.xcdistributionlogs/
 docs/app-store/*.zip
+
+# Keep full-resolution provider test meshes locally; Git tracks compact viewer copies.
+docs/design/image-to-3d-comparison/media/*.glb
+docs/design/video-provider-comparison/media/*.mp4
 
 # Antigravity CLI and Agent integrations (prevent upload to GitHub / App builds)
 .antigravity/

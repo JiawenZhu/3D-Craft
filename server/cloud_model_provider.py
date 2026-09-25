@@ -11,14 +11,31 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from fastapi import HTTPException
 from .config import FAL_ENDPOINTS, TRELLIS_RESOLUTIONS
+from . import atlas_model_provider
 
-ENGINES = {'rodin': 'Rodin (Ultra)', 'trellis-2': 'TRELLIS.2',
-           'hunyuan3d-2.1': 'Hunyuan 3D 2', 'hunyuan3d-2-white': 'Hunyuan 3D 2 · White mesh'}
+ENGINES = {
+    'tripo': 'Tripo H3.1',
+    'seed3d': 'Seed3D 2.0',
+    'hunyuan-rapid': 'Hunyuan Rapid',
+    'hunyuan-pro': 'Hunyuan Pro',
+    'hi3d-fast': 'HI3D v2.1 Fast',
+    'hi3d-pro': 'HI3D v2.1 Pro',
+    'hi3d-quality': 'HI3D v3.0 Quality',
+    'hi3d-master': 'HI3D v3.0 Master',
+    'meshy-single': 'Meshy v7',
+    'meshy-multi': 'Meshy v7 Multi',
+    'rodin': 'Rodin (Ultra)',
+    'trellis-2': 'TRELLIS.2',
+    'hunyuan3d-2.1': 'Hunyuan 3D 2',
+    'hunyuan3d-2-white': 'Hunyuan 3D 2 · White mesh',
+}
 EFFORTS = ('extreme-low','low','medium','high','extreme-high')
 _keys = (0, [])
 
 
-def arguments(engine, urls, directions, effort, quality, prompt):
+def arguments(engine, urls, directions=(), effort='high', quality='default', prompt=None):
+    if atlas_model_provider.is_atlas_engine(engine):
+        return atlas_model_provider.arguments(engine, urls, prompt, quality, effort)
     level = EFFORTS.index(effort)
     if engine == 'rodin':
         return FAL_ENDPOINTS['rodin'], dict(input_image_urls=urls, prompt=prompt,
@@ -48,10 +65,13 @@ def arguments(engine, urls, directions, effort, quality, prompt):
         'textured_mesh':engine!='hunyuan3d-2-white'}
 
 
-def headers():
+def headers(engine=None):
+    if engine and atlas_model_provider.is_atlas_engine(engine):
+        return atlas_model_provider.headers()
     key = os.getenv('FAL_KEY', '')
     if not key: raise HTTPException(503,'Model service is temporarily unavailable.')
     return {'Authorization':'Key '+key}
+
 
 
 def submit(endpoint, payload, callback):
@@ -93,6 +113,8 @@ def verify_callback(headers_, raw):
 
 
 def download_mesh(result, destination):
+    if atlas_model_provider.is_atlas_result(result):
+        return atlas_model_provider.download_mesh(result, destination)
     url=None
     for name in ('model_glb_pbr','model_glb','model_mesh','model_meshes'):
         value=result.get(name)

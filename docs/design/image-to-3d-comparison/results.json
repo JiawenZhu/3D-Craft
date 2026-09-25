@@ -1,0 +1,164 @@
+{
+  "rodin": {
+    "status": "completed",
+    "bytes": 10443960,
+    "triangles": 91878,
+    "vertices": 54150,
+    "baseColorTexture": [
+      2048,
+      2048
+    ],
+    "verdict": "Closest balanced baseline in this run: readable eyes, wings, and tail with a restrained back. Smallest finished GLB.",
+    "thumbnail": "media/thumb-rodin.png"
+  },
+  "seed3d": {
+    "status": "completed",
+    "predictionId": "255581c8b55340c5838f89f4256126fa",
+    "elapsedSeconds": 651.1,
+    "bytes": 47093456,
+    "triangles": 1000000,
+    "vertices": 602204,
+    "baseColorTexture": [
+      4096,
+      4096
+    ],
+    "verdict": "Front and rear stay close to the source. Good visual result at a lower listed price, but the delivered mesh is about 4.5\u00d7 the Rodin file.",
+    "thumbnail": "media/thumb-seed3d.png",
+    "reportedPriceUSD": 0.353
+  },
+  "tripo": {
+    "status": "completed",
+    "predictionId": "d40d1b3aebc7478b9873067de8d825d0",
+    "elapsedSeconds": 192.8,
+    "bytes": 45588292,
+    "triangles": 1457492,
+    "vertices": 759030,
+    "baseColorTexture": [
+      2048,
+      2048
+    ],
+    "verdict": "Recognizable face and wings at the lowest price. The GLB faces +X, so the viewer aligns it; 1.46 million triangles need optimization for mobile.",
+    "thumbnail": "media/thumb-tripo.png"
+  },
+  "hunyuan-rapid": {
+    "status": "completed",
+    "predictionId": "ec5b9146db37460ebf4cabd641ebf5c8",
+    "elapsedSeconds": 114.2,
+    "bytes": 12604812,
+    "triangles": 49272,
+    "vertices": 33247,
+    "baseColorTexture": [
+      2048,
+      2048
+    ],
+    "verdict": "Fastest and lightest Atlas result. The face changes noticeably and the unseen back gains many spines, despite a mobile-friendly triangle count.",
+    "thumbnail": "media/thumb-hunyuan-rapid.png",
+    "reportedPriceUSD": 0.5
+  },
+  "hunyuan-pro": {
+    "status": "completed",
+    "predictionId": "a58557a68e8d4747b4c044195b2bd405",
+    "elapsedSeconds": 226.8,
+    "bytes": 53890632,
+    "triangles": 500004,
+    "vertices": 299967,
+    "baseColorTexture": [
+      4096,
+      4096
+    ],
+    "verdict": "Clean front silhouette, but softer source likeness and a heavily invented spiny back. Its 53.9 MB file is large for direct phone use.",
+    "thumbnail": "media/thumb-hunyuan-pro.png"
+  },
+  "hi3d-fast": {
+    "status": "completed",
+    "predictionId": "b3865a88cafb42208ef5a5dfd0bdfd66",
+    "elapsedSeconds": 508.7,
+    "bytes": 61078688,
+    "triangles": 1999306,
+    "vertices": 1013858,
+    "baseColorTexture": [
+      4096,
+      4096
+    ],
+    "verdict": "Cute front with clear wings and tail; the rear invents large clustered spines. Two million triangles and a 4K map outweigh the small cost advantage.",
+    "thumbnail": "media/thumb-hi3d-fast.png",
+    "reportedPriceUSD": 0.425
+  },
+  "hi3d-pro": {
+    "status": "completed",
+    "predictionId": "b26e9e5531654191b07cdd41c2dc4d58",
+    "elapsedSeconds": 1644.7,
+    "reportedPriceUSD": 0.765,
+    "bytes": 58724372,
+    "triangles": 1998624,
+    "vertices": 1011475,
+    "baseColorTexture": [
+      4096,
+      4096
+    ],
+    "thumbnail": "media/thumb-hi3d-pro.png",
+    "verdict": "Source-like front and complete wings, but a rear with enlarged decorative spines. Nearly two million triangles and 58.7 MB remain heavy for iPhone use."
+  },
+  "hi3d-quality": {
+    "status": "completed",
+    "predictionId": "809acc47a5ef4fcfae96dbb605ec90df",
+    "elapsedSeconds": 666.4,
+    "bytes": 48372540,
+    "triangles": 2000000,
+    "vertices": 1013691,
+    "baseColorTexture": [
+      8192,
+      8192
+    ],
+    "verdict": "Detailed front, but the unseen back adds prominent spines. An 8K color map and two million triangles make it a heavy export.",
+    "thumbnail": "media/thumb-hi3d-quality.png",
+    "reportedPriceUSD": 1.105,
+    "excludedByBudget": true
+  },
+  "hi3d-master": {
+    "status": "completed",
+    "predictionId": "9beacc8c581243abb0c840c7a906b9bc",
+    "verdict": "More surface detail does not resolve the invented rear spines. At $5.185 and 115 MB, this run offers little app value over cheaper choices.",
+    "thumbnail": "media/thumb-hi3d-master.png",
+    "elapsedSeconds": 1060.2,
+    "reportedPriceUSD": 5.185,
+    "bytes": 114993420,
+    "triangles": 5000000,
+    "vertices": 2529945,
+    "baseColorTexture": [
+      8192,
+      8192
+    ],
+    "excludedByBudget": true
+  },
+  "meshy-single": {
+    "status": "completed",
+    "predictionId": "74f0d6e206c44d6d8d37704a8c7d2162",
+    "elapsedSeconds": 122.3,
+    "bytes": 46265104,
+    "triangles": 1343130,
+    "vertices": 708399,
+    "baseColorTexture": [
+      2048,
+      2048
+    ],
+    "verdict": "Readable front and complete wings, with extra spines on the unseen back. The 46 MB, 1.34-million-triangle GLB needs a mobile optimization pass.",
+    "thumbnail": "media/thumb-meshy-single.png",
+    "reportedPriceUSD": 0.66
+  },
+  "meshy-multi": {
+    "status": "completed",
+    "predictionId": "f7a95b6ff9444b9a8ff16650d874e6b8",
+    "elapsedSeconds": 123.8,
+    "bytes": 47019648,
+    "triangles": 1421096,
+    "vertices": 748270,
+    "baseColorTexture": [
+      2048,
+      2048
+    ],
+    "verdict": "One-image output looks similar to Meshy single; this does not test true multi-view benefit. It is slightly heavier at the same listed cost.",
+    "thumbnail": "media/thumb-meshy-multi.png",
+    "reportedPriceUSD": 0.66
+  }
+}

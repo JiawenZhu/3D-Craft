@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A3D42C0111C243CA8A77E001 /* ModelComparisons in Resources */ = {isa = PBXBuildFile; fileRef = A3D42C0111C243CA8A77E002 /* ModelComparisons */; };
+		A3D42C0111C243CA8A77E003 /* VideoComparisons in Resources */ = {isa = PBXBuildFile; fileRef = A3D42C0111C243CA8A77E004 /* VideoComparisons */; };
 		031A94D190FA111914ECF753 /* mascot-dragon-thinking-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 4F3FFBAD330EB13A8985984C /* mascot-dragon-thinking-4.png */; };
 		059C070BAD6A2E9071390ADC /* CraftModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BE9224A1061FD95554C9E5 /* CraftModels.swift */; };
 		06F57008528F1E5640928372 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4EFEE43537DB07AFFE290B5F /* PrivacyInfo.xcprivacy */; };
@@ -232,6 +234,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A3D42C0111C243CA8A77E002 /* ModelComparisons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ModelComparisons; sourceTree = "<group>"; };
+		A3D42C0111C243CA8A77E004 /* VideoComparisons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = VideoComparisons; sourceTree = "<group>"; };
 		010418F04AD92F50C47D6E62 /* CraftAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftAccount.swift; sourceTree = "<group>"; };
 		05CA54F122B4E6FADDBD0CD5 /* CraftGadgetCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftGadgetCenter.swift; sourceTree = "<group>"; };
 		07B0B921E1D7AAF34F16ABE6 /* mascot-dragon-thinking-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "mascot-dragon-thinking-3.png"; sourceTree = "<group>"; };
@@ -445,6 +449,8 @@
 		5333DDCADD1028E83A364EF3 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A3D42C0111C243CA8A77E002 /* ModelComparisons */,
+				A3D42C0111C243CA8A77E004 /* VideoComparisons */,
 				5E2D5FCD326990A4175C458A /* Assets.xcassets */,
 				D60B9B5E0FEC2B0040593DB0 /* CommercePlans.json */,
 				E0A43A91B0DC2F1E99BAA60C /* emerald_dragon.jpg */,
@@ -852,6 +858,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A3D42C0111C243CA8A77E001 /* ModelComparisons in Resources */,
+				A3D42C0111C243CA8A77E003 /* VideoComparisons in Resources */,
 				2092DA77027673DE016DE873 /* Assets.xcassets in Resources */,
 				6731C7437CFBD30D087AB703 /* CommercePlans.json in Resources */,
 				06F57008528F1E5640928372 /* PrivacyInfo.xcprivacy in Resources */,
@@ -1148,7 +1156,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2026092402;
+				CURRENT_PROJECT_VERSION = 2026092501;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = C265XC3RH7;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1164,7 +1172,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 2.0.1;
+				MARKETING_VERSION = 2.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1211,7 +1219,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2026092402;
+				CURRENT_PROJECT_VERSION = 2026092501;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = C265XC3RH7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1233,7 +1241,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 2.0.1;
+				MARKETING_VERSION = 2.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

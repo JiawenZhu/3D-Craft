@@ -95,7 +95,8 @@ class JobTests(unittest.TestCase):
         self.studio = Studio()
         ProjectFixture().build(self.studio)
         self.wallet = self.studio.db.collection('users').document(UID).collection('private').document('wallet')
-        self.wallet.set({'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION'})
+        self.wallet.set({'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION',
+                         'welcomeTokensGranted': True})
         self.service = CloudAnimations(self.studio, clock=lambda: 1_000_000.0)
         self.patches = [patch.object(animations, 'enqueue'),
                         patch.object(provider, 'headers', return_value={'Authorization': 'Key test'}),
@@ -195,7 +196,8 @@ class RealUsageBillingTests(unittest.TestCase):
         studio = Studio()
         ProjectFixture().build(studio)
         wallet = studio.db.collection('users').document(UID).collection('private').document('wallet')
-        wallet.set({'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION'})
+        wallet.set({'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION',
+                    'welcomeTokensGranted': True})
         service = CloudAnimations(studio, clock=lambda: 1_000_000.0)
         with patch.object(animations, 'enqueue'), \
              patch.object(provider, 'headers', return_value={'Authorization': 'Key test'}), \
@@ -216,7 +218,8 @@ class RealUsageBillingTests(unittest.TestCase):
         studio = Studio()
         ProjectFixture().build(studio)
         wallet = studio.db.collection('users').document(UID).collection('private').document('wallet')
-        wallet.set({'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION'})
+        wallet.set({'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION',
+                    'welcomeTokensGranted': True})
         service = CloudAnimations(studio, clock=lambda: 1_000_000.0)
         with patch.object(animations, 'enqueue'), \
              patch.object(provider, 'headers', return_value={'Authorization': 'Key test'}), \
@@ -232,7 +235,8 @@ class RealUsageBillingTests(unittest.TestCase):
         studio = Studio()
         ProjectFixture().build(studio)
         studio.db.collection('users').document(UID).collection('private').document('wallet').set(
-            {'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION'})
+            {'available': 500, 'subscriptionAvailable': 0, 'environment': 'PRODUCTION',
+             'welcomeTokensGranted': True})
         service = CloudAnimations(studio, clock=lambda: 1_000_000.0)
         with patch.object(animations, 'enqueue'), \
              patch.object(provider, 'headers', return_value={'Authorization': 'Key test'}), \

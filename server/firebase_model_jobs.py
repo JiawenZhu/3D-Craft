@@ -20,6 +20,7 @@ from google.api_core.exceptions import NotFound, PreconditionFailed
 from pydantic import BaseModel, Field
 from typing import Literal
 from . import cloud_model_provider as provider
+from . import atlas_model_provider
 from .firebase_studio import BUCKET, uid_for
 from .firebase_projects import CloudProjects
 from .firebase_billing import CloudBilling
@@ -34,7 +35,12 @@ TERMINAL = ('done', 'failed')
 
 class ModelRequest(BaseModel):
     idempotencyKey: str = Field(min_length=8, max_length=120)
-    engine: Literal['rodin','trellis-2','hunyuan3d-2.1','hunyuan3d-2-white'] = 'rodin'
+    engine: Literal[
+        'tripo', 'seed3d', 'hunyuan-rapid', 'hunyuan-pro',
+        'hi3d-fast', 'hi3d-pro', 'hi3d-quality', 'hi3d-master',
+        'meshy-single', 'meshy-multi',
+        'rodin', 'trellis-2', 'hunyuan3d-2.1', 'hunyuan3d-2-white'
+    ] = 'tripo'
     quality: Literal['default','speedy'] = 'default'
     effort: Literal['extreme-low','low','medium','high','extreme-high'] = 'high'
     modelPrompt: str | None = Field(default=None, max_length=800)
@@ -96,7 +102,10 @@ class CloudModelJobs:
 
     def create(self, owner, concept_id, body, environment=None):
         started = self.now()
-        provider.headers()  # Fail before reserving if the service has no key.
+        if atlas_model_provider.is_atlas_engine(body.engine):
+            atlas_model_provider.headers()
+        else:
+            provider.headers()  # Fail before reserving if the service has no key.
         uid = uid_for(owner)
         jid = 'mj-'+hashlib.sha256((uid+':'+body.idempotencyKey).encode()).hexdigest()
         public, private = self.refs(uid,jid)
@@ -130,11 +139,16 @@ class CloudModelJobs:
             views = select_views(concept_id, body.conceptIds, concepts, source)
             if any(v.get('projectId')!=concept['projectId'] for v in views):
                 raise HTTPException(422,'Choose images from the same project.')
+            if atlas_model_provider.is_atlas_engine(body.engine) and len(views) != 1:
+                raise HTTPException(422,'This model currently accepts one selected image.')
             for view in views: self.image_path(uid,view['imageUrl'])
             prompt = ('Use the selected reference image(s) to create a 3D asset. '+body.modelPrompt.strip()) if body.modelPrompt is not None else (
                 'Reconstruct the reference, preserving its geometry, colors and proportions. '+project.get('prompt','')[:800])
             try:
-                endpoint, _ = provider.arguments(body.engine,['pending']*len(views),[v.get('direction') for v in views],body.effort,body.quality,prompt)
+                if atlas_model_provider.is_atlas_engine(body.engine):
+                    endpoint, _ = atlas_model_provider.arguments(body.engine,['pending']*len(views),prompt,body.quality,body.effort)
+                else:
+                    endpoint, _ = provider.arguments(body.engine,['pending']*len(views),[v.get('direction') for v in views],body.effort,body.quality,prompt)
             except ValueError as exc: raise HTTPException(422,str(exc)) from None
             estimate = model_quote(body.engine,views=len(views),effort=body.effort)
             cost = estimate['usageWithServiceFee']['credits']
@@ -305,8 +319,8 @@ class CloudModelJobs:
             if self.now()>data['deadline']:
                 return {'status':self.finish(uid,jid,token,error='This generation could not be completed. Your reserved Tokens have been released.')}
             if phase=='preparing':
-                import fal_client
-                from fal_client.client import StorageSettings
+                options=data['options']
+                engine=options.get('engine', 'tripo')
                 urls=[]
                 with tempfile.TemporaryDirectory() as folder:
                     for index, view in enumerate(data['views']):
@@ -315,35 +329,56 @@ class CloudModelJobs:
                         if blob.size>20*1024*1024: raise ValueError('Reference exceeds image limit')
                         target=Path(folder)/f'{index}.jpg'
                         blob.download_to_filename(str(target),if_generation_match=blob.generation,timeout=120,retry=None)
-                        urls.append(fal_client.upload_file(target,lifecycle=StorageSettings(expires_in=7200)))
-                options=data['options']
-                endpoint,arguments=provider.arguments(options['engine'],urls,[v.get('direction') for v in data['views']],
-                    options['effort'],options['quality'],data['prompt'])
-                if not self.advance(uid,jid,token,phase,dict(phase='prepared',arguments=arguments),
+                        if atlas_model_provider.is_atlas_engine(engine):
+                            urls.append(atlas_model_provider.upload_media(target))
+                        else:
+                            import fal_client
+                            from fal_client.client import StorageSettings
+                            urls.append(fal_client.upload_file(target,lifecycle=StorageSettings(expires_in=7200)))
+                if atlas_model_provider.is_atlas_engine(engine):
+                    endpoint,arguments=atlas_model_provider.arguments(engine,urls,data['prompt'],options.get('quality','default'),options.get('effort','high'))
+                else:
+                    endpoint,arguments=provider.arguments(engine,urls,[v.get('direction') for v in data['views']],
+                        options['effort'],options['quality'],data['prompt'])
+                if not self.advance(uid,jid,token,phase,dict(phase='prepared',arguments=arguments,endpoint=endpoint),
                     dict(status='running',stage='reconstructing',progress=10,message='Preparing 3D reconstruction')):
                     raise HTTPException(503,'Job state changed; retrying.')
-                data['arguments']=arguments;phase='prepared'
+                data['arguments']=arguments;data['endpoint']=endpoint;phase='prepared'
             if phase=='prepared':
                 if not self.advance(uid,jid,token,phase,dict(phase='submitting',submittedAt=self.now())):
                     raise HTTPException(503,'Job state changed; retrying.')
                 phase='submitting'
-                callback='https://3d-craft.web.app/api/models/callback/'+quote(uid,safe='')+'/'+jid+'/'+data['callbackToken']
-                rid=provider.submit(data['endpoint'],data['arguments'],callback)
+                engine=data['options'].get('engine', 'tripo')
+                if atlas_model_provider.is_atlas_engine(engine):
+                    callback='https://3d-craft.web.app/api/models/callback/'+quote(uid,safe='')+'/'+jid+'/'+data['callbackToken']
+                    rid=atlas_model_provider.submit(data['endpoint'],data['arguments'],callback)
+                else:
+                    callback='https://3d-craft.web.app/api/models/callback/'+quote(uid,safe='')+'/'+jid+'/'+data['callbackToken']
+                    rid=provider.submit(data['endpoint'],data['arguments'],callback)
                 self.request_received(uid,jid,rid)
                 data['requestId']=rid;phase='submitted'
             if phase=='submitting':
-                # The POST response was lost. Wait for the signed callback; do
+                # The POST response was lost. Wait for provider confirmation; do
                 # not retry a billable submission even if this process crashed.
                 raise HTTPException(503,'Waiting for provider confirmation.')
             if phase=='submitted':
                 if data.get('providerFailed'):
                     return {'status':self.finish(uid,jid,token,error='The model service could not complete this creation. Your reserved Tokens have been released.')}
-                result=provider.status(data['endpoint'],data['requestId'])
+                engine=data['options'].get('engine', 'tripo')
+                if atlas_model_provider.is_atlas_engine(engine):
+                    try:
+                        result=atlas_model_provider.status(data['requestId'])
+                    except (RuntimeError, ValueError):
+                        return {'status':self.finish(uid,jid,token,error='The model service could not complete this creation. Your reserved Tokens have been released.')}
+                    download_fn=atlas_model_provider.download_mesh
+                else:
+                    result=provider.status(data['endpoint'],data['requestId'])
+                    download_fn=provider.download_mesh
                 if result is None: raise HTTPException(503,'3D reconstruction is in progress.')
                 enqueue(uid,jid,cleanup=True)
                 with tempfile.TemporaryDirectory() as folder:
                     target=Path(folder)/'model.glb'
-                    provider.download_mesh(result,target)
+                    download_fn(result,target)
                     blob=self.studio.bucket.blob(f'users/{uid}/models/{jid}.glb')
                     blob.cache_control='private, max-age=3600'
                     try: blob.upload_from_filename(str(target),content_type='model/gltf-binary',if_generation_match=0,timeout=180,retry=None)
@@ -351,7 +386,7 @@ class CloudModelJobs:
                 asset=dict(id=jid,name=data['name'],modelUrl=f'gs://{BUCKET}/users/{uid}/models/{jid}.glb',
                     thumbUrl=data['views'][0]['imageUrl'],isExample=False)
                 return {'status':self.finish(uid,jid,token,asset=asset)}
-        except (ValueError,NotFound):
+        except (ValueError,NotFound,RuntimeError):
             return {'status':self.finish(uid,jid,token,error='The model could not be saved. Your reserved Tokens have been released.')}
         finally:
             # Never mask a provider error with a cleanup error. Expired leases

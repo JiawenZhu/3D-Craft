@@ -1,0 +1,57 @@
+{
+  "mini": {
+    "id": "baaefbf63415413195f831ad216d4cad",
+    "model": "bytedance/seedance-2.0-mini/image-to-video",
+    "status": "completed",
+    "error": null,
+    "executionTime": null,
+    "timings": {
+      "inference": 0
+    },
+    "localMedia": "../../../ios/CraftStudio/Resources/VideoComparisons/mini.mp4"
+  },
+  "wan-3.0-prime": {
+    "id": "ca8eb5a62b21491781c6d05193ae8374",
+    "model": "alibaba/wan-3.0-prime/image-to-video",
+    "status": "completed",
+    "error": null,
+    "executionTime": null,
+    "timings": {
+      "inference": 0
+    },
+    "localMedia": "../../../ios/CraftStudio/Resources/VideoComparisons/wan-3.0-prime.mp4"
+  },
+  "minimax-h3": {
+    "id": "40ad9b7bde0a475da2b296b297fb4a8e",
+    "model": "minimax/h3/image-to-video",
+    "status": "completed",
+    "error": null,
+    "executionTime": null,
+    "timings": {
+      "inference": 0
+    },
+    "localMedia": "../../../ios/CraftStudio/Resources/VideoComparisons/minimax-h3.mp4"
+  },
+  "seedance-2.0": {
+    "id": "5fac073c32e6486babaf41aabba9a5e2",
+    "model": "bytedance/seedance-2.0/image-to-video",
+    "status": "completed",
+    "error": null,
+    "executionTime": null,
+    "timings": {
+      "inference": 0
+    },
+    "localMedia": "../../../ios/CraftStudio/Resources/VideoComparisons/seedance-2.0.mp4"
+  },
+  "seedance-2.5": {
+    "id": "77e8c36ba7f14ee78cfc4c1102c216e8",
+    "model": "bytedance/seedance-2.5/image-to-video",
+    "status": "completed",
+    "error": null,
+    "executionTime": null,
+    "timings": {
+      "inference": 0
+    },
+    "localMedia": "../../../ios/CraftStudio/Resources/VideoComparisons/seedance-2.5.mp4"
+  }
+}

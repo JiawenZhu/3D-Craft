@@ -73,7 +73,7 @@ struct PendingGeneration: Codable, Equatable {
         didSet { UserDefaults.standard.set(showPriceDetails, forKey: "craftShowPriceDetails") }
     }
     @Published var modelPrices: [String: CraftModelPrice] = [:]
-    @Published var cloudModelEngineIDs: Set<String> = ["rodin", "trellis-2", "hunyuan3d-2.1", "hunyuan3d-2-white"]
+    @Published var cloudModelEngineIDs: Set<String> = ["tripo", "rodin", "trellis-2", "hunyuan3d-2.1", "hunyuan3d-2-white"]
     @Published var pricesVerifiedAt = ""
     @Published var serviceFeeRate: Double = 0.15
     @Published var imageModelsLoaded = false
@@ -1116,7 +1116,7 @@ struct PendingGeneration: Codable, Equatable {
             throw error
         }
     }
-    func generateModel(_ concept:CraftConcept,engine:String="rodin",quality:String="default",effort:String="high",conceptIds:[String]=[],modelPrompt:String?=nil) async {
+    func generateModel(_ concept:CraftConcept,engine:String="tripo",quality:String="default",effort:String="high",conceptIds:[String]=[],modelPrompt:String?=nil) async {
         guard !busy else { error = t("Please wait for the current request to finish, then try again.", "请等待当前请求完成后重试。"); return }
         if pendingGeneration == nil {
             guard let cost = modelTokenCost(engine, views: max(1, conceptIds.count), effort: effort) else {
@@ -1135,21 +1135,23 @@ struct PendingGeneration: Codable, Equatable {
         if isLocalHost {
             if model == "minimax-h3" {
                 return resolution == "768p" || resolution == "720p" ? 35 : 29
-            } else {
+            } else if model == "seedance-2.5" {
                 if resolution == "720p" {
                     return duration == "6" ? 329 : 220
                 } else {
                     return duration == "6" ? 147 : 98
                 }
             }
+            return nil
         }
         let path = "/animations/quote?model=\(model)&resolution=\(resolution)&duration=\(duration)&aspect=1:1"
         guard let quote = try? await request(path) as? [String: Any] else {
             if model == "minimax-h3" {
                 return resolution == "768p" || resolution == "720p" ? 35 : 29
-            } else {
+            } else if model == "seedance-2.5" {
                 return resolution == "720p" ? (duration == "6" ? 329 : 220) : (duration == "6" ? 147 : 98)
             }
+            return nil
         }
         guard (quote["available"] as? Bool) != false else { return nil }
         return quote["maxTokens"] as? Int

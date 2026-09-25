@@ -7,7 +7,7 @@ from datetime import date
 from .commerce import policy, usage_quote
 from .config import FAL_ENDPOINTS, GEMINI_IMAGE_MODEL, GEMINI_TEXT_MODEL, TRELLIS_RESOLUTIONS, TRELLIS_PRICES
 
-VERIFIED_AT = "2026-09-14"
+VERIFIED_AT = "2026-09-24"
 GOOGLE_SOURCE = "https://ai.google.dev/gemini-api/docs/pricing"
 
 
@@ -16,7 +16,48 @@ def catalog(today=None):
     def row(name, unit, price=None, note="", zh="", source="", **extra):
         return dict(name=name, unit=unit, unitUsd=price, note=note, noteZh=zh, source=source, **extra)
     fal = "https://fal.ai/models/"
+    atlas = "https://www.atlascloud.ai/models/"
     models = {
+        "tripo": row("Tripo H3.1", "generation", .22,
+            "Standard geometry · texture · PBR. Low listed price with a very large default mesh; inspect fidelity and mobile weight together.",
+            "标准几何形状，包含纹理与 PBR 材质。单次成本低，默认生成高面数网格。", atlas + "tripo-h3.1/image-to-3d",
+            texturedUsd=.22, multiUnitUsd=None, multiTexturedUsd=None, facingYaw=90),
+        "seed3d": row("Seed3D 2.0", "generation", .353,
+            "High subdivision · GLB. ByteDance single-image textured mesh.",
+            "字节跳动高细分网格，单图带纹理网格，输出 GLB。", atlas + "bytedance/seed3d-v2.0/image-to-3d",
+            texturedUsd=.353, multiUnitUsd=None, multiTexturedUsd=None),
+        "hunyuan-rapid": row("Hunyuan Rapid", "generation", .50,
+            "Image · PBR on. Faster, lighter Tencent tier with PBR material maps enabled.",
+            "腾讯快速档位，启用 PBR 材质贴图，模型更轻量。", atlas + "tencent/hunyuan3d-rapid/image-to-3d",
+            texturedUsd=.50, multiUnitUsd=None, multiTexturedUsd=None),
+        "hunyuan-pro": row("Hunyuan Pro", "generation", .70,
+            "Normal · PBR on · default faces. Higher-detail Tencent tier with a configurable polygon budget.",
+            "腾讯专业档位，高细节标准生成，启用 PBR 材质。", atlas + "tencent/hunyuan3d-pro/image-to-3d",
+            texturedUsd=.70, multiUnitUsd=None, multiTexturedUsd=None),
+        "hi3d-fast": row("HI3D v2.1 Fast", "generation", .425,
+            "One image · texture · PBR. Fastest 1536³ tier in the four-model HI3D family.",
+            "HI3D 四模型家族中速度最快的 1536³ 档位，包含纹理与 PBR。", atlas + "hi3d/v2.1-fast/image-to-3d",
+            texturedUsd=.425, multiUnitUsd=None, multiTexturedUsd=None),
+        "hi3d-pro": row("HI3D v2.1 Pro", "generation", .765,
+            "One image · texture · PBR. More refinement on the 1536³ HI3D geometry family.",
+            "HI3D 1536³ 几何增强档位，包含纹理与 PBR。", atlas + "hi3d/v2.1-pro/image-to-3d",
+            texturedUsd=.765, multiUnitUsd=None, multiTexturedUsd=None),
+        "hi3d-quality": row("HI3D v3.0 Quality", "generation", 1.105,
+            "One image · texture · PBR. 2048³ tier intended to retain fine structures.",
+            "2048³ 档位，旨在保留精细结构，包含纹理与 PBR。", atlas + "hi3d/v3.0-quality/image-to-3d",
+            texturedUsd=1.105, multiUnitUsd=None, multiTexturedUsd=None),
+        "hi3d-master": row("HI3D v3.0 Master", "generation", 5.185,
+            "One image · texture · PBR. Highest listed tier.",
+            "最高配置档位，包含纹理与 PBR。", atlas + "hi3d/v3.0-master/image-to-3d",
+            texturedUsd=5.185, multiUnitUsd=None, multiTexturedUsd=None),
+        "meshy-single": row("Meshy v7", "generation", .66,
+            "One image · texture · PBR · 2K. Single-image Meshy endpoint with standard texture generation.",
+            "单图重建，包含标准纹理生成与 PBR（2K 分辨率）。", atlas + "meshy-v7/image-to-3d",
+            texturedUsd=.66, multiUnitUsd=None, multiTexturedUsd=None),
+        "meshy-multi": row("Meshy v7 Multi", "generation", .66,
+            "One reference in multi endpoint. Multi-image endpoint with standard texture generation.",
+            "多视角接口单图参考，包含纹理与 PBR。", atlas + "meshy-v7/multi-image-to-3d",
+            texturedUsd=.66, multiUnitUsd=None, multiTexturedUsd=None),
         "rodin": row("Rodin (Ultra)", "generation", .40,
             "Texture and reference views included. HighPack, when enabled, is $1.20 total; it is not enabled here.",
             "包含纹理和参考视角。HighPack 启用时共 $1.20；当前未启用。", fal + "fal-ai/hyper3d/rodin",
@@ -106,14 +147,31 @@ ANIMATION_SIZES = {("480p","1:1"):(640,640), ("480p","16:9"):(854,480), ("480p",
                    ("720p","1:1"):(960,960), ("720p","16:9"):(1280,720), ("720p","9:16"):(720,1280)}
 MINIMAX_RATES = {"480p": 0.25, "768p": 0.30, "720p": 0.30}
 MINIMAX_SIZES = {("480p", "1:1"): (480, 480), ("768p", "1:1"): (768, 768), ("720p", "1:1"): (768, 768)}
+# Native output tiers verified on Atlas's detailed pricing panel on 2026-09-24.
+# Enhanced/SR tiers are intentionally excluded from the first app picker.
+ATLAS_ANIMATION_RATES = {
+    "atlas-seedance-2.0-mini": {"480p": .0112, "720p": .0242},
+    "atlas-seedance-2.0": {"480p": .09, "720p": .1935},
+    "atlas-seedance-2.5": {"480p": .1397, "720p": .3005},
+    "atlas-minimax-h3": {"768p": .08, "2K": .13},
+    "atlas-wan-3.0-prime": {"480p": .0612, "720p": .126},
+}
 
 
-def animation_usage(width, height, seconds, model="seedance-2.5-i2v"):
+def animation_usage(width, height, seconds, model="seedance-2.5-i2v", resolution=None):
     """Cost of a clip that already exists.
 
     For Seedance, fal bills on output pixels: tokens = w x h x seconds x 24 / 1024.
     For MiniMax Hailuo 02, flat rate applies ($0.25 for 480p, $0.30 for 768p/720p).
     """
+    if model in ATLAS_ANIMATION_RATES:
+        rate = ATLAS_ANIMATION_RATES[model].get(resolution)
+        if rate is None or seconds <= 0:
+            return {"totalUsd": None, "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": None}])}
+        total = rate * seconds
+        return {"providerTokens": None, "width": width, "height": height,
+                "seconds": round(seconds, 3), "totalUsd": round(total, 6),
+                "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": f"{total:.6f}"}])}
     if str(model).startswith("minimax"):
         is_hd = max(width or 0, height or 0) > 512
         total = 0.30 if is_hd else 0.25
@@ -135,6 +193,23 @@ def animation_usage(width, height, seconds, model="seedance-2.5-i2v"):
 
 def animation_quote(resolution="480p", duration=4, aspect="1:1", model="seedance-2.5"):
     """Provider cost and Tokens for one character loop (Seedance 2.5 or MiniMax Hailuo 02)."""
+    if model in ATLAS_ANIMATION_RATES:
+        rate = ATLAS_ANIMATION_RATES[model].get(resolution)
+        seconds = int(duration)
+        if rate is None or seconds not in (4, 6) or aspect != "1:1":
+            return {"currency": "USD", "kind": "provider_cost_estimate", "model": model,
+                    "resolution": resolution, "aspect": aspect, "seconds": seconds, "totalUsd": None,
+                    "note": "Price pending verification", "verifiedAt": VERIFIED_AT,
+                    "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": None}])}
+        # Atlas's completed four-second sample files measured about 4.04 seconds.
+        # Reserve a small cushion, then settle on the measured output duration.
+        total = rate * seconds * HEADROOM
+        return {"currency": "USD", "kind": "provider_cost_estimate", "model": model,
+                "resolution": resolution, "aspect": aspect, "seconds": seconds,
+                "ratePerSecondUsd": rate, "totalUsd": round(total, 6),
+                "note": "Native tier; final charge follows measured output length, capped at reserved Tokens.",
+                "verifiedAt": VERIFIED_AT,
+                "usageWithServiceFee": usage_quote([{"id": "animation", "providerUsd": f"{total:.6f}"}])}
     if str(model).startswith("minimax"):
         canon_res = "768p" if resolution in ("768p", "720p") else resolution
         rate = MINIMAX_RATES.get(canon_res)

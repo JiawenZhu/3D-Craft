@@ -50,7 +50,7 @@ struct CreationCostView: View {
     @State private var selectedProject: String
     @State private var imageCount: Int
     @State private var includeModel = true
-    @State private var engine = "rodin"
+    @State private var engine = "tripo"
     init(projectID: String?, initialImageCount: Int) {
         _selectedProject = State(initialValue: projectID ?? "")
         _imageCount = State(initialValue: initialImageCount)
@@ -159,7 +159,17 @@ struct CreationCostView: View {
             }.accessibilityIdentifier("pricing.budget.model")
             if includeModel {
                 Picker(store.t("3D engine", "3D 引擎"), selection: $engine) {
+                    Text("Tripo H3.1").tag("tripo")
+                    Text("Seed3D 2.0").tag("seed3d")
                     Text("Rodin (Ultra)").tag("rodin")
+                    Text("Hunyuan Rapid").tag("hunyuan-rapid")
+                    Text("Hunyuan Pro").tag("hunyuan-pro")
+                    Text("HI3D v2.1 Fast").tag("hi3d-fast")
+                    Text("HI3D v2.1 Pro").tag("hi3d-pro")
+                    Text("HI3D v3.0 Quality").tag("hi3d-quality")
+                    Text("HI3D v3.0 Master").tag("hi3d-master")
+                    Text("Meshy v7").tag("meshy-single")
+                    Text("Meshy v7 Multi").tag("meshy-multi")
                     Text("TRELLIS.2").tag("trellis-2")
                     Text(store.t("Hunyuan 2 · Textured", "Hunyuan 2 · 带纹理")).tag("hunyuan3d-2.1")
                     Text(store.t("Hunyuan 2 · White mesh", "Hunyuan 2 · 白模")).tag("hunyuan3d-2-white")

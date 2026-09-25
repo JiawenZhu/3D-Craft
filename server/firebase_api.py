@@ -204,7 +204,7 @@ def health():
 
 
 def model_ready():
-    return os.getenv('CRAFT_MODEL_JOBS_ENABLED')=='1' and bool(os.getenv('FAL_KEY'))
+    return os.getenv('CRAFT_MODEL_JOBS_ENABLED') == '1' and (bool(os.getenv('ATLAS_API_KEY')) or bool(os.getenv('FAL_KEY')))
 
 
 @app.post('/api/mobile/concepts/{concept_id}/model')
@@ -220,38 +220,50 @@ def v1_generate_model(concept_id: str, body: ModelRequest, account=Depends(v1_ow
 
 
 def animations_ready():
-    return os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') == '1' and bool(os.getenv('FAL_KEY'))
+    return os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') == '1' and (bool(os.getenv('FAL_KEY')) or bool(os.getenv('ATLAS_API_KEY')))
+
+
+def animation_model_ready(model):
+    if os.getenv('CRAFT_ANIMATION_JOBS_ENABLED') != '1':
+        return False
+    if model.startswith('atlas-'):
+        return bool(os.getenv('ATLAS_API_KEY'))
+    return bool(os.getenv('FAL_KEY'))
 
 
 @app.get('/api/mobile/animations/quote')
-def mobile_animation_quote(resolution: Literal['480p', '720p', '768p'] = '480p',
+def mobile_animation_quote(resolution: Literal['480p', '720p', '768p', '2K'] = '480p',
                            duration: Literal['4', '5', '6'] = '4',
                            aspect: Literal['1:1', '16:9', '9:16'] = '1:1',
-                           model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5',
+                           model: Literal['seedance-2.5', 'minimax-h3', 'atlas-seedance-2.0-mini',
+                                          'atlas-seedance-2.0', 'atlas-seedance-2.5',
+                                          'atlas-minimax-h3', 'atlas-wan-3.0-prime'] = 'seedance-2.5',
                            account=Depends(owner)):
     quote = pricing.animation_quote(resolution, int(duration), aspect, model)
-    return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animations_ready()}
+    return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animation_model_ready(model)}
 
 
 @app.get('/api/v1/animations/quote')
-def v1_animation_quote(resolution: Literal['480p', '720p', '768p'] = '480p',
+def v1_animation_quote(resolution: Literal['480p', '720p', '768p', '2K'] = '480p',
                        duration: Literal['4', '5', '6'] = '4',
                        aspect: Literal['1:1', '16:9', '9:16'] = '1:1',
-                       model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5',
+                       model: Literal['seedance-2.5', 'minimax-h3', 'atlas-seedance-2.0-mini',
+                                      'atlas-seedance-2.0', 'atlas-seedance-2.5',
+                                      'atlas-minimax-h3', 'atlas-wan-3.0-prime'] = 'seedance-2.5',
                        account=Depends(v1_owner)):
     quote = pricing.animation_quote(resolution, int(duration), aspect, model)
-    return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animations_ready()}
+    return {**quote, 'maxTokens': quote['usageWithServiceFee']['credits'], 'available': animation_model_ready(model)}
 
 
 @app.post('/api/mobile/concepts/{concept_id}/animation')
 def mobile_animate_concept(concept_id: str, body: AnimationRequest, account=Depends(owner)):
-    if not animations_ready(): raise HTTPException(503,'Character animation is temporarily unavailable. No Tokens were charged.')
+    if not animation_model_ready(body.model): raise HTTPException(503,'Character animation is temporarily unavailable. No Tokens were charged.')
     return public_shape(CloudAnimations(studio()).create(account,concept_id,body),account)
 
 
 @app.post('/api/v1/concepts/{concept_id}/animation')
 def v1_animate_concept(concept_id: str, body: AnimationRequest, account=Depends(v1_owner)):
-    if not animations_ready(): raise HTTPException(503,'Character animation is temporarily unavailable. No Tokens were charged.')
+    if not animation_model_ready(body.model): raise HTTPException(503,'Character animation is temporarily unavailable. No Tokens were charged.')
     return public_shape(v1_charge(account, lambda: CloudAnimations(studio()).create(account,concept_id,body,environment=v1_environment(account))),account)
 
 
@@ -1198,8 +1210,18 @@ def sync_purchases(account=Depends(owner)):
 
 @app.get('/api/mobile/bootstrap')
 def bootstrap(account=Depends(owner)):
-    engines=[dict(id=ident,label=label,available=model_ready(),ready=model_ready(),provider='api',
-        multiView=True,multiViewDirections=['front','back','left'] if ident.startswith('hunyuan') else ['front','back','left','right'])
+    def engine_ready(ident):
+        if os.getenv('CRAFT_MODEL_JOBS_ENABLED') != '1':
+            return False
+        if cloud_model_provider.atlas_model_provider.is_atlas_engine(ident):
+            return bool(os.getenv('ATLAS_API_KEY'))
+        return bool(os.getenv('FAL_KEY'))
+
+    engines=[dict(id=ident,label=label,available=engine_ready(ident),ready=engine_ready(ident),provider='api',
+        multiView=not cloud_model_provider.atlas_model_provider.is_atlas_engine(ident),
+        multiViewDirections=([] if cloud_model_provider.atlas_model_provider.is_atlas_engine(ident)
+                             else ['front','back','left'] if ident.startswith('hunyuan3d')
+                             else ['front','back','left','right']))
         for ident,label in cloud_model_provider.ENGINES.items()]
     return {'mode':'cloud','wallet':wallet(account),'products':[], 'engines':list(cloud_model_provider.ENGINES), 'engineCatalog':engines,
             'generationReady':generation_ready(),'modelGenerationReady':model_ready()}
@@ -1283,10 +1305,14 @@ async def animation_callback(uid: str, job_id: str, token: str, request: Request
     async for chunk in request.stream():
         raw.extend(chunk)
         if len(raw)>1024*1024: raise HTTPException(413,'Notification too large.')
-    rid=await run_in_threadpool(cloud_animation_provider.verify_callback,request.headers,bytes(raw))
+    atlas = bool(request.headers.get('X-AtlasCloud-Webhook-Key-Id'))
+    verifier = cloud_model_provider.atlas_model_provider.verify_callback if atlas else cloud_animation_provider.verify_callback
+    rid=await run_in_threadpool(verifier,request.headers,bytes(raw))
     try: payload=json.loads(raw)
     except ValueError: raise HTTPException(422,'Invalid notification.') from None
-    if not isinstance(payload,dict) or payload.get('request_id')!=rid or payload.get('status') not in ('OK','ERROR'):
+    if not isinstance(payload,dict) or payload.get('session_id' if atlas else 'request_id')!=rid \
+            or payload.get('status') not in ('OK','ERROR') \
+            or (atlas and payload.get('event_type') != 'video.task.terminal'):
         raise HTTPException(422,'Invalid notification.')
     try:
         await run_in_threadpool(CloudAnimations(studio()).request_received,uid,job_id,rid,token,payload['status']=='ERROR')
@@ -1301,10 +1327,14 @@ async def model_callback(uid: str, job_id: str, token: str, request: Request):
     async for chunk in request.stream():
         raw.extend(chunk)
         if len(raw)>1024*1024: raise HTTPException(413,'Notification too large.')
-    rid=await run_in_threadpool(cloud_model_provider.verify_callback,request.headers,bytes(raw))
+    atlas = bool(request.headers.get('X-AtlasCloud-Webhook-Key-Id'))
+    verifier = cloud_model_provider.atlas_model_provider.verify_callback if atlas else cloud_model_provider.verify_callback
+    rid=await run_in_threadpool(verifier,request.headers,bytes(raw))
     try: payload=json.loads(raw)
     except ValueError: raise HTTPException(422,'Invalid notification.') from None
-    if not isinstance(payload,dict) or payload.get('request_id')!=rid or payload.get('status') not in ('OK','ERROR'):
+    if not isinstance(payload,dict) or payload.get('session_id' if atlas else 'request_id')!=rid \
+            or payload.get('status') not in ('OK','ERROR') \
+            or (atlas and payload.get('event_type') != 'image.task.terminal'):
         raise HTTPException(422,'Invalid notification.')
     try:
         await run_in_threadpool(CloudModelJobs(studio()).request_received,uid,job_id,rid,token,payload['status']=='ERROR')

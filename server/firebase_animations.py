@@ -25,6 +25,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal
 
 from . import cloud_animation_provider as provider
+from . import atlas_animation_provider
+from . import atlas_model_provider
 from .firebase_billing import CloudBilling
 from .firebase_projects import CloudProjects
 from .firebase_studio import BUCKET, uid_for
@@ -41,9 +43,11 @@ QUEUE = 'craft-model-jobs'
 class AnimationRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     idempotencyKey: str = Field(min_length=8, max_length=120)
-    model: Literal['seedance-2.5', 'minimax-h3'] = 'seedance-2.5'
+    model: Literal['seedance-2.5', 'minimax-h3', 'atlas-seedance-2.0-mini',
+                   'atlas-seedance-2.0', 'atlas-seedance-2.5',
+                   'atlas-minimax-h3', 'atlas-wan-3.0-prime'] = 'seedance-2.5'
     motion: str | None = Field(default=None, max_length=600)
-    resolution: Literal['480p', '720p', '768p'] = '480p'
+    resolution: Literal['480p', '720p', '768p', '2K'] = '480p'
     duration: Literal['4', '5', '6'] = '4'
     aspect: Literal['1:1', '16:9', '9:16'] = '1:1'
     maxTokens: int = Field(strict=True, ge=1, le=1000)
@@ -92,7 +96,12 @@ class CloudAnimations:
 
     def create(self, owner, concept_id, body, environment=None):
         started = self.now()
-        provider.headers()  # Fail before reserving if the service has no key.
+        if atlas_animation_provider.is_atlas_animation(body.model):
+            atlas_model_provider.headers()
+            atlas_animation_provider.arguments('pending', body.motion, body.resolution,
+                                               body.duration, body.aspect, body.model)
+        else:
+            provider.headers()  # Fail before reserving if the service has no key.
         uid = uid_for(owner)
         jid = 'an-' + hashlib.sha256((uid + ':' + body.idempotencyKey).encode()).hexdigest()
         public, private = self.refs(uid, jid)
@@ -309,8 +318,6 @@ class CloudAnimations:
                 return {'status': self.finish(uid, jid, token,
                                               error='This animation could not be completed. Your reserved Tokens have been released.')}
             if phase == 'preparing':
-                import fal_client
-                from fal_client.client import StorageSettings
                 with tempfile.TemporaryDirectory() as folder:
                     blob = self.studio.bucket.blob(self.image_path(uid, data['imageUrl']))
                     blob.reload(timeout=30)
@@ -318,12 +325,21 @@ class CloudAnimations:
                         raise ValueError('Character image exceeds the size limit')
                     target = Path(folder) / 'character.jpg'
                     blob.download_to_filename(str(target), if_generation_match=blob.generation, timeout=120, retry=None)
-                    url = fal_client.upload_file(target, lifecycle=StorageSettings(expires_in=7200))
+                    model_name = data['options'].get('model', 'seedance-2.5')
+                    if atlas_animation_provider.is_atlas_animation(model_name):
+                        url = atlas_model_provider.upload_media(target)
+                    else:
+                        import fal_client
+                        from fal_client.client import StorageSettings
+                        url = fal_client.upload_file(target, lifecycle=StorageSettings(expires_in=7200))
                 options = data['options']
                 model_name = options.get('model', 'seedance-2.5')
-                endpoint = provider.endpoint_for(model_name)
-                arguments = provider.arguments(url, options.get('motion'), options['resolution'],
-                                               options['duration'], options['aspect'], model=model_name)
+                if atlas_animation_provider.is_atlas_animation(model_name):
+                    arguments = atlas_animation_provider.arguments(url, options.get('motion'),
+                        options['resolution'], options['duration'], options['aspect'], model_name)
+                else:
+                    arguments = provider.arguments(url, options.get('motion'), options['resolution'],
+                                                   options['duration'], options['aspect'], model=model_name)
                 if not self.advance(uid, jid, token, phase, dict(phase='prepared', arguments=arguments),
                                     dict(status='running', stage='animating', progress=10,
                                          message='Bringing your character to life')):
@@ -337,8 +353,11 @@ class CloudAnimations:
                 callback = ('https://3d-craft.web.app/api/animations/callback/' + quote(uid, safe='')
                             + '/' + jid + '/' + data['callbackToken'])
                 model_name = data.get('options', {}).get('model', 'seedance-2.5')
-                endpoint = provider.endpoint_for(model_name)
-                rid = provider.submit(endpoint, data['arguments'], callback)
+                if atlas_animation_provider.is_atlas_animation(model_name):
+                    rid = atlas_animation_provider.submit(data['arguments'], callback)
+                else:
+                    endpoint = provider.endpoint_for(model_name)
+                    rid = provider.submit(endpoint, data['arguments'], callback)
                 self.request_received(uid, jid, rid)
                 data['requestId'] = rid
                 phase = 'submitted'
@@ -351,16 +370,27 @@ class CloudAnimations:
                     return {'status': self.finish(uid, jid, token,
                                                   error='The animation service could not complete this character. Your reserved Tokens have been released.')}
                 model_name = data.get('options', {}).get('model', 'seedance-2.5')
-                endpoint = provider.endpoint_for(model_name)
-                result = provider.status(endpoint, data['requestId'])
+                if atlas_animation_provider.is_atlas_animation(model_name):
+                    try:
+                        result = atlas_animation_provider.status(data['requestId'])
+                    except RuntimeError:
+                        return {'status': self.finish(uid, jid, token,
+                                                      error='The animation service could not complete this character. Your reserved Tokens have been released.')}
+                else:
+                    endpoint = provider.endpoint_for(model_name)
+                    result = provider.status(endpoint, data['requestId'])
                 if result is None:
                     raise HTTPException(503, 'The animation is still rendering.')
                 with tempfile.TemporaryDirectory() as folder:
                     target = Path(folder) / 'animation.mp4'
-                    provider.download_video(result, str(target))
+                    if atlas_animation_provider.is_atlas_animation(model_name):
+                        atlas_animation_provider.download_video(result, str(target))
+                    else:
+                        provider.download_video(result, str(target))
                     try:
                         width, height, seconds = provider.measure(str(target))
-                        usage = animation_usage(width, height, seconds, model=model_name)
+                        usage = animation_usage(width, height, seconds, model=model_name,
+                                                resolution=data['options']['resolution'])
                     except (ValueError, OSError):
                         usage = None  # Unreadable header: fall back to the authorized quote.
                     blob = self.studio.bucket.blob(f'users/{uid}/animations/{jid}.mp4')
