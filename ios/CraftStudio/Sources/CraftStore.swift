@@ -393,6 +393,13 @@ struct PendingGeneration: Codable, Equatable {
         if wasActive && job.status == "done" && ["model", "concepts", "animation"].contains(job.kind) {
             CraftHaptics.notifyCreationComplete()
         }
+        if wasActive && job.status == "done" && job.kind == "model"
+            && UIApplication.shared.applicationState == .active,
+           let asset = job.assets.first(where: { $0.modelURL != nil }),
+           asset.fileSizeMb > 0, asset.fileSizeMb <= 60,
+           let url = asset.modelURL {
+            Task { try? await CraftModelFileCache.shared.file(for: url) }
+        }
         syncLiveActivities()
     }
 
@@ -477,6 +484,7 @@ struct PendingGeneration: Codable, Equatable {
             }
         }
         await CraftImageCache.shared.erase()
+        await CraftModelFileCache.shared.erase()
         await CraftThumbnailCache.shared.erase()
         CraftDecodedImages.shared.clear()
         URLCache.shared.removeAllCachedResponses()

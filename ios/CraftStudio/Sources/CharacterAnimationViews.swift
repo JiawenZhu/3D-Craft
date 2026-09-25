@@ -216,6 +216,9 @@ private struct CraftVideoExample: Identifiable {
     let sample: String?
     let sampleDetails: String
 
+    var quoteResolution: String { id == "atlas-minimax-h3" ? "768p" : "480p" }
+    var quoteDuration: String { id == "minimax-h3" ? "5" : "4" }
+
     static let all: [Self] = [
         .init(id: "atlas-seedance-2.5", name: "Seedance 2.5", provider: "Atlas",
               note: "Best source fidelity and loop continuity in our single Dragon comparison.",
@@ -246,13 +249,14 @@ private struct CraftVideoExample: Identifiable {
 struct AnimationGenerationSheet: View {
     let concept: CraftConcept
     let chinese: Bool
+    var suggestedModel = "atlas-minimax-h3"
     let onGenerate: (String, String, String, String) -> Void   // model, motion, resolution, duration
     @EnvironmentObject private var store: CraftStore
     @AppStorage(CraftAppearance.storageKey) private var appearance: CraftAppearance = .lavender
     @Environment(\.dismiss) private var dismiss
-    @State private var model = "atlas-seedance-2.5"
+    @State private var model = "atlas-minimax-h3"
     @State private var motion = ""
-    @State private var resolution = "480p"
+    @State private var resolution = "768p"
     @State private var duration = "4"
     @State private var cost: Int?
     @State private var loading = true
@@ -261,6 +265,8 @@ struct AnimationGenerationSheet: View {
     @State private var showTokenPacks = false
     @State private var showModelChoices = false
     @State private var playingSample = false
+    @State private var choicePrices: [String: Int] = [:]
+    @State private var unavailableChoices: Set<String> = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var selectedExample: CraftVideoExample {
@@ -329,6 +335,7 @@ struct AnimationGenerationSheet: View {
                 }
             }
             .safeAreaInset(edge: .bottom) { generateButton }
+            .onAppear { if model != suggestedModel { model = suggestedModel } }
             .onChange(of: model) { _, newModel in
                 if newModel == "minimax-h3" {
                     duration = "5"
@@ -375,6 +382,20 @@ struct AnimationGenerationSheet: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("animation.model")
             Text(selectedExample.note).font(.caption).foregroundStyle(.secondary)
+            if model.hasPrefix("atlas-"), !loading, cost == nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(t("Atlas is unavailable for these settings. You can choose fal and review its Token cost before generating.",
+                           "Atlas 当前无法使用此设置。你可以选择 fal，并在生成前查看 Token 费用。"))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button(t("Choose fal MiniMax H3", "选择 fal MiniMax H3")) {
+                        model = "minimax-h3"
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityIdentifier("animation.chooseFal")
+                }
+                .padding(12)
+                .background(appearance.washSoft, in: RoundedRectangle(cornerRadius: 14))
+            }
             if let sample = selectedExample.sample,
                let url = Bundle.main.url(forResource: sample, withExtension: "mp4", subdirectory: "VideoComparisons") {
                 ZStack {
@@ -415,29 +436,67 @@ struct AnimationGenerationSheet: View {
 
     private var modelChoices: some View {
         NavigationStack {
-            List(CraftVideoExample.all) { example in
-                Button {
-                    model = example.id
-                    showModelChoices = false
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: example.id == model ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(appearance.ink)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(example.name).font(.headline)
-                            Text("\(example.provider) · \(example.note)")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
+            List {
+                Section(t("Atlas · Recommended", "Atlas · 推荐")) {
+                    ForEach(CraftVideoExample.all.filter { $0.provider == "Atlas" }) { example in
+                        modelChoiceRow(example)
                     }
-                    .padding(.vertical, 5)
                 }
-                .buttonStyle(.plain)
+                Section(t("fal · Alternative if Atlas is busy", "fal · Atlas 繁忙时可选")) {
+                    ForEach(CraftVideoExample.all.filter { $0.provider == "fal" }) { example in
+                        modelChoiceRow(example)
+                    }
+                }
             }
             .navigationTitle(t("Choose animation model", "选择动画模型"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) {
                 Button(t("Done", "完成")) { showModelChoices = false }
             }}
+        }
+    }
+
+    private func modelChoiceRow(_ example: CraftVideoExample) -> some View {
+        Button {
+            model = example.id
+            showModelChoices = false
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: example.id == model ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(appearance.ink)
+                    .padding(.top, 3)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(example.name).font(.headline)
+                        Spacer(minLength: 4)
+                        if let tokens = choicePrices[example.id] {
+                            Text("\(tokens) Tokens").font(.subheadline.weight(.semibold))
+                                .foregroundStyle(appearance.ink).monospacedDigit()
+                        } else if unavailableChoices.contains(example.id) {
+                            Text(t("Unavailable", "暂不可用"))
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            ProgressView().controlSize(.mini)
+                        }
+                    }
+                    Text("\(example.provider) · \(example.quoteDuration)s · \(example.quoteResolution)")
+                        .font(.caption2).foregroundStyle(.secondary)
+                    Text(example.note).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .task(id: example.id) {
+            guard choicePrices[example.id] == nil && !unavailableChoices.contains(example.id) else { return }
+            if let tokens = await store.animationCost(model: example.id,
+                                                      resolution: example.quoteResolution,
+                                                      duration: example.quoteDuration) {
+                choicePrices[example.id] = tokens
+            } else {
+                unavailableChoices.insert(example.id)
+            }
         }
     }
 

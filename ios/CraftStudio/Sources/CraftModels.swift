@@ -129,8 +129,18 @@ struct CraftJob: Identifiable, Codable {
     var stage:String?;var coreConcept:String?;var selectedImageUrl:String?;var selectedConceptId:String?;var viewsUsable:Bool?;var warnings:[String]?;var concepts:[CraftConcept]?;var imageModel:String?;var imageProvider:String?
     var chargedTokens: Int?
     var reservedTokens: Int?
+    var providerModel: String?
     var isActive:Bool { ["queued","running"].contains(status) }
-    init(_ d:[String:Any],base:String) { sourcePrompt=d["sourcePrompt"] as? String;createdAt=d["createdAt"] as? Double;chargedTokens=d["charged"] as? Int;reservedTokens=d["reserved"] as? Int;imageModel=d["imageModel"] as? String;imageProvider=d["imageProvider"] as? String;stage=d["stage"] as? String;coreConcept=d["coreConcept"] as? String;selectedImageUrl=resolved(d["selectedImageUrl"] as? String,base:base);selectedConceptId=d["selectedConceptId"] as? String;viewsUsable=(d["validation"] as? [String:Any])?["usable"] as? Bool;warnings=d["warnings"] as? [String];concepts=(d["concepts"] as? [[String:Any]])?.map{CraftConcept($0,base:base)};id=d["id"] as? String ?? "";projectId=d["projectId"] as? String ?? "";kind=d["kind"] as? String ?? "concepts";status=d["status"] as? String ?? "queued";message=d["message"] as? String ?? "";progress=(d["progress"] as? NSNumber)?.doubleValue ?? 0;error=d["error"] as? String;assets=(d["assets"] as? [[String:Any]] ?? []).map{CraftAsset($0,base:base)} }
+    var usedAtlas: Bool {
+        guard let providerModel else { return false }
+        return providerModel.hasPrefix("atlas-") || ["tripo", "seed3d", "hunyuan-rapid", "hunyuan-pro",
+            "hi3d-fast", "hi3d-pro", "hi3d-quality", "hi3d-master", "meshy-single", "meshy-multi"].contains(providerModel)
+    }
+    init(_ d:[String:Any],base:String) {
+        providerModel = (d["animationSettings"] as? [String:Any])?["model"] as? String
+            ?? (d["modelSettings"] as? [String:Any])?["engine"] as? String
+        sourcePrompt=d["sourcePrompt"] as? String;createdAt=d["createdAt"] as? Double;chargedTokens=d["charged"] as? Int;reservedTokens=d["reserved"] as? Int;imageModel=d["imageModel"] as? String;imageProvider=d["imageProvider"] as? String;stage=d["stage"] as? String;coreConcept=d["coreConcept"] as? String;selectedImageUrl=resolved(d["selectedImageUrl"] as? String,base:base);selectedConceptId=d["selectedConceptId"] as? String;viewsUsable=(d["validation"] as? [String:Any])?["usable"] as? Bool;warnings=d["warnings"] as? [String];concepts=(d["concepts"] as? [[String:Any]])?.map{CraftConcept($0,base:base)};id=d["id"] as? String ?? "";projectId=d["projectId"] as? String ?? "";kind=d["kind"] as? String ?? "concepts";status=d["status"] as? String ?? "queued";message=d["message"] as? String ?? "";progress=(d["progress"] as? NSNumber)?.doubleValue ?? 0;error=d["error"] as? String;assets=(d["assets"] as? [[String:Any]] ?? []).map{CraftAsset($0,base:base)}
+    }
 }
 /// A creation someone could not afford: what it needed, and what they had.
 struct CraftShortfall: Equatable {

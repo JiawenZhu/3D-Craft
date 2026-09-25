@@ -39,6 +39,8 @@ struct ConceptProjectView: View {
     @State private var browseTick = 0
     @State private var make3DTaps = 0
     @State private var animateSource: CraftConcept?
+    @State private var preferredModelEngine = "tripo"
+    @State private var preferredAnimationModel = "atlas-minimax-h3"
 
     var project: CraftProject? { store.projects.first { $0.id == projectID } }
     var selected: CraftConcept? { project.flatMap { store.selectedConcept(in: $0) } }
@@ -145,14 +147,35 @@ struct ConceptProjectView: View {
                     (candidate.status == "failed" || candidate.status == "partial")
                         && jobs.first(where: { $0.kind == candidate.kind })?.id == candidate.id
                 }) { job in
-                    Label(job.status == "partial"
-                            ? store.t("Saved views are ready. Unused Tokens were returned.",
-                                      "已保存的视角可以使用，未使用额度已退回。")
-                            : store.t("This attempt could not finish. Your source is saved and unused Tokens were returned.",
-                                      "本次生成未完成。源图已保存，未使用额度已退回。"),
-                          systemImage: "exclamationmark.triangle")
-                        .font(.subheadline)
-                        .craftPanel()
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(job.status == "partial"
+                                ? store.t("Saved views are ready. Unused Tokens were returned.",
+                                          "已保存的视角可以使用，未使用额度已退回。")
+                                : store.t("This attempt could not finish. Your source is saved and unused Tokens were returned.",
+                                          "本次生成未完成。源图已保存，未使用额度已退回。"),
+                              systemImage: "exclamationmark.triangle")
+                            .font(.subheadline)
+                        if job.status == "failed", job.usedAtlas,
+                           let source = project?.concepts.first(where: { $0.id == job.selectedConceptId }) {
+                            Button {
+                                if job.kind == "animation" {
+                                    preferredAnimationModel = "minimax-h3"
+                                    animateSource = source
+                                } else if job.kind == "model" {
+                                    preferredModelEngine = "rodin"
+                                    modelSource = source
+                                }
+                            } label: {
+                                Label(store.t(job.kind == "animation" ? "Choose fal animation model" : "Choose fal 3D model",
+                                              job.kind == "animation" ? "选择 fal 动画模型" : "选择 fal 3D 模型"),
+                                      systemImage: "arrow.triangle.branch")
+                            }
+                            .buttonStyle(CraftSecondary())
+                            .disabled(store.busy || active)
+                            .accessibilityIdentifier("generation.chooseFal")
+                        }
+                    }
+                    .craftPanel()
                         .craftEntrance(9)
                 }
             }
@@ -221,10 +244,11 @@ struct ConceptProjectView: View {
                     .craftEntrance(0, style: .reveal)
             }
         }
-        .sheet(item: $modelSource) { source in
+        .sheet(item: $modelSource, onDismiss: { preferredModelEngine = "tripo" }) { source in
             ModelGenerationSheet(concept: source, chinese: store.isChinese,
                                  relatedViews: checkedViews(for: source),
-                                 offersMultiView: !checkedViews(for: source).isEmpty) { engine, quality, effort, ids, prompt in
+                                 offersMultiView: !checkedViews(for: source).isEmpty,
+                                 suggestedEngine: preferredModelEngine) { engine, quality, effort, ids, prompt in
                 modelSource = nil
                 centeredConceptID = source.id
                 submittingConceptID = source.id
@@ -238,8 +262,9 @@ struct ConceptProjectView: View {
                 }
             }
         }
-        .sheet(item: $animateSource) { source in
-            AnimationGenerationSheet(concept: source, chinese: store.isChinese) { model, motion, resolution, duration in
+        .sheet(item: $animateSource, onDismiss: { preferredAnimationModel = "atlas-minimax-h3" }) { source in
+            AnimationGenerationSheet(concept: source, chinese: store.isChinese,
+                                     suggestedModel: preferredAnimationModel) { model, motion, resolution, duration in
                 animateSource = nil
                 centeredConceptID = source.id
                 submittingConceptID = source.id

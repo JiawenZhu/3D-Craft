@@ -39,6 +39,7 @@ struct ModelGenerationSheet: View {
     let chinese: Bool
     var relatedViews: [CraftConcept] = []
     var offersMultiView: Bool = false
+    var suggestedEngine = "tripo"
     let onGenerate: (_ engine: String, _ quality: String, _ effort: String, _ selectedIDs: [String], _ prompt: String?) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -135,6 +136,7 @@ struct ModelGenerationSheet: View {
             .background { StudioAtmosphere(intensity: 1.15, scrollProgress: min(1, Double(scrollY) / 600)) }
             .navigationTitle(t("Confirm 3D generation", "确认生成 3D"))
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { if engine != suggestedEngine { engine = suggestedEngine } }
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button(t("Cancel", "取消")) { dismiss() }.disabled(submitted).foregroundStyle(.secondary) } }
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button(t("Done", "完成")) { promptFocused = false } } }
             .onChange(of: engine) { _, _ in
@@ -306,6 +308,13 @@ struct ModelGenerationSheet: View {
                 Text(t("This provider uses its tested image-to-3D preset. It accepts one selected image.",
                        "此服务使用已测试的图像转 3D 预设，接受一张所选图片。"))
                     .font(.caption).foregroundStyle(.secondary)
+                if tokenCost == nil && !store.modelPrices.isEmpty {
+                    Button(t("Atlas unavailable? Choose fal Rodin", "Atlas 不可用？选择 fal Rodin")) {
+                        engine = "rodin"
+                    }
+                    .font(.caption.weight(.semibold))
+                    .accessibilityIdentifier("model.chooseFal")
+                }
             } else {
             Divider().opacity(0.4)
             settingLabel(t("Quality mode", "质量模式"), icon: "slider.horizontal.3")
@@ -353,6 +362,10 @@ struct ModelGenerationSheet: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 10) {
+                    Text(t("Atlas models appear first. If one cannot finish, choose a fal model below and review its Token cost before generating.",
+                           "优先显示 Atlas 模型。如果无法完成，可在下方选择 fal 模型，并在生成前查看 Token 费用。"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     ForEach(CraftEngineExample.all.filter { $0.id != "hybrid" || store.cloudModelEngineIDs.contains("hybrid") }) { option in
                         Button {
                             engine = option.id

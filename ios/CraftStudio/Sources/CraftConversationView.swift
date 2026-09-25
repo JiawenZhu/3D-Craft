@@ -23,6 +23,8 @@ struct CraftConversationView: View {
     @State private var settings = false
     @State private var modelSource: CraftConcept?
     @State private var animateSource: CraftConcept?
+    @State private var preferredModelEngine = "tripo"
+    @State private var preferredAnimationModel = "atlas-minimax-h3"
     @State private var inspected: CraftConcept?
     @State private var refineSource: CraftConcept?
     @State private var refinePrompt = ""
@@ -142,15 +144,17 @@ struct CraftConversationView: View {
                 }
             }
         }
-        .sheet(item: $modelSource) { source in
+        .sheet(item: $modelSource, onDismiss: { preferredModelEngine = "tripo" }) { source in
             let related = relatedViews(source)
-            ModelGenerationSheet(concept: source, chinese: store.isChinese, relatedViews: related, offersMultiView: !related.isEmpty) { engine, quality, effort, ids, prompt in
+            ModelGenerationSheet(concept: source, chinese: store.isChinese, relatedViews: related,
+                                 offersMultiView: !related.isEmpty, suggestedEngine: preferredModelEngine) { engine, quality, effort, ids, prompt in
                 modelSource = nil
                 Task { await store.generateModel(source, engine: engine, quality: quality, effort: effort, conceptIds: ids, modelPrompt: prompt) }
             }
         }
-        .sheet(item: $animateSource) { source in
-            AnimationGenerationSheet(concept: source, chinese: store.isChinese) { model, motion, resolution, duration in
+        .sheet(item: $animateSource, onDismiss: { preferredAnimationModel = "atlas-minimax-h3" }) { source in
+            AnimationGenerationSheet(concept: source, chinese: store.isChinese,
+                                     suggestedModel: preferredAnimationModel) { model, motion, resolution, duration in
                 animateSource = nil
                 Task { await store.generateAnimation(source, model: model, motion: motion, resolution: resolution, duration: duration) }
             }
@@ -592,6 +596,25 @@ struct CraftConversationView: View {
             ForEach(job.concepts ?? []) { concept in conceptCard(concept) }
             if job.isActive || job.status == "failed" || job.status == "partial" {
                 GenerationJourneyView(job: job, sourceURL: project?.imageUrl.flatMap(URL.init(string:)), selectedConceptURL: job.selectedImageUrl.flatMap(URL.init(string:)), chinese: store.isChinese, coreConcept: job.coreConcept, stage: job.stage)
+            }
+            if job.status == "failed", job.usedAtlas,
+               let source = project?.concepts.first(where: { $0.id == job.selectedConceptId }) {
+                Button {
+                    if job.kind == "animation" {
+                        preferredAnimationModel = "minimax-h3"
+                        animateSource = source
+                    } else if job.kind == "model" {
+                        preferredModelEngine = "rodin"
+                        modelSource = source
+                    }
+                } label: {
+                    Label(store.t(job.kind == "animation" ? "Choose fal animation model" : "Choose fal 3D model",
+                                  job.kind == "animation" ? "选择 fal 动画模型" : "选择 fal 3D 模型"),
+                          systemImage: "arrow.triangle.branch")
+                }
+                .buttonStyle(CraftSecondary())
+                .disabled(store.busy || working)
+                .accessibilityIdentifier("generation.chooseFal")
             }
             ForEach(job.assets) { asset in
                 if asset.isAnimated {

@@ -1,6 +1,27 @@
 import XCTest
 @testable import CraftStudio
 final class CraftModelTests:XCTestCase {
+    func testFailedAtlasJobsKeepProviderChoiceForExplicitFalRetry() {
+        let atlasAnimation = CraftJob([
+            "id": "animation-1", "kind": "animation", "status": "failed",
+            "animationSettings": ["model": "atlas-minimax-h3"],
+            "selectedConceptId": "dragon-1"
+        ], base: "https://3d-craft.web.app")
+        let atlasModel = CraftJob([
+            "id": "model-1", "kind": "model", "status": "failed",
+            "modelSettings": ["engine": "tripo"],
+            "selectedConceptId": "dragon-1"
+        ], base: "https://3d-craft.web.app")
+        let falAnimation = CraftJob([
+            "id": "animation-2", "kind": "animation", "status": "failed",
+            "animationSettings": ["model": "minimax-h3"]
+        ], base: "https://3d-craft.web.app")
+        XCTAssertTrue(atlasAnimation.usedAtlas)
+        XCTAssertTrue(atlasModel.usedAtlas)
+        XCTAssertEqual(atlasAnimation.selectedConceptId, "dragon-1")
+        XCTAssertFalse(falAnimation.usedAtlas)
+    }
+
     @MainActor func testPurchaseIsNotMarkedPresentedUntilWalletShowsIt() {
         let store = CraftStore()
         let key = "craft.test.purchase:" + UUID().uuidString

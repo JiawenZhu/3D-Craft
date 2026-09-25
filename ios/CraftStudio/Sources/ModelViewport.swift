@@ -2,6 +2,87 @@ import SwiftUI
 import SceneKit
 import GLTFKit2
 import MetalKit
+import CryptoKit
+
+/// A private disk copy avoids downloading a finished GLB every time its view is
+/// reopened. The account ID is part of the key and sign-out erases the folder.
+@MainActor final class CraftModelFileCache {
+    static let shared = CraftModelFileCache()
+    private let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("CraftModelFiles-v1", isDirectory: true)
+    private var pending: [String: Task<URL, Error>] = [:]
+    private var generation = 0
+
+    func file(for url: URL) async throws -> URL {
+        if url.isFileURL { return url }
+        guard let uid = CraftAccount.shared.uid else { throw URLError(.userAuthenticationRequired) }
+        let key = SHA256.hash(data: Data((uid + "\n" + url.absoluteString).utf8))
+            .map { String(format: "%02x", $0) }.joined()
+        let destination = folder.appendingPathComponent(key + ".glb")
+        if Self.validGLB(destination) {
+            try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: destination.path)
+            return destination
+        }
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try? FileManager.default.removeItem(at: destination)
+        }
+        if let existing = pending[key] { return try await existing.value }
+
+        let version = generation
+        let folder = folder
+        let task = Task<URL, Error> {
+            let request = try await CraftCloudMedia.request(url)
+            let (temporary, response) = try await URLSession.shared.download(for: request)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+                  Self.validGLB(temporary) else { throw URLError(.badServerResponse) }
+            try Task.checkCancellation()
+            guard version == generation, CraftAccount.shared.uid == uid else { throw CancellationError() }
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.moveItem(at: temporary, to: destination)
+            try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                                                   ofItemAtPath: destination.path)
+            Self.trim(folder, preserving: destination)
+            return destination
+        }
+        pending[key] = task
+        defer { pending[key] = nil }
+        return try await task.value
+    }
+
+    func erase() async {
+        generation += 1
+        let tasks = Array(pending.values)
+        tasks.forEach { $0.cancel() }
+        for task in tasks { _ = try? await task.value }
+        pending.removeAll()
+        try? FileManager.default.removeItem(at: folder)
+    }
+
+    private static func validGLB(_ url: URL) -> Bool {
+        guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size > 20,
+              let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        return handle.readData(ofLength: 4) == Data([0x67, 0x6c, 0x54, 0x46])
+    }
+
+    private static func trim(_ folder: URL, preserving current: URL) {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder,
+            includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey])) ?? []
+        let entries = files.compactMap { url -> (URL, Int, Date)? in
+            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) else { return nil }
+            return (url, values.fileSize ?? 0, values.contentModificationDate ?? .distantPast)
+        }.sorted { $0.2 < $1.2 }
+        var size = entries.reduce(0) { $0 + $1.1 }
+        for entry in entries where size > 512 * 1024 * 1024 && entry.0 != current
+            && Date().timeIntervalSince(entry.2) > 300 {
+            try? FileManager.default.removeItem(at: entry.0)
+            size -= entry.1
+        }
+    }
+}
 
 enum CraftLightingPreset: String, CaseIterable, Identifiable {
     case studio, rim, sunset, night, flat
@@ -134,7 +215,6 @@ final class ModelSceneView: UIView, UIGestureRecognizerDelegate {
     private var appliedStageKey: String?
     private static var environmentCache: [CraftLightingPreset: [UIImage]] = [:]
     private var originalMaterials: [(SCNGeometry, [SCNMaterial])] = []
-    private var download: URLSessionDownloadTask?
     private var loadID = UUID()
     private var selectedMode = "material"
     private var turntables = false
@@ -149,7 +229,6 @@ final class ModelSceneView: UIView, UIGestureRecognizerDelegate {
     private var baseYaw: Float = 0
     private var statusMessage: String? { didSet { updateStatus() } }
     private var retainedAsset: GLTFAsset?
-    private var cachedFile: URL?
     fileprivate var sourceURL: URL?
     fileprivate var lastReset = 0
 
@@ -238,11 +317,8 @@ final class ModelSceneView: UIView, UIGestureRecognizerDelegate {
 
     fileprivate func cancel() {
         loadID = UUID()
-        download?.cancel()
         stopArc()
         viewport.isPlaying = false
-        if let cachedFile { try? FileManager.default.removeItem(at: cachedFile) }
-        cachedFile = nil
     }
 
     fileprivate func load(_ url: URL) {
@@ -266,31 +342,13 @@ final class ModelSceneView: UIView, UIGestureRecognizerDelegate {
             return
         }
         Task { @MainActor [weak self] in
-        guard let self else { return }
-        do {
-        let request = try await CraftCloudMedia.request(url)
-        guard self.loadID == currentID else { return }
-        download = URLSession.shared.downloadTask(with: request) { [weak self] temporary, response, error in
-            guard let self else { return }
-            guard error == nil, let temporary,
-                  let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-                DispatchQueue.main.async { self.fail("Couldn’t download this model. Check your connection and reopen it.", id: currentID) }
-                return
-            }
-            let destination = FileManager.default.temporaryDirectory.appendingPathComponent("craft-\(UUID().uuidString).glb")
             do {
-                try FileManager.default.moveItem(at: temporary, to: destination)
-                DispatchQueue.main.async {
-                    guard self.loadID == currentID else { try? FileManager.default.removeItem(at: destination); return }
-                    self.cachedFile = destination
-                    self.importModel(destination, id: currentID)
-                }
+                let file = try await CraftModelFileCache.shared.file(for: url)
+                guard let self, self.loadID == currentID else { return }
+                self.importModel(file, id: currentID)
             } catch {
-                DispatchQueue.main.async { self.fail("Couldn’t save the model for preview.", id: currentID) }
+                self?.fail("Couldn’t download this model. Check your connection and reopen it.", id: currentID)
             }
-        }
-        download?.resume()
-        } catch { self.fail("Couldn’t download this model. Check your connection and reopen it.", id: currentID) }
         }
     }
 
