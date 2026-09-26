@@ -30,6 +30,12 @@ from .pricing import model_quote
 
 LIFETIME = 3600
 LEASE = 900
+# After submitting, keep checking the provider inside the same delivery so a
+# finished model is picked up within seconds, instead of waiting for Cloud
+# Tasks' growing retry backoff. The window leaves room for the download and
+# upload inside Cloud Run's request timeout.
+POLL_WINDOW = 60
+POLL_INTERVAL = 4
 TERMINAL = ('done', 'failed')
 
 
@@ -82,9 +88,10 @@ def select_views(concept_id, ids, concepts, source_job=None):
 
 
 class CloudModelJobs:
-    def __init__(self, studio, clock=None):
+    def __init__(self, studio, clock=None, sleep=None):
         self.studio, self.db = studio, studio.db
         self.now = clock or time.time
+        self.sleep = sleep or time.sleep
         self.billing = CloudBilling(self.db, self.now)
         self.projects = CloudProjects(studio)
 
@@ -366,15 +373,20 @@ class CloudModelJobs:
                 if data.get('providerFailed'):
                     return {'status':self.finish(uid,jid,token,error='The model service could not complete this creation. Your reserved Tokens have been released.')}
                 engine=data['options'].get('engine', 'tripo')
-                if atlas_model_provider.is_atlas_engine(engine):
-                    try:
-                        result=atlas_model_provider.status(data['requestId'])
-                    except (RuntimeError, ValueError):
-                        return {'status':self.finish(uid,jid,token,error='The model service could not complete this creation. Your reserved Tokens have been released.')}
-                    download_fn=atlas_model_provider.download_mesh
-                else:
-                    result=provider.status(data['endpoint'],data['requestId'])
-                    download_fn=provider.download_mesh
+                atlas=atlas_model_provider.is_atlas_engine(engine)
+                download_fn=atlas_model_provider.download_mesh if atlas else provider.download_mesh
+                polling_until=self.now()+POLL_WINDOW
+                # Bounded by count as well as time, so a stalled clock cannot spin forever.
+                for _ in range(POLL_WINDOW//POLL_INTERVAL+1):
+                    if atlas:
+                        try:
+                            result=atlas_model_provider.status(data['requestId'])
+                        except (RuntimeError, ValueError):
+                            return {'status':self.finish(uid,jid,token,error='The model service could not complete this creation. Your reserved Tokens have been released.')}
+                    else:
+                        result=provider.status(data['endpoint'],data['requestId'])
+                    if result is not None or self.now()+POLL_INTERVAL>polling_until: break
+                    self.sleep(POLL_INTERVAL)
                 if result is None: raise HTTPException(503,'3D reconstruction is in progress.')
                 enqueue(uid,jid,cleanup=True)
                 with tempfile.TemporaryDirectory() as folder:

@@ -438,7 +438,8 @@ class AtlasModelJobsLifecycleTests(unittest.TestCase):
             self.assertEqual(wallet['available'], 300 - 26)
 
     def test_run_lifecycle_preparing_to_submitted(self):
-        service = CloudModelJobs(self.studio, clock=lambda: self.clock)
+        # The worker now polls inside the delivery before handing back; don't wait for real.
+        service = CloudModelJobs(self.studio, clock=lambda: self.clock, sleep=lambda seconds: None)
         with patch.dict('os.environ', {'ATLAS_API_KEY': 'test-atlas'}), \
              patch('server.firebase_model_jobs.enqueue'):
             body = ModelRequest(idempotencyKey='req-tripo-prep', engine='tripo')

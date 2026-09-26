@@ -6,6 +6,7 @@ It is an operational signal, not an App Store review or device-QA status.
 from functools import lru_cache
 import os
 import json
+import logging
 from urllib.parse import quote
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, Header, Form, File, UploadFile, Request, Query, Response
@@ -17,6 +18,7 @@ from .firebase_billing import CloudBilling
 from .firebase_webhooks import reconcile_webhook
 from .firebase_projects import CloudProjects, MAX_BYTES
 from .firebase_model_jobs import CloudModelJobs, ModelRequest
+from . import firebase_model_jobs as model_jobs
 from .firebase_planning import CloudPlanning, PromptRequest, ChatRequest
 from . import cloud_planner_provider, cloud_concept_provider
 from .firebase_concepts import CloudConcepts, ConceptRequest
@@ -285,22 +287,30 @@ def generation_ready():
     return concepts_ready() and model_ready()
 
 
+CONCEPT_MODELS=((cloud_concept_provider.FAST_MODEL,'Gemini 3.1 Flash Image · Nano Banana 2','Fast'),
+                (cloud_concept_provider.MODEL,'Gemini 3 Pro Image · Nano Banana Pro','Pro'))
+
+
+def image_model_catalog():
+    # defaultModel and maxTokensByCount keep describing Pro: released apps send
+    # imageModel explicitly and read those fields, so their prices never move.
+    now=time.time();ready=concepts_ready()
+    by_model={ident:{str(n):cloud_concept_provider.quote(now,n,ident)['maxTokens'] for n in range(1,5)} for ident,_,_ in CONCEPT_MODELS}
+    return {'defaultModel':cloud_concept_provider.MODEL,'fastModel':cloud_concept_provider.FAST_MODEL,
+        'expiresAt':cloud_concept_provider.quote(now)['expiresAt'],
+        'maxTokensByCount':by_model[cloud_concept_provider.MODEL],'maxTokensByModel':by_model,
+        'models':[dict(id=ident,name=name,provider='google',quality=quality,imageSize=cloud_concept_provider.spec(ident)['imageSize'],
+            available=ready,unavailableReason=None if ready else 'Cloud concepts are temporarily unavailable.') for ident,name,quality in CONCEPT_MODELS]}
+
+
 @app.get('/api/mobile/image-models')
 def mobile_image_models(account=Depends(owner)):
-    now=time.time()
-    return {'defaultModel':cloud_concept_provider.MODEL,'expiresAt':cloud_concept_provider.quote(now)['expiresAt'],
-        'maxTokensByCount':{str(n):cloud_concept_provider.quote(now,n)['maxTokens'] for n in range(1,5)},
-        'models':[dict(id=cloud_concept_provider.MODEL,name='Gemini 3 Pro Image · Nano Banana Pro',provider='google',
-            quality='Pro',imageSize='2K',available=concepts_ready(),unavailableReason=None if concepts_ready() else 'Cloud concepts are temporarily unavailable.')]}
+    return image_model_catalog()
 
 
 @app.get('/api/v1/image-models')
 def v1_image_models(account=Depends(v1_owner)):
-    now=time.time()
-    return {'defaultModel':cloud_concept_provider.MODEL,'expiresAt':cloud_concept_provider.quote(now)['expiresAt'],
-        'maxTokensByCount':{str(n):cloud_concept_provider.quote(now,n)['maxTokens'] for n in range(1,5)},
-        'models':[dict(id=cloud_concept_provider.MODEL,name='Gemini 3 Pro Image · Nano Banana Pro',provider='google',
-            quality='Pro',imageSize='2K',available=concepts_ready(),unavailableReason=None if concepts_ready() else 'Cloud concepts are temporarily unavailable.')]}
+    return image_model_catalog()
 
 
 @app.post('/api/mobile/projects/{project_id}/concepts')
@@ -1394,6 +1404,15 @@ async def model_callback(uid: str, job_id: str, token: str, request: Request):
         await run_in_threadpool(CloudModelJobs(studio()).request_received,uid,job_id,rid,token,payload['status']=='ERROR')
     except HTTPException as exc:
         if exc.status_code!=403: raise
+        return {'status':'received'}
+    # The provider has finished: collect the model now rather than at the job's
+    # next backed-off retry. A duplicate delivery is harmless (the worker holds a
+    # lease and finishing is idempotent), and if this enqueue fails the job's own
+    # retries still pick the result up.
+    try:
+        await run_in_threadpool(model_jobs.enqueue,uid,job_id)
+    except Exception:
+        logging.getLogger(__name__).warning('Could not wake the model worker after a provider notification')
     return {'status':'received'}
 
 

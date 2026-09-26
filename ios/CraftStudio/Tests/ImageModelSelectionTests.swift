@@ -12,7 +12,7 @@ final class ImageModelSelectionTests: XCTestCase {
         store.plannerModelID = CraftPlannerModel.defaultID
         store.imageModelID = CraftImageModel.defaultID
         let gemini = store.imagePayload(["count": 4])
-        XCTAssertEqual(gemini["imageModel"] as? String, "gemini-3-pro-image")
+        XCTAssertEqual(gemini["imageModel"] as? String, "gemini-3.1-flash-image", "new concepts default to the fast renderer")
         store.imageModelID = "codex-gpt-image-2"
         let openAI = store.imagePayload(["count": 4])
         XCTAssertEqual(openAI["imageModel"] as? String, "codex-gpt-image-2")
@@ -98,6 +98,38 @@ final class ImageModelSelectionTests: XCTestCase {
         XCTAssertTrue(store.selectedImageModel?.available == true)
         store.applyAIAccount(["available":true, "connected":false])
         XCTAssertFalse(store.selectedImageModel?.available == true)
+    }
+
+    func testFastIsDefaultButAChosenProSurvivesRelaunch() {
+        XCTAssertEqual(CraftImageModel.defaultID, "gemini-3.1-flash-image")
+        XCTAssertEqual(CraftImageModel.restoredSelection(nil), CraftImageModel.defaultID)
+        XCTAssertEqual(CraftImageModel.restoredSelection(CraftImageModel.proID), CraftImageModel.proID)
+        XCTAssertEqual(CraftImageModel.placeholders.map(\.id).prefix(2), [CraftImageModel.defaultID, CraftImageModel.proID])
+    }
+
+    @MainActor func testOfflineQuoteMatchesServerCapForEachRenderer() {
+        let store = CraftStore(pendingURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        let previous = store.imageModelID
+        defer { store.imageModelID = previous }
+        // server: cloud_concept_provider.quote(now, n, model)["maxTokens"]
+        store.imageModelID = CraftImageModel.defaultID
+        XCTAssertEqual((1...4).map { store.conceptTokenCost(count: $0) }, [14, 28, 40, 52])
+        store.imageModelID = CraftImageModel.proID
+        XCTAssertEqual((1...4).map { store.conceptTokenCost(count: $0) }, [33, 66, 97, 128])
+    }
+
+    @MainActor func testServerWithoutFastModelKeepsCreatorOnPro() {
+        let store = CraftStore(pendingURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        let previous = store.imageModelID
+        defer { store.imageModelID = previous }
+        UserDefaults.standard.removeObject(forKey: "craftImageModel")
+        store.imageModelID = CraftImageModel.defaultID
+        UserDefaults.standard.removeObject(forKey: "craftImageModel")
+        store.adoptImageModels([CraftImageModel(id: CraftImageModel.proID, name: "Gemini 3 Pro Image", provider: "google",
+                                                available: true, quality: "Pro", imageSize: "2K", unavailableReason: nil)])
+        XCTAssertEqual(store.imageModelID, CraftImageModel.proID, "an older studio keeps working on Pro")
+        XCTAssertNil(UserDefaults.standard.string(forKey: "craftImageModel"), "the fallback is not saved, so Fast returns later")
+        XCTAssertEqual(CraftImageModel.restoredSelection(UserDefaults.standard.string(forKey: "craftImageModel")), CraftImageModel.defaultID)
     }
 
     func testConceptPreservesActualRendererAndLegacyConceptStillLoads() {

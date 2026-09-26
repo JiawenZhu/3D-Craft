@@ -8,11 +8,26 @@ from .firebase_projects import normalized_image
 from .commerce import policy
 
 MODEL = 'gemini-3-pro-image'
+FAST_MODEL = 'gemini-3.1-flash-image'
 MAX_INPUT = 16000
 MAX_OUTPUT = 8192
 IMAGE_TOKENS = 1120  # Published 1K/2K output token count.
 RATES = {'input':'2','cachedInput':'.2','textOutput':'12','imageOutput':'120'}
 SOURCE = 'https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing'
+# Per-model rendering contract. Nano Banana 2 at 1K measured ~7.5 s per image
+# against ~20 s for Nano Banana Pro at 2K (2026-09-26), at half the image price
+# ($60 vs $120 per 1M image tokens; 1K = 1,120 image tokens = $0.067). 3D
+# reconstruction normalises references to 1024 px, so 1K loses nothing there.
+SPECS = {
+    MODEL:      {'rates': RATES, 'imageSize': '2K', 'pixels': 2048, 'imageTokens': IMAGE_TOKENS},
+    FAST_MODEL: {'rates': {'input':'.5','cachedInput':'.05','textOutput':'3','imageOutput':'60'},
+                 'imageSize': '1K', 'pixels': 1024, 'imageTokens': 1120},
+}
+
+
+def spec(model):
+    if model not in SPECS:raise ValueError('Unknown concept image model')
+    return SPECS[model]
 
 
 def cost(input_tokens, text_tokens, image_tokens, cached_tokens=0, rates=None):
@@ -29,19 +44,20 @@ def cost(input_tokens, text_tokens, image_tokens, cached_tokens=0, rates=None):
     return {'providerUsd':str(usd),'tokens':tokens}
 
 
-def quote(now,count=1):
+def quote(now,count=1,model=MODEL):
     if type(count) is not int or not 1<=count<=4:raise ValueError('Choose one to four images')
-    rates={**RATES,'commerce':{k:policy()[k] for k in ('serviceFeeRate','creditUsageUsd')}}
-    render=cost(MAX_INPUT,MAX_OUTPUT,IMAGE_TOKENS,rates=rates)['tokens']
+    s=spec(model)
+    rates={**s['rates'],'commerce':{k:policy()[k] for k in ('serviceFeeRate','creditUsageUsd')}}
+    render=cost(MAX_INPUT,MAX_OUTPUT,s['imageTokens'],rates=rates)['tokens']
     planning=planner.quote(now)
     # Planning and an optional multiview audit are each bounded text calls.
-    return {'model':MODEL,'maxTokens':render*count+planning['maxTokens']*(2 if count>1 else 1),
+    return {'model':model,'maxTokens':render*count+planning['maxTokens']*(2 if count>1 else 1),
             'renderMaxTokens':render,'count':count,'expiresAt':planning['expiresAt'],
-            'rates':rates,'planning':planning,'imageSize':'2K'}
+            'rates':rates,'planning':planning,'imageSize':s['imageSize']}
 
 
-def call(method,payload):
-    return planner.call(method,payload,model=MODEL)
+def call(method,payload,model=MODEL):
+    return planner.call(method,payload,model=model)
 
 
 def reference_parts(image):
@@ -53,21 +69,22 @@ def reference_parts(image):
     return [{'inlineData':{'mimeType':'image/jpeg','data':base64.b64encode(output.getvalue()).decode()}}]
 
 
-def body(prompt,image=None):
+def body(prompt,image=None,model=MODEL):
     return {'contents':[{'role':'user','parts':reference_parts(image)+[{'text':prompt}]}],
             'generationConfig':{'candidateCount':1,'maxOutputTokens':MAX_OUTPUT,'responseModalities':['IMAGE'],
-                'imageConfig':{'aspectRatio':'1:1','imageSize':'2K'}}}
+                'imageConfig':{'aspectRatio':'1:1','imageSize':spec(model)['imageSize']}}}
 
 
-def preflight(payload):
-    result=call('countTokens',{'contents':payload['contents']})
+def preflight(payload,model=MODEL):
+    result=call('countTokens',{'contents':payload['contents']},model)
     count=result.get('totalTokens')
     if type(count) is not int or not 0<count<=MAX_INPUT:
         raise planner.PlannerError('This concept description is too long. Shorten it and try again.')
     return count
 
 
-def decode(result,rates):
+def decode(result,rates,model=MODEL):
+    s=spec(model)
     try:
         candidates=result['candidates']
         if len(candidates)!=1 or candidates[0].get('finishReason')!='STOP':raise ValueError()
@@ -76,25 +93,25 @@ def decode(result,rates):
         if len(images)!=1 or images[0].get('mimeType') not in ('image/png','image/jpeg','image/webp'):raise ValueError()
         raw=base64.b64decode(images[0]['data'],validate=True)
         data,width,height=normalized_image(raw)
-        if width!=2048 or height!=2048:raise ValueError('Expected a 2K square image')
+        if width!=s['pixels'] or height!=s['pixels']:raise ValueError('Expected a square image at the requested size')
         usage=result['usageMetadata']
         inputs=usage['promptTokenCount'];output=usage['candidatesTokenCount'];thinking=usage.get('thoughtsTokenCount',0)
         cached=usage.get('cachedContentTokenCount',0)
         details=usage.get('candidatesTokensDetails',[])
         image_tokens=sum(d['tokenCount'] for d in details if d.get('modality')=='IMAGE')
-        if image_tokens!=IMAGE_TOKENS or any(type(n) is not int or n<0 for n in [inputs,output,thinking,cached]) or inputs==0 or output<image_tokens:
+        if image_tokens!=s['imageTokens'] or any(type(n) is not int or n<0 for n in [inputs,output,thinking,cached]) or inputs==0 or output<image_tokens:
             raise ValueError('Missing image usage')
         text_tokens=output-image_tokens+thinking
-        return {'bytes':data,'width':width,'height':height,'model':MODEL,
+        return {'bytes':data,'width':width,'height':height,'model':model,
                 'usage':{'input':inputs,'textOutput':text_tokens,'imageOutput':image_tokens,'cachedInput':cached},
                 **cost(inputs,text_tokens,image_tokens,cached,rates)}
     except (ValueError,KeyError,TypeError,IndexError) as exc:
-        raise planner.PlannerError('No complete 2K concept with verified usage was returned. Unused Tokens will be released.') from exc
+        raise planner.PlannerError(f"No complete {s['imageSize']} concept with verified usage was returned. Unused Tokens will be released.") from exc
 
 
-def generate(payload,rates):
+def generate(payload,rates,model=MODEL):
     # A single call: a timeout must never cause another paid request.
-    return decode(call('generateContent',payload),rates)
+    return decode(call('generateContent',payload,model),rates,model)
 
 
 VIEWS = [('Front · 0°','front','directly in front, zero azimuth'),

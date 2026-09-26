@@ -66,7 +66,7 @@ struct PendingGeneration: Codable, Equatable {
     }
     @Published var webBase = StudioConnection.cloudURL
     @Published var imageModelID = CraftImageModel.restoredSelection(UserDefaults.standard.string(forKey: "craftImageModel")) {
-        didSet { UserDefaults.standard.set(imageModelID, forKey: "craftImageModel") }
+        didSet { if !sessionOnlyModelChange { UserDefaults.standard.set(imageModelID, forKey: "craftImageModel") } }
     }
     @Published var imageModels = CraftImageModel.placeholders
     @Published var showPriceDetails = UserDefaults.standard.bool(forKey: "craftShowPriceDetails") {
@@ -452,7 +452,8 @@ struct PendingGeneration: Codable, Equatable {
         return true
     }
     private func draftFingerprint(count:Int)->String {
-        let modelSuffix = imageModelID == CraftImageModel.defaultID ? "" : "\n" + imageModelID
+        // Pro drafts keep the suffix-free fingerprint earlier versions stored.
+        let modelSuffix = imageModelID == CraftImageModel.proID ? "" : "\n" + imageModelID
         let plannerSuffix = plannerModelID == CraftPlannerModel.defaultID ? "" : "\nplanner:" + plannerModelID + "\neffort:" + plannerEffort
         let words=Data((draftPrompt+"\n"+draftStyle+"\n"+String(count)+modelSuffix+plannerSuffix).utf8)
         return PendingGeneration.fingerprint(words+(draftImage?.jpegData(compressionQuality:0.95) ?? Data()))
@@ -762,7 +763,13 @@ struct PendingGeneration: Codable, Equatable {
             catch { self.connectionNotice = self.t("Website library sync is pending. Your creations are saved here.","网站作品同步待完成，作品已保存在这里。") }
         }
     }
-    private func startPolling(){guard polling == nil else{return};polling=Task{[weak self] in while !Task.isCancelled {try?await Task.sleep(nanoseconds:3_000_000_000);guard let self else{return};if !self.connected{if !self.connectionNeedsSignIn && !self.connectionNeedsSetup && Date() >= self.nextConnectionAttempt {await self.connect()}}else if self.pendingGeneration != nil{await self.reconcilePending()}else if self.jobs.contains(where:{$0.isActive}) || self.projects.contains(where:{$0.turns.contains(where:{$0.isActive})}){do { try await self.refreshCreationState() } catch { self.connectionFailed(error) }}else if Date().timeIntervalSince(self.lastIdleRefresh) >= 20{await self.refreshOutsideChanges()}}}}
+    /// Concepts and chat replies land in seconds, so poll faster while one is in
+    /// flight. Model jobs take minutes and keep the normal cadence.
+    private var awaitingQuickResult: Bool {
+        pendingGeneration != nil || jobs.contains { $0.isActive && ($0.kind == "concepts" || $0.kind == "refine") }
+            || projects.contains { $0.turns.contains { $0.isActive } }
+    }
+    private func startPolling(){guard polling == nil else{return};polling=Task{[weak self] in while !Task.isCancelled {let quick=self?.awaitingQuickResult ?? false;try?await Task.sleep(nanoseconds:quick ? 1_500_000_000 : 3_000_000_000);guard let self else{return};if !self.connected{if !self.connectionNeedsSignIn && !self.connectionNeedsSetup && Date() >= self.nextConnectionAttempt {await self.connect()}}else if self.pendingGeneration != nil{await self.reconcilePending()}else if self.jobs.contains(where:{$0.isActive}) || self.projects.contains(where:{$0.turns.contains(where:{$0.isActive})}){do { try await self.refreshCreationState() } catch { self.connectionFailed(error) }}else if Date().timeIntervalSince(self.lastIdleRefresh) >= 20{await self.refreshOutsideChanges()}}}}
     func createConcepts(count:Int,originalOnly:Bool=false) async ->String? {
         guard !busy else{return nil};guard connected else{error=t("Please sign in or check your connection.","请先登录或检查网络连接。");return nil}
         guard !draftPrompt.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || draftImage != nil else{error=t("Add a photo or describe your idea.","请添加照片或描述你的想法。");return nil}
@@ -881,8 +888,7 @@ struct PendingGeneration: Codable, Equatable {
         if let entries = data["imageModels"] as? [[String: Any]],
            let bytes = try? JSONSerialization.data(withJSONObject: entries),
            let models = try? JSONDecoder().decode([CraftImageModel].self, from: bytes), !models.isEmpty {
-            imageModels = models.filter { [CraftImageModel.defaultID, "codex-gpt-image-2"].contains($0.id) }
-            imageModelsLoaded = true
+            adoptImageModels(models)
         }
         // Compatibility with older studios: GPT availability comes from the same
         // account response, never from an earlier pre-login image catalog.
@@ -993,7 +999,8 @@ struct PendingGeneration: Codable, Equatable {
         }
         return t("Price pending verification", "价格待核实")
     }
-    @Published private var conceptQuotes: [String: Int] = [:]
+    @Published private var conceptQuotesByModel: [String: [String: Int]] = [:]
+    private var conceptQuotes: [String: Int] { conceptQuotesByModel[imageModelID] ?? [:] }
     private var conceptQuoteExpiry: Double = 0
     private var conceptQuoteUID: String?
     private var isLocalHost: Bool {
@@ -1007,7 +1014,9 @@ struct PendingGeneration: Codable, Equatable {
     func conceptTokenCost(count: Int) -> Int {
         if let quote = conceptQuotes[String(count)] { return quote }
         if isLocalHost { return count * 15 }
-        return imageModelID == "codex-gpt-image-2" ? 0 : (count * 31 + (count > 1 ? 4 : 2))
+        if imageModelID == "codex-gpt-image-2" { return 0 }
+        // Mirrors the server's bounded quote: one render cap per image plus planning.
+        return count * (imageModelID == CraftImageModel.proID ? 31 : 12) + (count > 1 ? 4 : 2)
     }
     func conceptPriceSummary(count: Int) -> String {
         var lines: [String] = []
@@ -1019,6 +1028,17 @@ struct PendingGeneration: Codable, Equatable {
         lines.append(t("Up to \(conceptTokenCost(count: count)) Tokens reserved. Actual usage is charged; unused Tokens return.", "最多预留 \(conceptTokenCost(count: count)) Token，按实际用量结算，未使用部分退回。"))
         return lines.joined(separator: "\n")
     }
+    private var sessionOnlyModelChange = false
+    /// A studio that predates the fast renderer keeps the creator working on Pro
+    /// for this session, without saving it, so a later catalog restores Fast.
+    func adoptImageModels(_ models: [CraftImageModel]) {
+        imageModels = models.filter { (CraftImageModel.googleIDs + ["codex-gpt-image-2"]).contains($0.id) }
+        imageModelsLoaded = true
+        if CraftImageModel.googleIDs.contains(imageModelID), !imageModels.contains(where: { $0.id == imageModelID }),
+           imageModels.contains(where: { $0.id == CraftImageModel.proID }) {
+            sessionOnlyModelChange = true; imageModelID = CraftImageModel.proID; sessionOnlyModelChange = false
+        }
+    }
     func refreshImageModelCatalog() async {
         let base = apiBase
         let uid = CraftAccount.shared.uid
@@ -1028,8 +1048,11 @@ struct PendingGeneration: Codable, Equatable {
            let bytes = try? JSONSerialization.data(withJSONObject: entries),
            let models = try? JSONDecoder().decode([CraftImageModel].self, from: bytes),
            !models.isEmpty, base == apiBase, uid == CraftAccount.shared.uid, revision == aiSnapshotRevision {
-            imageModels = models.filter { [CraftImageModel.defaultID, "codex-gpt-image-2"].contains($0.id) }; imageModelsLoaded = true
-            conceptQuotes = catalog["maxTokensByCount"] as? [String: Int] ?? [:]
+            adoptImageModels(models)
+            var quotes = catalog["maxTokensByModel"] as? [String: [String: Int]] ?? [:]
+            // Servers before model choice priced only Pro, under maxTokensByCount.
+            if quotes[CraftImageModel.proID] == nil, let legacy = catalog["maxTokensByCount"] as? [String: Int] { quotes[CraftImageModel.proID] = legacy }
+            conceptQuotesByModel = quotes
             conceptQuoteExpiry = catalog["expiresAt"] as? Double ?? 0
             conceptQuoteUID = uid
         }

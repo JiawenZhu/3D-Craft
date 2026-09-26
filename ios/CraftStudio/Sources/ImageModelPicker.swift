@@ -9,12 +9,19 @@ struct CraftImageModel: Identifiable, Codable, Equatable {
     let imageSize: String
     let unavailableReason: String?
 
-    static let defaultID = "gemini-3-pro-image"
+    /// Nano Banana 2 at 1K: ~2.6x faster than Pro and half the image price. It
+    /// is the default so a first concept arrives in seconds; Pro stays one tap away.
+    static let defaultID = "gemini-3.1-flash-image"
+    static let proID = "gemini-3-pro-image"
+    static let googleIDs = [defaultID, proID]
     static let placeholders: [CraftImageModel] = [
-        .init(id: defaultID, name: "Gemini 3 Pro Image · Nano Banana Pro", provider: "Google", available: false, quality: "Pro", imageSize: "2K", unavailableReason: nil),
+        .init(id: defaultID, name: "Gemini 3.1 Flash Image · Nano Banana 2", provider: "Google", available: false, quality: "Fast", imageSize: "1K", unavailableReason: nil),
+        .init(id: proID, name: "Gemini 3 Pro Image · Nano Banana Pro", provider: "Google", available: false, quality: "Pro", imageSize: "2K", unavailableReason: nil),
         .init(id: "codex-gpt-image-2", name: "GPT Image 2 · ChatGPT account", provider: "chatgpt", available: false, quality: "Account default", imageSize: "Native", unavailableReason: nil)
     ]
     static func restoredSelection(_ stored: String?) -> String {
+        // A creator who chose Pro keeps Pro; everyone else starts on Fast.
+        if let stored, googleIDs.contains(stored) { return stored }
         guard CraftAIAccount.enabledForRelease else { return defaultID }
         return stored == "gpt-image-2.5-sunburst" ? defaultID : stored ?? defaultID
     }
@@ -50,7 +57,7 @@ struct ImageModelPicker: View {
                 .accessibilityValue(expanded ? store.t("Expanded", "已展开") : store.t("Collapsed", "已收起"))
             if expanded {
             VStack(spacing: 10) {
-                ForEach(store.imageModels.filter { $0.id == CraftImageModel.defaultID || CraftAIAccount.enabledForRelease }) { model in
+                ForEach(store.imageModels.filter { CraftImageModel.googleIDs.contains($0.id) || CraftAIAccount.enabledForRelease }) { model in
                     Button {
                         store.imageModelID = model.id
                     } label: {

@@ -100,7 +100,7 @@ def get_openapi_v1_spec() -> Dict[str, Any]:
                         },
                         "imageModel": {
                             "type": "string",
-                            "enum": ["gemini-3-pro-image"],
+                            "enum": ["gemini-3-pro-image", "gemini-3.1-flash-image"],
                             "default": "gemini-3-pro-image",
                         },
                         "plannerModel": {

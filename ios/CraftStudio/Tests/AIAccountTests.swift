@@ -55,7 +55,7 @@ final class AIAccountTests: XCTestCase {
 
     func testRemovedImageProviderMigratesSelectionButHistoricalPendingStaysExact() throws {
         XCTAssertEqual(CraftImageModel.restoredSelection("gpt-image-2.5-sunburst"), CraftImageModel.defaultID)
-        XCTAssertEqual(CraftImageModel.placeholders.map(\.id), [CraftImageModel.defaultID, "codex-gpt-image-2"])
+        XCTAssertEqual(CraftImageModel.placeholders.map(\.id), [CraftImageModel.defaultID, CraftImageModel.proID, "codex-gpt-image-2"])
         let pending = try PendingGeneration.make(base: "http://localhost", path: "/projects/p/concepts", projectID: "p", payload: ["imageModel": "gpt-image-2.5-sunburst", "count": 4])
         let restored = try JSONDecoder().decode(PendingGeneration.self, from: JSONEncoder().encode(pending))
         XCTAssertEqual(restored.body, pending.body)

@@ -114,6 +114,9 @@ def upload_media(file_path: Path | str) -> str:
     return url
 
 
+TRIPO_FACE_LIMIT = 100_000
+
+
 def arguments(engine: str, urls: list[str], prompt: str | None = None, quality: str = 'default', effort: str = 'high') -> tuple[str, dict]:
     """Build the model endpoint and request payload matching official docs and tested settings."""
     if engine not in ATLAS_MODELS:
@@ -132,6 +135,10 @@ def arguments(engine: str, urls: list[str], prompt: str | None = None, quality: 
             'pbr': True,
             'texture_quality': 'standard',
             'geometry_quality': 'standard',
+            # Left adaptive, Tripo returned 1.46M faces / 45.6 MB for one character
+            # (image-to-3D comparison, 2026-09-24): minutes to transfer and heavy to
+            # open on a phone. Rodin's ~92k-face result was the mobile baseline.
+            'face_limit': TRIPO_FACE_LIMIT,
         }
     if engine == 'seed3d':
         return model_id, {
