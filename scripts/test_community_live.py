@@ -1,12 +1,13 @@
 """Live end-to-end test script for Community Games & Leaderboard in Firebase Firestore."""
 import json
+import os
 import time
 import requests
 
-API_KEY = "AIzaSyCKjbzHGU6N4X16ZRkmm2otkkL27MeNQYI"
-PROJECT_ID = "forma-studio-2026"
-BASE_URL = "http://127.0.0.1:8001/api/mobile/community"
-GATEWAY_URL = "http://192.168.68.108:8002/XhhzhZnoqLbXNe7q_e0rBoDNMkr-vyUvp9_lXgIjzDc/api/mobile/community"
+API_KEY = os.getenv("FIREBASE_WEB_API_KEY", "")
+PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "forma-studio-2026")
+BASE_URL = os.getenv("COMMUNITY_BASE_URL", "http://127.0.0.1:8001/api/mobile/community")
+GATEWAY_URL = os.getenv("COMMUNITY_GATEWAY_URL", BASE_URL)
 
 def get_id_token(email: str, password: str) -> tuple[str, str]:
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}"

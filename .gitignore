@@ -147,3 +147,10 @@ claude.json
 CODEX.md
 codex.json
 .codexrc
+
+# Temporary tooling, CLI state, and local video renders
+.devpost-hackathon-state.json
+.playwright-cli/
+*.mp4
+!docs/design/video-provider-comparison/media/*.mp4
+

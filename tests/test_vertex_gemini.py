@@ -11,12 +11,12 @@ class TestVertexGeminiSecurity(unittest.TestCase):
     def test_secret_scrubbing(self):
         with patch.object(gemini, "GEMINI_API_KEY", "secret-gemini-key-123"), \
              patch.object(gemini, "VERTEX_API_KEY", "secret-vertex-key-456"):
-            raw = "Error with secret-gemini-key-123 and secret-vertex-key-456 and Bearer ya29.a0AfH6_xyz123 and AIzaSyCKjbzHGU6N4X16ZRkmm2otkkL27MeNQYI"
+            raw = "Error with secret-gemini-key-123 and secret-vertex-key-456 and Bearer ya29.a0AfH6_xyz123 and AIzaSyMockKeyForTestingScrubbing1234567"
             scrubbed = gemini._scrub(raw)
             self.assertNotIn("secret-gemini-key-123", scrubbed)
             self.assertNotIn("secret-vertex-key-456", scrubbed)
             self.assertNotIn("ya29.a0AfH6_xyz123", scrubbed)
-            self.assertNotIn("AIzaSyCKjbzHGU6N4X16ZRkmm2otkkL27MeNQYI", scrubbed)
+            self.assertNotIn("AIzaSyMockKeyForTestingScrubbing1234567", scrubbed)
             self.assertIn("***", scrubbed)
 
     def test_vertex_available_check(self):

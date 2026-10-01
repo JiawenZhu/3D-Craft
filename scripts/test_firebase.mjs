@@ -6,7 +6,7 @@ const firebaseConfig = {
   projectId: "forma-studio-2026",
   appId: "1:869655507524:web:c35740f3460a4923524211",
   storageBucket: "forma-studio-2026.firebasestorage.app",
-  apiKey: "AIzaSyCKjbzHGU6N4X16ZRkmm2otkkL27MeNQYI",
+  apiKey: process.env.FIREBASE_WEB_API_KEY || process.env.VITE_FIREBASE_API_KEY || "",
   authDomain: "forma-studio-2026.firebaseapp.com",
   messagingSenderId: "869655507524"
 };

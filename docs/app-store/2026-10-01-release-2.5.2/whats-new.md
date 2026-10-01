@@ -1,8 +1,8 @@
-# Version 2.5.2 (Build 2026100101) — App Store Release Metadata & What's New
+# Version 2.5.2 (Build 2026100102) — App Store Release Metadata & What's New
 
 ## 1. Release Context
 Version 2.5.1 (Build 53) was approved and moved to "Ready for Sale", closing the 2.5.1 pre-release train on App Store Connect.
-Version 2.5.2 bumps `MARKETING_VERSION` to `2.5.2` and `CURRENT_PROJECT_VERSION` to `2026100101` to initiate a clean TestFlight pre-release train and resolve the Xcode Cloud archive distribution status.
+Version 2.5.2 bumps `MARKETING_VERSION` to `2.5.2` and `CURRENT_PROJECT_VERSION` to `2026100102` for Xcode Cloud test delivery and comprehensive secret key exclusion.
 
 ## 2. What's New in This Version (此版本的新增功能)
 
