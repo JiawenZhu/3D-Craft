@@ -48,7 +48,7 @@ These captures show one path through the current iOS source build. Token amounts
 | Concepts | Text or image references, generated concepts, and explicit image selection before 3D generation. |
 | Image to 3D | Atlas options including Tripo H3.1, Seed3D, Hunyuan, HI3D, and Meshy; fal options including Rodin, TRELLIS.2, Hunyuan3D, and hybrid. The iOS picker currently suggests Tripo H3.1. |
 | Animation | Atlas MiniMax H3, Seedance 2.0 Mini, Seedance 2.0, Seedance 2.5, and Wan 3.0 Prime; fal MiniMax H3 and Seedance 2.5. The iOS picker currently suggests Atlas MiniMax H3. |
-| Compare before choosing | The animation model selector is paired with a corresponding Dragon sample video. fal entries do not claim the Atlas sample is a fal result. The 3D confirmation view includes interactive sample meshes for supported models. |
+| Preview 3D model samples before generating | The 3D confirmation view lets creators inspect interactive sample meshes for supported engines before starting their own generation. Animation choices include Dragon sample videos, with the sample's provider identified clearly. |
 | Themes | Lavender and emerald are independent appearance choices. The lavender gallery uses the blue dragon; the emerald gallery uses the lantern explorer. |
 | Games | Built-in browser games, game-building handoff, and community-submitted game links with review, voting, and reporting controls. |
 | Accounts and billing | Firebase accounts and cloud library; weekly/monthly Creator subscriptions and separate one-time Token packs through Apple purchases and RevenueCat. |
@@ -77,7 +77,7 @@ Firebase Hosting serves the web build and rewrites <code>/api/**</code> to the <
 
 Signed-in users can create scoped, expiring <code>craft_live_</code> keys in the app, view the full key once, and revoke it later. The server stores a hash of the key. API calls use the account's production Token balance; Apple Sandbox Test Tokens cannot be spent through API keys. Keep keys out of repositories and client-side environment variables.
 
-The API works with scripts or clients that support custom HTTP requests, a Bearer key, and the [OpenAPI specification](https://3d-craft.web.app/api/v1/openapi.json). ChatGPT, Claude, Muse, and other chat apps are **not built-in integrations**; whether a particular client can use the API depends on its own custom-tool support.
+The API works with scripts or clients that support custom HTTP requests, a Bearer key, and the [OpenAPI specification](https://3d-craft.web.app/api/v1/openapi.json). Creators can generate and retrieve 3D objects, create revised versions from new prompts or selected concepts, rename or delete owned assets, and generate animations from prompts, concepts, or existing assets.
 
 | Endpoint | Purpose |
 | --- | --- |
