@@ -1,6 +1,6 @@
 # 3D Craft — Devpost gallery
 
-The public gallery uses five actual iPhone captures from the [README creation walkthrough](../../../README.md#an-iphone-creation-step-by-step). They show the path from an idea to a selected concept, a quoted 3D job, and a finished model. Captions identify the captures as the current iOS source build; Token amounts visible in screenshots are examples from that session.
+The public gallery uses five actual iPhone captures from the [README creation walkthrough](../../../README.md#3d-object-creation-from-idea-to-finished-model). They show the path from an idea to a selected concept, a quoted 3D job, and a finished model. Captions identify the captures as the current iOS source build; Token amounts visible in screenshots are examples from that session.
 
 | Order | README image | Public gallery caption | Devpost photo ID |
 | --- | --- | --- | --- |

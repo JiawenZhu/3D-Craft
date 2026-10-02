@@ -28,7 +28,7 @@
 
 Creation and animation are separate actions: selecting a concept does not silently spend Tokens on a 3D model. Work runs as a background job and its status can be revisited from the app.
 
-### An iPhone creation, step by step
+### 3D object creation: from idea to finished model
 
 These captures show one path through the current iOS source build. Token amounts shown in the screens are examples from that session; the app requests a fresh quote for each model and setting.
 
