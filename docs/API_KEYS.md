@@ -1,291 +1,63 @@
-# 3D Craft User-Authorized API Keys
+# 3D Craft API keys
 
-User-authorized account API keys allow external coding agents (Claude, ChatGPT, Muse, or custom automation scripts) to utilize 3D Craft's Gemini prompt planning, concept image generation, and cloud 3D reconstruction pipeline.
+3D Craft's API lets a creator use their own account from a script or compatible HTTP client. It can create concept images, generate and retrieve 3D objects, make revised versions, generate animations, and manage owned assets. Work created through the API appears in the same account library as work created in the app.
 
-Token spending is charged directly to the authorizing user's 3D Craft wallet.
+- **API base:** `https://3d-craft.web.app`
+- **Full route and request reference:** [OpenAPI specification](https://3d-craft.web.app/api/v1/openapi.json)
 
----
+## Before you start
 
-## 1. Security & Storage Architecture
+1. Sign in to 3D Craft and create a personal API key in the app. Choose only the permissions your workflow needs, and set an expiration when appropriate.
+2. Copy the key when it is shown. Store it in a secret manager or a private environment variable; the full key is not shown again.
+3. Check the current model choices and request a Token quote for the exact settings you intend to use.
+4. Send generation requests with a unique idempotency key and a spending cap based on that quote. Poll the returned job ID for progress and results.
+5. Revoke the key in the app when you no longer need it, or immediately if it may have been exposed.
 
-1. **Bearer Token Format**: High-entropy cryptographically random string starting with `craft_live_` (e.g. `craft_live_b82a...`).
-2. **One-Time Plaintext Issuance**: The secret plaintext key is returned strictly once upon generation. It is **never** saved to Firebase, browser persistent storage, local logs, or git.
-3. **Server-Side Storage**: Firestore stores only the SHA-256 cryptographic hash (`keyHash`) in the server-only collection `/apiKeys/{keyHash}` along with non-sensitive metadata (truncated prefix `craft_live_xxxxxx...`, user-assigned name, owner UID, scopes, timestamps, revoked status).
-4. **Firestore Security Rules**: Direct client SDK reads and writes to `/apiKeys` and `/rateQuotas` are denied completely (`allow read, write: if false;`). Key management is only possible through server endpoints verifying the user's Firebase ID token.
-5. **Atomic Concurrency Protection**: Each account is bounded to a maximum of **5 active keys**. Enforcement uses an atomic Firestore transaction against `/users/{uid}/private/apiKeysIndex`.
-6. **Distributed Rate Quotas**: Cloud Run safe rate limiting is tracked per key in Firestore (`/rateQuotas/{keyHash}`) using transactional minute-window counters (60 requests/minute default).
-7. **Authentication & Fail-Closed**: Every request validates:
-   - Key exists and is not revoked.
-   - Key is not expired.
-   - Owner UID is not in `/accountDeletions/{uid}` (fail closed).
-   - Owner Firebase Auth user exists and is not disabled (`auth.get_user`).
-   - Key possesses the required scope for the route.
-8. **Owner Isolation**: Keys resolve to the owner's Firebase UID (`firebase:<uid>`). All creation, project, and asset access is strictly isolated to the owning UID.
-9. **Production Billing**: API keys spend the production ledger; client keys cannot turn on sandbox mode. Only accounts listed in the server's `CRAFT_API_SANDBOX_UIDS` (internal testers) follow their TestFlight billing context instead.
-10. **Permanent Deletion Is Opt-In**: `assets:delete` is never implied by full access (`*`). A key can only delete if it was created with that scope.
-11. **Account Deletion**: When an account deletion is processed, all keys and rate quota records for the owner UID are deleted.
+API jobs use the signed-in account's production Token balance. Prices and supported models can change, so use the API's current quote rather than copying a Token amount from an example or screenshot.
 
----
+## What you can do
 
-## 2. Key Management Contract (For Claude Code Web & iOS UI)
+| Goal | Common route | Permission |
+| --- | --- | --- |
+| Discover available 3D and animation models | `GET /api/v1/models` | `assets:read` |
+| Review model pricing | `GET /api/v1/pricing` | `assets:read` |
+| Quote a concept-to-3D creation | `GET /api/v1/creations/quote` | `assets:read` |
+| Create a concept image and 3D model | `POST /api/v1/creations` | `models:write` |
+| Follow a creation | `GET /api/v1/creations/{id}` | `assets:read` |
+| Quote an animation | `GET /api/v1/animations/quote` | `assets:read` |
+| Create an animation | `POST /api/v1/animations` | `animations:write` |
+| List or download owned assets | `GET /api/v1/assets`, `GET /api/v1/assets/{id}/download` | `assets:read` |
+| Rename an owned asset | `PATCH /api/v1/assets/{id}` | `models:write` |
+| Delete an owned asset | `DELETE /api/v1/assets/{id}` | `assets:delete` |
 
-All key management endpoints **require a verified Firebase ID Token** (`Authorization: Bearer <firebase_id_token>`).
-API keys (`craft_live_...`) are strictly prohibited from calling these endpoints (fails with `403 Forbidden`).
+Use the [OpenAPI specification](https://3d-craft.web.app/api/v1/openapi.json) for the complete route list, required fields, supported model IDs, and response shapes. Asset management affects only assets owned by the account associated with the key. Deletion needs its own permission; choose it only when the client needs to remove assets.
 
-### Create Key
-- **Endpoint**: `POST /api/keys`
-- **Headers**:
-  - `Authorization: Bearer <Firebase_ID_Token>`
-  - `Content-Type: application/json`
-- **Request Body**:
-  ```json
-  {
-    "name": "Claude Agent Key",
-    "scopes": ["*"],
-    "expiresInDays": 90
-  }
-  ```
-  *(Note: `expiresInDays` is optional or `null` for no expiration).*
-- **Response** (`200 OK` - **Only time plaintext is returned**):
-  ```json
-  {
-    "key": "craft_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "id": "key_1a2b3c4d5e6f7a8b",
-    "name": "Claude Agent Key",
-    "prefix": "craft_live_ab12cd...",
-    "scopes": ["*"],
-    "createdAt": 1740000000.0,
-    "expiresAt": 1747776000.0,
-    "warning": "Store this key securely now. You will not be able to view it again. Requests authenticated with this key use your account Tokens."
-  }
-  ```
+To make another version of a 3D object, start a new generation with a revised prompt or a different model using an existing project or concept. Renaming an asset changes its library label; it does not edit the geometry of an existing GLB.
 
-### List Key Metadata
-- **Endpoint**: `GET /api/keys`
-- **Headers**: `Authorization: Bearer <Firebase_ID_Token>`
-- **Response** (`200 OK`):
-  ```json
-  {
-    "keys": [
-      {
-        "id": "key_1a2b3c4d5e6f7a8b",
-        "name": "Claude Agent Key",
-        "prefix": "craft_live_ab12cd...",
-        "scopes": ["*"],
-        "createdAt": 1740000000.0,
-        "expiresAt": 1747776000.0,
-        "revoked": false,
-        "revokedAt": null,
-        "lastUsedAt": 1740000120.0
-      }
-    ]
-  }
-  ```
+## Read-only example
 
-### Revoke Key
-- **Endpoint**: `DELETE /api/keys/{key_id}` (or `POST /api/keys/{key_id}/revoke`)
-- **Headers**: `Authorization: Bearer <Firebase_ID_Token>`
-- **Response** (`200 OK`):
-  ```json
-  {
-    "status": "revoked",
-    "id": "key_1a2b3c4d5e6f7a8b"
-  }
-  ```
+Set `CRAFT_API_KEY` privately in your environment or secret manager before running these commands. The example reads model choices and your asset list; it does not start a paid generation.
 
----
-
-## 3. External Agent Pipeline API (`/api/v1/`)
-
-API keys are accepted **ONLY** on explicit `/api/v1/` routes. They cannot access `/api/mobile/**`, `/api/billing/**`, `/api/purchases/**`, or admin/deletion endpoints.
-
-### Allowed Routes & Scopes
-
-| Method | Endpoint | Required Scope | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/wallet` | `wallet:read` | Check account Token balance & ledger (production only). |
-| `GET` | `/api/v1/image-models` | `assets:read` | List concept image generation models & token quotes. |
-| `GET` | `/api/v1/planning/quote` | `assets:read` | Get token quote for prompt assistance. |
-| `GET` | `/api/v1/pricing` | `assets:read` | 3D and video model IDs, provider rates, and supported video resolutions. |
-| `GET` | `/api/v1/models` | `assets:read` | Selectable model IDs, provider availability, resolutions, and quote links. |
-| `GET` | `/api/v1/projects` | `assets:read` | List user's studio projects. |
-| `POST` | `/api/v1/projects` | `concepts:write` | Create a new project (Form: `prompt`, `name`, `style`, `image`). |
-| `POST` | `/api/v1/projects/{id}/references` | `prompt:write` | Add reference image to project. |
-| `POST` | `/api/v1/projects/{id}/concepts` | `concepts:write` | Generate concept images (JSON: `ConceptRequest`). |
-| `POST` | `/api/v1/concepts/{id}/refine` | `concepts:write` | Refine existing concept image. |
-| `POST` | `/api/v1/concepts/{id}/model-prompt` | `prompt:write` | Gemini 3.8 Flash prompt planning for 3D model (from image). |
-| `POST` | `/api/v1/planning/prompt` | `prompt:write` | Gemini standalone text prompt planning (no image required). |
-| `POST` | `/api/v1/projects/{id}/chat` | `prompt:write` | Creative thinking prompt conversation. |
-| `GET` | `/api/v1/planning/{job_id}` | `assets:read` | Get status/result of prompt planning job. |
-| `POST` | `/api/v1/concepts/{id}/model` | `models:write` | Submit 3D reconstruction job (JSON: `ModelRequest`). Requires `models:write`. |
-| `GET` | `/api/v1/jobs` | `assets:read` | List reconstruction and concept jobs. |
-| `GET` | `/api/v1/jobs/{ident}` | `assets:read` | Poll job status, progress, and download GLB model URL. |
-| `GET` | `/api/v1/assets` | `assets:read` | List owned 3D objects, videos and concept images with download links and recorded model IDs. |
-| `GET` | `/api/v1/assets/{asset_id}` | `assets:read` | Read one owned asset and its download link. |
-| `GET` | `/api/v1/assets/{asset_id}/download` | `assets:read` | **Direct bearer-key download** for GLB, MP4, or concept image. |
-| `GET` | `/api/v1/creations/quote` | `assets:read` | Maximum Tokens for one image + one 3D model. |
-| `POST` | `/api/v1/creations` | `models:write` | **One step**: prompt → concept image → 3D model. `projectId` reprompts an existing project. |
-| `GET` | `/api/v1/creations/{id}` | `assets:read` | Poll stage (`concepts` → `model` → `done`/`failed`), progress and download links. |
-| `GET` | `/api/v1/projects/{id}` | `assets:read` | One project with its images, conversation, jobs and 3D models. |
-| `PATCH` | `/api/v1/projects/{id}` | `concepts:write` | Rename a project (JSON: `{"name": "..."}`). |
-| `GET` | `/api/v1/concepts/{id}/image` | `assets:read` | **Direct bearer-key download** of a concept image (JPEG). |
-| `DELETE` | `/api/v1/projects/{id}` | `assets:delete` | **Permanently** delete a project with all its images, jobs and 3D models. |
-| `DELETE` | `/api/v1/concepts/{id}` | `assets:delete` | **Permanently** delete one image. 3D models made from it keep working. |
-| `PATCH` | `/api/v1/assets/{id}` | `models:write` | Rename a 3D object, video, or concept image. |
-| `POST` | `/api/v1/assets/{id}/archive` | `assets:delete` | Archive an asset for up to 30 days. |
-| `POST` | `/api/v1/assets/{id}/restore` | `models:write` | Restore an archived asset. |
-| `GET` | `/api/v1/archive` | `assets:read` | List archived assets. |
-| `DELETE` | `/api/v1/assets/{id}` | `assets:delete` | **Permanently** delete a 3D object, video, or concept image. Source concepts are kept when a model or video is deleted. |
-| `GET` | `/api/v1/animations/quote` | `assets:read` | Tokens for a chosen video model, resolution and duration. |
-| `POST` | `/api/v1/concepts/{id}/animation` | `animations:write` | Animate one of your concept images. |
-| `POST` | `/api/v1/animations` | `animations:write` | Animate from a prompt, concept ID, or existing asset ID. |
-| `GET` | `/api/v1/animations/{id}` | `assets:read` | Poll video generation status. |
-| `GET` | `/api/v1/openapi.json` | None | Public OpenAPI 3.1 contract. |
-
-Everything created through the API appears in the user's 3D Craft app exactly like work made there: the prompt, images and 3D result show in the project's conversation. `GET /api/v1/assets` lists newest first.
-
-Choose an image-to-3D engine with the `engine` field. Atlas options are `tripo`, `seed3d`, `hunyuan-rapid`, `hunyuan-pro`, `hi3d-fast`, `hi3d-pro`, `hi3d-quality`, `hi3d-master`, `meshy-single`, and `meshy-multi`. fal options are `rodin`, `trellis-2`, `hunyuan3d-2.1`, and `hunyuan3d-2-white`. To create a new version, reuse `projectId` with a new prompt, or submit a different engine against an existing concept image. Request a fresh quote before each paid generation.
-
-Choose a video model with the `model` field. Atlas options are `atlas-seedance-2.0-mini`, `atlas-seedance-2.0`, `atlas-seedance-2.5`, `atlas-minimax-h3`, and `atlas-wan-3.0-prime`. fal options are `seedance-2.5` and `minimax-h3`. Atlas MiniMax H3 uses `768p` or `2K`; the other Atlas models use `480p` or `720p`. Atlas clips currently require square aspect and 4 or 6 seconds. The quote response reports whether the selected provider is available. If an Atlas model is unavailable, choose a fal model and request a new quote before generating; the API never switches providers or charges a different model without the caller choosing it.
-
-Deletes return `409` while a creation in that project is still running; retry once it finishes.
-
----
-
-## 4. Curl Examples for External Agents
-
-### Quick start: prompt to a downloaded 3D model
 ```bash
-KEY=craft_live_YOUR_KEY_HERE; API=https://3d-craft.web.app
+API=https://3d-craft.web.app
+: "${CRAFT_API_KEY:?Set CRAFT_API_KEY privately before running this example}"
 
-# 1. Price cap for one image + one 3D model
-CAP=$(curl -s "$API/api/v1/creations/quote" -H "Authorization: Bearer $KEY" | jq .maxTokens)
+curl --fail-with-body "$API/api/v1/models" \
+  -H "Authorization: Bearer $CRAFT_API_KEY"
 
-# 2. Create (use a new idempotencyKey per creation; retrying the same key never charges twice)
-ID=$(curl -s -X POST "$API/api/v1/creations" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d "{\"idempotencyKey\":\"agent-$(date +%s)\",\"prompt\":\"A small fire dragon toy\",\"maxTokens\":$CAP}" | jq -r .id)
-
-# 3. Poll until stage is done or failed (about 2-4 minutes)
-until curl -s "$API/api/v1/creations/$ID" -H "Authorization: Bearer $KEY" | tee /tmp/c.json | jq -e '.stage=="done" or .stage=="failed"' >/dev/null; do sleep 10; done
-
-# 4. Download the model and its concept image
-curl -s "$API$(jq -r .asset.downloadUrl /tmp/c.json)" -H "Authorization: Bearer $KEY" -o dragon.glb
-curl -s "$API$(jq -r '.concepts[0].imageUrl' /tmp/c.json)" -H "Authorization: Bearer $KEY" -o dragon.jpg
+curl --fail-with-body "$API/api/v1/assets" \
+  -H "Authorization: Bearer $CRAFT_API_KEY"
 ```
 
-### Animate a character into a looping clip
-```bash
-# Price the exact model and settings you intend to use
-curl -s "$API/api/v1/animations/quote?model=atlas-minimax-h3&resolution=768p&duration=4&aspect=1:1" \
-  -H "Authorization: Bearer $KEY"
+For a paid creation, first request a quote for the same engine and settings. Pass the returned maximum Token amount as `maxTokens` in the creation request, along with a unique `idempotencyKey`. Check `GET /api/v1/creations/{id}` until the job finishes. Animation follows the same quote-then-create pattern through the animation routes. The [README](../README.md#personal-api-keys) has a short creation example.
 
-# Animate an image you already own; poll /jobs/{id} until status is done
-curl -s -X POST "$API/api/v1/concepts/CONCEPT_ID/animation" -H "Authorization: Bearer $KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"idempotencyKey":"agent-anim-0001","model":"atlas-minimax-h3","resolution":"768p","duration":"4","aspect":"1:1","motion":"it waves and smiles","maxTokens":200}'
+## Key management and safe use
 
-# The finished loop downloads like any other creation
-curl -s "$API/api/v1/assets/ANIMATION_JOB_ID/download" -H "Authorization: Bearer $KEY" -o character.mp4
-```
+Personal keys are created, listed, and revoked from a signed-in account in the app. A personal API key cannot create more keys.
 
-### Reprompt, rename and delete
-```bash
-# Reprompt: a new image + 3D model in the same project (it shows as the next step of that conversation)
-curl -s -X POST "$API/api/v1/creations" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"idempotencyKey":"agent-reprompt-0001","projectId":"PROJECT_ID","prompt":"Same dragon, but blue ice","maxTokens":CAP}'
+- Keep keys out of repositories, screenshots, issue reports, browser code, and public chat messages.
+- Send keys only to the 3D Craft API over HTTPS, in an `Authorization: Bearer` header. Do not put a key in a URL.
+- Use the narrowest permissions needed. A read-only client does not need generation or deletion access.
+- If a key is disclosed, revoke it and create a replacement. Do not rely on deleting the message or commit that exposed it.
 
-# Rename
-curl -s -X PATCH "$API/api/v1/projects/PROJECT_ID" -H "Authorization: Bearer $KEY" \
-  -H "Content-Type: application/json" -d '{"name":"Ice dragon"}'
-
-# Rename an individual model or video
-curl -s -X PATCH "$API/api/v1/assets/ASSET_ID" -H "Authorization: Bearer $KEY" \
-  -H "Content-Type: application/json" -d '{"name":"Ice dragon animation"}'
-
-# Permanently delete (key must have the assets:delete scope)
-curl -s -X DELETE "$API/api/v1/projects/PROJECT_ID" -H "Authorization: Bearer $KEY"
-```
-
-### 1. Check Wallet Balance
-```bash
-curl -s -X GET "https://3d-craft.web.app/api/v1/wallet" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE"
-```
-
-### 2. Standalone Text Prompt Planning
-```bash
-curl -s -X POST "https://3d-craft.web.app/api/v1/planning/prompt" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "idempotencyKey": "agent-plan-0001",
-    "prompt": "A mechanical steampunk owl with brass clockwork wings and amber eyes",
-    "maxTokens": 10
-  }'
-```
-
-### 3. Generate Concept Images
-```bash
-curl -s -X POST "https://3d-craft.web.app/api/v1/projects/PROJECT_ID/concepts" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "idempotencyKey": "agent-concept-0001",
-    "prompt": "A stylized stone dragon guardian, clean 3D silhouette, game ready",
-    "count": 1,
-    "maxTokens": 40
-  }'
-```
-
-### 4. Submit 3D Reconstruction
-```bash
-curl -s -X POST "https://3d-craft.web.app/api/v1/concepts/CONCEPT_ID/model" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "idempotencyKey": "agent-model-0001",
-    "engine": "rodin",
-    "quality": "default",
-    "effort": "high"
-  }'
-```
-
-### 5. Check Job Status
-```bash
-curl -s -X GET "https://3d-craft.web.app/api/v1/jobs/JOB_ID" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE"
-```
-
-### 6. List Owned Assets & Direct Binary Download
-```bash
-# List assets
-curl -s -X GET "https://3d-craft.web.app/api/v1/assets" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE"
-
-# Direct bearer-key binary download of the .glb model
-curl -s -L -X GET "https://3d-craft.web.app/api/v1/assets/ASSET_ID/download" \
-  -H "Authorization: Bearer craft_live_YOUR_KEY_HERE" \
-  -o model.glb
-```
-
----
-
-## 5. Third-Party Agent Integration Notes
-
-- **Claude / OpenAI Custom GPT**: Import the OpenAPI schema directly from `https://3d-craft.web.app/api/v1/openapi.json`. Set authentication to `Bearer <API Key>`.
-- **Muse**: [Muse from Meta](https://muse.ai/join) does not currently document an arbitrary consumer API key gateway. Direct integration compatibility is unverified. Third-party agents should use standard HTTP clients or custom tool declarations with the provided OpenAPI contract.
-
----
-
-## 6. Required Deployment Commands
-
-When ready to deploy (to be executed by parent/deployer):
-
-1. **Deploy Firestore Rules**:
-   ```bash
-   firebase deploy --only firestore:rules
-   ```
-2. **Build and Deploy Cloud Run API (`craft-api`)**:
-   ```bash
-   gcloud builds submit --config=deploy/cloud-api/cloudbuild.yaml .
-   ```
+Use the [OpenAPI specification](https://3d-craft.web.app/api/v1/openapi.json) as the reference for client integration.
