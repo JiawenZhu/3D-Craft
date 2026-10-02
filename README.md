@@ -28,6 +28,20 @@
 
 Creation and animation are separate actions: selecting a concept does not silently spend Tokens on a 3D model. Work runs as a background job and its status can be revisited from the app.
 
+### An iPhone creation, step by step
+
+These captures show one path through the current iOS source build. Token amounts shown in the screens are examples from that session; the app requests a fresh quote for each model and setting.
+
+| Start with an idea | Refine it together |
+| --- | --- |
+| <img src="docs/screenshots/2026-10-01-ios-creation-flow/01-character-gallery.png" width="260" alt="Character gallery with example creations and a prompt field" /><br>Browse example characters or start from a written idea. | <img src="docs/screenshots/2026-10-01-ios-creation-flow/02-refine-idea.png" width="260" alt="Conversation refining the baby dragon idea before creation" /><br>Shape the character in the creation conversation. |
+| **Review the concept request** | **Choose a concept** |
+| <img src="docs/screenshots/2026-10-01-ios-creation-flow/03-concept-quote.png" width="260" alt="Concept generation sheet showing image count, editable prompt, and Token quote" /><br>Set the image count and prompt, then review the Token quote. | <img src="docs/screenshots/2026-10-01-ios-creation-flow/04-selected-concept.png" width="260" alt="Selected lava dragon concept with separate 3D and animation actions" /><br>Keep the concept you want before choosing a 3D or animation action. |
+| **Confirm the 3D job** | **Follow its progress** |
+| <img src="docs/screenshots/2026-10-01-ios-creation-flow/05-confirm-3d.png" width="260" alt="3D confirmation screen with the selected dragon image, engine, and Token quote" /><br>Inspect the source image, engine, and quote before generating. | <img src="docs/screenshots/2026-10-01-ios-creation-flow/06-3d-progress.png" width="260" alt="Background 3D reconstruction progress with stages and selected concept" /><br>Return to the job as the model is reconstructed. |
+| **Inspect the result** | |
+| <img src="docs/screenshots/2026-10-01-ios-creation-flow/07-finished-3d-studio.png" width="260" alt="Finished lava dragon in the interactive 3D studio with lighting and material controls" /><br>Rotate, zoom, change lighting, and inspect material or wire views. | |
+
 | Area | Current implementation |
 | --- | --- |
 | iOS studio | SwiftUI with an interactive SceneKit/GLTFKit2 model viewer, lighting controls, and material/solid/wire views. |
